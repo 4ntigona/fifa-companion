@@ -161,3 +161,9 @@ CREATE TABLE IF NOT EXISTS captures (
   applied INTEGER NOT NULL DEFAULT 0,      -- já convertido em registros?
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS server_backups (
+  code TEXT PRIMARY KEY,
+  backup_json TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

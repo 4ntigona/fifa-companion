@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
+import { exportBackup, importBackup, storageUsage, shareBackupOnServer, recoverBackupFromServer } from '../store'
 
 type AiProvider = 'anthropic' | 'openai' | 'gemini' | 'openrouter'
 
@@ -50,6 +51,7 @@ export default function SettingsPage() {
 
       {data && <AiSection ai={data.ai} onSaved={invalidate} />}
       <KaggleSection data={data?.kaggle} onSaved={invalidate} />
+      <BackupSection />
     </div>
   )
 }
@@ -240,6 +242,146 @@ function KaggleSection({ data, onSaved }: { data?: SettingsData['kaggle']; onSav
           </span>
         )}
       </div>
+    </section>
+  )
+}
+
+function BackupSection() {
+  const [importStatus, setImportStatus] = useState<{ ok: boolean; message: string } | null>(null)
+  const [shareCode, setShareCode] = useState<string | null>(null)
+  const [recoverCode, setRecoverCode] = useState('')
+  const [loadingShare, setLoadingShare] = useState(false)
+  const [loadingRecover, setLoadingRecover] = useState(false)
+  const usage = storageUsage()
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportStatus(null)
+    try {
+      const res = await importBackup(file)
+      setImportStatus({
+        ok: true,
+        message: `✓ Sucesso! ${res.careers} carreiras e ${res.players} jogadores carregados. Atualizando...`,
+      })
+      setTimeout(() => window.location.reload(), 1500)
+    } catch (err: any) {
+      setImportStatus({
+        ok: false,
+        message: `✖ Erro ao importar: ${err.message || err}`,
+      })
+    }
+  }
+
+  const handleShare = async () => {
+    setLoadingShare(true)
+    setShareCode(null)
+    try {
+      const code = await shareBackupOnServer()
+      setShareCode(code)
+    } catch (err: any) {
+      alert(`Erro ao gerar chave de sincronização: ${err.message || err}`)
+    } finally {
+      setLoadingShare(false)
+    }
+  }
+
+  const handleRecover = async () => {
+    if (!recoverCode.trim()) return
+    setLoadingRecover(true)
+    setImportStatus(null)
+    try {
+      const res = await recoverBackupFromServer(recoverCode)
+      setImportStatus({
+        ok: true,
+        message: `✓ Sucesso! ${res.careers} carreiras e ${res.players} jogadores recuperados. Atualizando...`,
+      })
+      setTimeout(() => window.location.reload(), 1500)
+    } catch (err: any) {
+      setImportStatus({
+        ok: false,
+        message: `✖ Erro ao recuperar: ${err.message || err}`,
+      })
+    } finally {
+      setLoadingRecover(false)
+    }
+  }
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    return `${(bytes / 1024).toFixed(2)} KB`
+  }
+
+  return (
+    <section className="card space-y-4 p-6">
+      <h2 className="text-lg font-semibold text-ink">Backup e Sincronização de Dados (LocalStorage)</h2>
+      <p className="text-sm text-slate-ink">
+        Como os dados da sua carreira ficam salvos localmente no navegador ({formatSize(usage.bytes)} em uso),
+        use as opções abaixo para transferir o progresso entre dispositivos ou mantê-los seguros.
+      </p>
+
+      <div className="grid gap-6 border-t border-hairline pt-4 md:grid-cols-2">
+        {/* Backup via arquivo */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-ink">Backup por Arquivo (.json)</h3>
+          <p className="text-xs text-steel">
+            Baixe seus dados em um arquivo local ou restaure-os manualmente a qualquer momento.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button onClick={exportBackup} className="btn-secondary">
+              Exportar Arquivo
+            </button>
+            <label className="btn-secondary cursor-pointer relative">
+              Importar Arquivo
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImportFile}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* Sincronização em nuvem via código */}
+        <div className="space-y-2 border-t border-hairline pt-4 md:border-t-0 md:border-l md:border-hairline md:pl-6 md:pt-0">
+          <h3 className="text-sm font-semibold text-ink">Sincronização na Nuvem (VPS)</h3>
+          <p className="text-xs text-steel">
+            Gere uma chave única legível para carregar seus dados na sua VPS e sincronizá-los em outro dispositivo sem arquivos.
+          </p>
+
+          <div className="flex flex-col gap-3 pt-1">
+            <div className="flex items-center gap-2">
+              <button onClick={handleShare} disabled={loadingShare} className="btn-primary">
+                {loadingShare ? 'Gerando...' : 'Gerar Chave de Sincronização'}
+              </button>
+              {shareCode && (
+                <div className="bg-navy px-3 py-1.5 font-mono text-sm font-bold text-white tracking-widest">
+                  {shareCode}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                value={recoverCode}
+                onChange={(e) => setRecoverCode(e.target.value)}
+                placeholder="Código (ex: H5F9X2)"
+                className="input text-sm font-mono uppercase"
+              />
+              <button onClick={handleRecover} disabled={loadingRecover || !recoverCode.trim()} className="btn-secondary whitespace-nowrap">
+                {loadingRecover ? 'Baixando...' : 'Restaurar via Chave'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {importStatus && (
+        <div className={`mt-3 p-3 text-sm ${importStatus.ok ? 'bg-tint-mint text-charcoal' : 'bg-tint-rose text-charcoal'}`}>
+          {importStatus.message}
+        </div>
+      )}
     </section>
   )
 }

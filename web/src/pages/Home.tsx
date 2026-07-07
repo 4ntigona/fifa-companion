@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api, versionLabel, type Career, type VersionInfo } from '../api/client'
+import { listCareers } from '../store'
 
 interface ImportStatus {
   running: boolean
@@ -18,7 +19,7 @@ export default function Home() {
 
   const { data: careersData } = useQuery({
     queryKey: ['careers'],
-    queryFn: () => api<{ careers: Career[] }>('/api/careers'),
+    queryFn: () => listCareers(),
   })
   const { data: versionsData } = useQuery({
     queryKey: ['versions'],

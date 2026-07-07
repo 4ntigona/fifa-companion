@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { api, type Career, type ExtractedPlayer, type VisionResult } from '../api/client'
+import { getCareer, createCareerPlayer, addSnapshot } from '../store'
 
 const SCREEN_LABEL: Record<string, string> = {
   elenco: 'Elenco', perfil_jogador: 'Perfil de jogador', base_olheiros: 'Base/Olheiros',
@@ -18,7 +19,7 @@ export default function CapturePage() {
 
   const { data: careerData } = useQuery({
     queryKey: ['career', id],
-    queryFn: () => api<{ career: Career }>(`/api/careers/${id}`),
+    queryFn: () => getCareer(Number(id)),
   })
   const career = careerData?.career
 
@@ -117,31 +118,25 @@ function ReviewPanel(props: { captureId: number; extracted: VisionResult; career
     setError(null)
     try {
       for (const row of rows.filter((r) => r.include)) {
-        const created = await api<{ id: number }>('/api/career-players', {
-          method: 'POST',
-          body: JSON.stringify({
-            careerId: career.id,
-            origin: row.destination === 'snapshot' ? 'youth' : row.destination,
-            name: row.name,
-            positions: row.positions || '—',
-            age: row.age,
-            overallOriginal: row.overall,
-            potentialOriginal: row.potential,
-            notes: [row.notes, row.value ? `Valor visto: ${row.value}` : null].filter(Boolean).join(' · ') || undefined,
-            jerseyNumber: row.jerseyNumber,
-            status: row.destination === 'generated' ? 'elenco' : 'base',
-            inSquad: row.destination === 'generated',
-          }),
+        const created = createCareerPlayer({
+          careerId: career.id,
+          origin: row.destination === 'snapshot' ? 'youth' : row.destination,
+          name: row.name,
+          positions: row.positions || '—',
+          age: row.age,
+          overallOriginal: row.overall,
+          potentialOriginal: row.potential,
+          notes: [row.notes, row.value ? `Valor visto: ${row.value}` : null].filter(Boolean).join(' · ') || undefined,
+          jerseyNumber: row.jerseyNumber,
+          status: row.destination === 'generated' ? 'elenco' : 'base',
+          inSquad: row.destination === 'generated',
         })
         // Snapshot inicial datado — registra o estado visto na foto na temporada atual.
         if (row.overall != null || row.potential != null) {
-          await api(`/api/career-players/${created.id}/snapshots`, {
-            method: 'POST',
-            body: JSON.stringify({
-              season, dateIngame: date || undefined,
-              overall: row.overall, potential: row.potential,
-              position: row.positions, formNotes: 'Registrado por foto',
-            }),
+          addSnapshot(created.id, {
+            season, dateIngame: date || undefined,
+            overall: row.overall, potential: row.potential,
+            position: row.positions, formNotes: 'Registrado por foto',
           })
         }
       }

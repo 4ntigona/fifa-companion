@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import { api, fmtEur, versionLabel, type Career, type Prospect, type SofifaPlayer } from '../api/client'
+import { getCareer, listProspects, addProspect as addProspectLocal, updateProspect as updateProspectLocal, removeProspect as removeProspectLocal } from '../store'
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'CF', 'ST']
 const STATUS_LABEL: Record<Prospect['status'], string> = {
@@ -22,9 +23,10 @@ export default function ProspectsPage() {
 
   const { data: careerData } = useQuery({
     queryKey: ['career', id],
-    queryFn: () => api<{ career: Career }>(`/api/careers/${id}`),
+    queryFn: () => getCareer(Number(id)),
   })
-  const version = careerData?.career.fifa_version
+  const career = careerData?.career
+  const version = career?.fifa_version
 
   const params = new URLSearchParams({
     ...(q && { q }), ...(position && { position }), ...(maxAge && { maxAge }),
@@ -39,26 +41,26 @@ export default function ProspectsPage() {
 
   const { data: prospectsData } = useQuery({
     queryKey: ['prospects', id],
-    queryFn: () => api<{ prospects: Prospect[] }>(`/api/careers/${id}/prospects`),
+    queryFn: () => listProspects(Number(id)),
   })
   const prospects = prospectsData?.prospects ?? []
   const shortlistIds = new Set(prospects.map((p) => p.sofifa_player_id))
 
   const addProspect = useMutation({
-    mutationFn: (sofifaPlayerId: number) =>
-      api('/api/prospects', { method: 'POST', body: JSON.stringify({ careerId: Number(id), sofifaPlayerId }) }),
+    mutationFn: (player: SofifaPlayer) =>
+      Promise.resolve(addProspectLocal(Number(id), player)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['prospects', id] }),
   })
   const updateProspect = useMutation({
-    mutationFn: (p: { pid: number; status?: string; notes?: string; priority?: number }) =>
-      api(`/api/prospects/${p.pid}`, { method: 'PATCH', body: JSON.stringify(p) }),
+    mutationFn: (p: { pid: number; status?: any; notes?: string; priority?: number }) =>
+      Promise.resolve(updateProspectLocal(p.pid, { status: p.status, notes: p.notes, priority: p.priority })),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['prospects', id] })
       qc.invalidateQueries({ queryKey: ['career-players', id] })
     },
   })
   const removeProspect = useMutation({
-    mutationFn: (pid: number) => api(`/api/prospects/${pid}`, { method: 'DELETE' }),
+    mutationFn: (pid: number) => Promise.resolve(removeProspectLocal(pid)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['prospects', id] }),
   })
 
@@ -122,7 +124,7 @@ export default function ProspectsPage() {
                       <span className="text-stone"> → {p.potential}</span>
                     </div>
                     <button
-                      onClick={() => addProspect.mutate(p.player_id)}
+                      onClick={() => addProspect.mutate(p)}
                       disabled={shortlistIds.has(p.player_id)}
                       className="btn-primary px-3 py-1.5 text-[13px]"
                     >

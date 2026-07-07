@@ -410,3 +410,23 @@ export async function importBackup(file: File): Promise<{ careers: number; playe
 export function storageUsage(): { bytes: number } {
   return { bytes: (localStorage.getItem(STORAGE_KEY) ?? '').length }
 }
+
+export async function shareBackupOnServer(): Promise<string> {
+  const db = load()
+  const res = await api<{ code: string }>('/api/backups/share', {
+    method: 'POST',
+    body: JSON.stringify(db),
+  })
+  return res.code
+}
+
+export async function recoverBackupFromServer(code: string): Promise<{ careers: number; players: number }> {
+  const cleanCode = code.trim().toUpperCase()
+  if (!cleanCode) throw new Error('Por favor, informe um código de backup válido.')
+  const data = await api<LocalDb>(`/api/backups/recover/${cleanCode}`)
+  if (data?.version !== 1 || !Array.isArray(data.careers) || !Array.isArray(data.careerPlayers)) {
+    throw new Error('O backup recuperado do servidor possui formato inválido.')
+  }
+  save({ ...emptyDb(), ...data, ai: { ...emptyDb().ai, ...data.ai } })
+  return { careers: data.careers.length, players: data.careerPlayers.length }
+}

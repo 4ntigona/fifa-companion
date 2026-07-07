@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/api/client.ts","./src/pages/capture.tsx","./src/pages/career.tsx","./src/pages/home.tsx","./src/pages/newcareer.tsx","./src/pages/player.tsx","./src/pages/prospects.tsx","./src/pages/settings.tsx"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/store.ts","./src/api/client.ts","./src/pages/capture.tsx","./src/pages/career.tsx","./src/pages/home.tsx","./src/pages/newcareer.tsx","./src/pages/player.tsx","./src/pages/prospects.tsx","./src/pages/settings.tsx"],"version":"5.9.3"}
