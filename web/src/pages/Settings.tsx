@@ -1,25 +1,12 @@
-import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRef, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { api } from '../api/client'
+import {
+  getAiSettings, setAiSettings, PROVIDER_LABELS, DEFAULT_MODELS,
+  exportBackup, importBackup, storageUsage, type AiProvider,
+} from '../store'
 
-type AiProvider = 'anthropic' | 'openai' | 'gemini' | 'openrouter'
-
-interface ProviderInfo {
-  label: string
-  configured: boolean
-  masked: string | null
-  fromEnv: boolean
-  model: string
-  defaultModel: string
-}
-
-interface SettingsData {
-  ai: {
-    activeProvider: AiProvider
-    providers: Record<AiProvider, ProviderInfo>
-  }
-  kaggle: { configured: boolean; username: string | null; maskedKey: string | null }
-}
+const PROVIDERS: AiProvider[] = ['anthropic', 'openai', 'gemini', 'openrouter']
 
 const KEY_HINTS: Record<AiProvider, { url: string; placeholder: string }> = {
   anthropic: { url: 'https://console.anthropic.com/settings/keys', placeholder: 'sk-ant-…' },
@@ -28,28 +15,22 @@ const KEY_HINTS: Record<AiProvider, { url: string; placeholder: string }> = {
   openrouter: { url: 'https://openrouter.ai/settings/keys', placeholder: 'sk-or-…' },
 }
 
-export default function SettingsPage() {
-  const qc = useQueryClient()
-  const { data } = useQuery({
-    queryKey: ['settings'],
-    queryFn: () => api<SettingsData>('/api/settings'),
-  })
+const mask = (v?: string) => (v ? (v.length <= 8 ? '••••' : `${v.slice(0, 4)}…${v.slice(-4)}`) : null)
 
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ['settings'] })
-    qc.invalidateQueries({ queryKey: ['status'] })
-  }
+export default function SettingsPage() {
+  const [ai, setAi] = useState(getAiSettings())
+  const refresh = () => setAi(getAiSettings())
 
   return (
     <div className="space-y-6 pt-6">
       <h1 className="text-2xl font-semibold tracking-tight text-ink">Configurações</h1>
       <p className="text-sm text-slate-ink">
-        Os tokens ficam salvos apenas neste Mac (no banco local do app) e são usados só para
-        baixar a database do jogo (Kaggle) e analisar suas fotos (provedor de IA à sua escolha).
+        Suas carreiras e chaves de IA ficam salvas apenas neste dispositivo (no navegador).
+        Use o backup abaixo para levar os dados para outro aparelho.
       </p>
 
-      {data && <AiSection ai={data.ai} onSaved={invalidate} />}
-      <KaggleSection data={data?.kaggle} onSaved={invalidate} />
+      <AiSection ai={ai} onChange={refresh} />
+      <BackupSection />
     </div>
   )
 }
@@ -58,65 +39,59 @@ function StatusBadge({ ok, label }: { ok: boolean; label: string }) {
   return <span className={ok ? 'tag-green' : 'tag bg-tint-gray text-steel'}>{label}</span>
 }
 
-function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => void }) {
+function AiSection({ ai, onChange }: { ai: ReturnType<typeof getAiSettings>; onChange: () => void }) {
   const [selected, setSelected] = useState<AiProvider>(ai.activeProvider)
   const [key, setKey] = useState('')
   const [model, setModel] = useState('')
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
 
-  const info = ai.providers[selected]
+  const savedKey = ai.keys[selected]
+  const savedModel = ai.models[selected] || DEFAULT_MODELS[selected]
   const hints = KEY_HINTS[selected]
   const isActive = ai.activeProvider === selected
-
-  const save = useMutation({
-    mutationFn: () =>
-      api('/api/settings', {
-        method: 'PUT',
-        body: JSON.stringify({
-          provider: selected,
-          ...(key && { apiKey: key }),
-          ...(model !== '' && { model }),
-        }),
-      }),
-    onSuccess: () => { setKey(''); setModel(''); setTestResult(null); onSaved() },
-  })
-
-  const activate = useMutation({
-    mutationFn: () => api('/api/settings', { method: 'PUT', body: JSON.stringify({ activeProvider: selected }) }),
-    onSuccess: onSaved,
-  })
-
-  const test = useMutation({
-    mutationFn: () =>
-      api<{ ok: boolean; error?: string }>('/api/settings/test-ai', {
-        method: 'POST', body: JSON.stringify({ provider: selected }),
-      }),
-    onSuccess: setTestResult,
-  })
 
   function pick(p: AiProvider) {
     setSelected(p); setKey(''); setModel(''); setTestResult(null)
   }
+  function saveKeyModel() {
+    if (key) setAiSettings({ key: { provider: selected, value: key.trim() } })
+    if (model) setAiSettings({ model: { provider: selected, value: model.trim() } })
+    setKey(''); setModel(''); setTestResult(null); onChange()
+  }
+  function activate() {
+    setAiSettings({ activeProvider: selected }); onChange()
+  }
+  function clearKey() {
+    setAiSettings({ key: { provider: selected, value: '' } }); setTestResult(null); onChange()
+  }
+
+  const test = useMutation({
+    mutationFn: () =>
+      api<{ ok: boolean; error?: string }>('/api/test-ai', {
+        method: 'POST', body: JSON.stringify({ provider: selected, apiKey: savedKey ?? '' }),
+      }),
+    onSuccess: setTestResult,
+  })
 
   return (
     <section className="card space-y-3 p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-ink">IA — leitura de fotos (BYOK)</h2>
         <StatusBadge
-          ok={ai.providers[ai.activeProvider].configured}
-          label={`ativo: ${ai.providers[ai.activeProvider].label}`}
+          ok={Boolean(ai.keys[ai.activeProvider])}
+          label={`ativo: ${PROVIDER_LABELS[ai.activeProvider]}`}
         />
       </div>
       <p className="text-sm text-slate-ink">
         Traga sua própria chave do provedor que preferir. O app usa o provedor <b>ativo</b> para analisar
-        as fotos da tela do jogo.
+        as fotos da tela do jogo. As chaves ficam só neste dispositivo.
       </p>
 
       <div className="flex flex-wrap gap-2">
-        {(Object.keys(ai.providers) as AiProvider[]).map((p) => (
+        {PROVIDERS.map((p) => (
           <button key={p} onClick={() => pick(p)} className={selected === p ? 'pill-tab-active' : 'pill-tab'}>
-            {ai.providers[p].label}
-            {ai.providers[p].configured && ' ✓'}
+            {PROVIDER_LABELS[p]}
+            {ai.keys[p] && ' ✓'}
             {ai.activeProvider === p && ' · ativo'}
           </button>
         ))}
@@ -128,14 +103,12 @@ function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => voi
           <a href={hints.url} target="_blank" rel="noreferrer" className="text-link underline">
             {hints.url.replace('https://', '')}
           </a>
-          {info.configured && (
-            <> · salva: {info.fromEnv ? 'via server/.env' : info.masked}</>
-          )}
+          {savedKey && <> · salva: {mask(savedKey)}</>}
         </p>
         <input
           value={key}
           onChange={(e) => setKey(e.target.value)}
-          placeholder={info.configured ? `Chave (atual: ${info.masked ?? 'via .env'})` : hints.placeholder}
+          placeholder={savedKey ? `Chave (atual: ${mask(savedKey)})` : hints.placeholder}
           type="password"
           autoComplete="off"
           className="input"
@@ -143,23 +116,20 @@ function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => voi
         <input
           value={model}
           onChange={(e) => setModel(e.target.value)}
-          placeholder={`Modelo (atual: ${info.model})`}
+          placeholder={`Modelo (atual: ${savedModel})`}
           autoComplete="off"
           className="input"
         />
-        <p className="text-[13px] text-stone">O modelo precisa aceitar imagens. Padrão: {info.defaultModel}</p>
+        <p className="text-[13px] text-stone">O modelo precisa aceitar imagens. Padrão: {DEFAULT_MODELS[selected]}</p>
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => save.mutate()} disabled={(!key && !model) || save.isPending} className="btn-primary">
-            Salvar
-          </button>
-          <button onClick={() => test.mutate()} disabled={!info.configured || test.isPending} className="btn-secondary">
+          <button onClick={saveKeyModel} disabled={!key && !model} className="btn-primary">Salvar</button>
+          <button onClick={() => test.mutate()} disabled={!savedKey || test.isPending} className="btn-secondary">
             {test.isPending ? 'Testando…' : 'Testar chave'}
           </button>
           {!isActive && (
-            <button onClick={() => activate.mutate()} disabled={!info.configured || activate.isPending} className="btn-secondary">
-              Usar este provedor
-            </button>
+            <button onClick={activate} disabled={!savedKey} className="btn-secondary">Usar este provedor</button>
           )}
+          {savedKey && <button onClick={clearKey} className="btn-secondary">Remover chave</button>}
           {testResult && (
             <span className={`text-sm font-medium ${testResult.ok ? 'text-success' : 'text-error'}`}>
               {testResult.ok ? '✓ Chave válida' : testResult.error}
@@ -171,75 +141,37 @@ function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => voi
   )
 }
 
-function KaggleSection({ data, onSaved }: { data?: SettingsData['kaggle']; onSaved: () => void }) {
-  const [username, setUsername] = useState('')
-  const [key, setKey] = useState('')
-  const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
+function BackupSection() {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const kb = (storageUsage().bytes / 1024).toFixed(1)
 
-  const save = useMutation({
-    mutationFn: () =>
-      api('/api/settings', {
-        method: 'PUT',
-        body: JSON.stringify({
-          ...(username && { kaggleUsername: username }),
-          ...(key && { kaggleKey: key }),
-        }),
-      }),
-    onSuccess: () => { setUsername(''); setKey(''); setTestResult(null); onSaved() },
-  })
-  const test = useMutation({
-    mutationFn: () => api<{ ok: boolean; error?: string }>('/api/settings/test-kaggle', { method: 'POST' }),
-    onSuccess: setTestResult,
-  })
+  async function onImport(file: File | undefined) {
+    if (!file) return
+    if (!confirm('Importar um backup substitui TODOS os dados atuais deste dispositivo. Continuar?')) return
+    try {
+      const r = await importBackup(file)
+      setMsg({ ok: true, text: `Backup importado: ${r.careers} carreira(s), ${r.players} jogador(es). Recarregando…` })
+      setTimeout(() => location.reload(), 1200)
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message })
+    }
+  }
 
   return (
     <section className="card space-y-3 bg-surface-soft p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ink">
-          Kaggle — database do jogo <span className="font-normal text-stone">(opcional)</span>
-        </h2>
-        <StatusBadge ok={Boolean(data?.configured)} label={data?.configured ? 'configurado' : 'não necessário'} />
-      </div>
+      <h2 className="text-lg font-semibold text-ink">Backup — exportar / importar</h2>
       <p className="text-sm text-slate-ink">
-        O dataset é público e a importação funciona <b>sem conta</b>. Só preencha se o download automático
-        falhar algum dia (ex.: o Kaggle passar a exigir login): crie o token em{' '}
-        <a href="https://www.kaggle.com/settings" target="_blank" rel="noreferrer" className="text-link underline">kaggle.com/settings</a>{' '}
-        → API → <b>Create New Token</b> e copie o <code className="bg-surface px-1 text-[13px]">username</code> e a{' '}
-        <code className="bg-surface px-1 text-[13px]">key</code> do <code className="bg-surface px-1 text-[13px]">kaggle.json</code>.
+        Seus dados vivem neste navegador ({kb} KB). Exporte um arquivo <code className="bg-surface px-1 text-[13px]">.json</code>{' '}
+        para guardar ou transferir para outro dispositivo. Importar substitui os dados atuais.
       </p>
-      {data?.configured && (
-        <p className="text-[13px] text-steel">Salvo: usuário <b>{data.username}</b> · key {data.maskedKey}</p>
-      )}
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder={data?.username ? `Usuário (atual: ${data.username})` : 'Usuário do Kaggle'}
-          autoComplete="off"
-          className="input flex-1"
-        />
-        <input
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder={data?.maskedKey ? `Key (atual: ${data.maskedKey})` : 'Key do kaggle.json'}
-          type="password"
-          autoComplete="off"
-          className="input flex-1"
-        />
+      <input ref={fileRef} type="file" accept="application/json,.json" className="hidden"
+        onChange={(e) => onImport(e.target.files?.[0])} />
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => exportBackup()} className="btn-primary">Exportar backup</button>
+        <button onClick={() => fileRef.current?.click()} className="btn-secondary">Importar backup</button>
       </div>
-      <div className="flex items-center gap-2">
-        <button onClick={() => save.mutate()} disabled={(!username && !key) || save.isPending} className="btn-primary">
-          Salvar
-        </button>
-        <button onClick={() => test.mutate()} disabled={!data?.configured || test.isPending} className="btn-secondary">
-          {test.isPending ? 'Testando…' : 'Testar conexão'}
-        </button>
-        {testResult && (
-          <span className={`text-sm font-medium ${testResult.ok ? 'text-success' : 'text-error'}`}>
-            {testResult.ok ? '✓ Credenciais válidas' : testResult.error}
-          </span>
-        )}
-      </div>
+      {msg && <p className={`text-sm font-medium ${msg.ok ? 'text-success' : 'text-error'}`}>{msg.text}</p>}
     </section>
   )
 }

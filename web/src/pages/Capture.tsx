@@ -1,11 +1,28 @@
 import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { api, type Career, type ExtractedPlayer, type VisionResult } from '../api/client'
+import { analyzePhoto, type Career, type ExtractedPlayer, type VisionResult } from '../api/client'
+import { getCareer, getAiSettings, DEFAULT_MODELS, PROVIDER_LABELS, createCareerPlayer, addSnapshot } from '../store'
 
 const SCREEN_LABEL: Record<string, string> = {
   elenco: 'Elenco', perfil_jogador: 'Perfil de jogador', base_olheiros: 'Base/Olheiros',
   negociacao: 'Negociação', outro: 'Outra tela',
+}
+
+/** File → { base64, mediaType } normalizando para um dos formatos aceitos. */
+function fileToBase64(file: File): Promise<{ base64: string; mediaType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = String(reader.result)
+      const [meta, b64] = dataUrl.split(',')
+      const mime = meta.slice(meta.indexOf(':') + 1, meta.indexOf(';'))
+      const mediaType = /image\/(jpeg|png|webp)/.test(mime) ? mime : 'image/jpeg'
+      resolve({ base64: b64, mediaType })
+    }
+    reader.onerror = () => reject(new Error('Falha ao ler a imagem.'))
+    reader.readAsDataURL(file)
+  })
 }
 
 export default function CapturePage() {
@@ -13,28 +30,34 @@ export default function CapturePage() {
   const qc = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  const [result, setResult] = useState<{ captureId: number; extracted: VisionResult } | null>(null)
+  const [result, setResult] = useState<{ extracted: VisionResult } | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
 
   const { data: careerData } = useQuery({
     queryKey: ['career', id],
-    queryFn: () => api<{ career: Career }>(`/api/careers/${id}`),
+    queryFn: async () => getCareer(Number(id)),
   })
   const career = careerData?.career
 
+  const ai = getAiSettings()
+  const aiKey = ai.keys[ai.activeProvider]
+
   const upload = useMutation({
     mutationFn: async (file: File) => {
-      const fd = new FormData()
-      fd.append('careerId', String(id))
-      fd.append('image', file)
-      return api<{ id: number; extracted: VisionResult | null; error: string | null }>('/api/captures', {
-        method: 'POST', body: fd,
+      if (!aiKey) {
+        throw new Error(`Adicione a chave da ${PROVIDER_LABELS[ai.activeProvider]} em ⚙️ Configurações para analisar fotos.`)
+      }
+      const { base64, mediaType } = await fileToBase64(file)
+      return analyzePhoto({
+        provider: ai.activeProvider,
+        apiKey: aiKey,
+        model: ai.models[ai.activeProvider] || DEFAULT_MODELS[ai.activeProvider],
+        mediaType,
+        imageBase64: base64,
       })
     },
-    onSuccess: (r) => {
-      if (r.error) setAnalysisError(r.error)
-      else if (r.extracted) setResult({ captureId: r.id, extracted: r.extracted })
-    },
+    onSuccess: (extracted) => setResult({ extracted }),
+    onError: (e) => setAnalysisError((e as Error).message),
   })
 
   function onFile(file: File | undefined) {
@@ -78,8 +101,6 @@ export default function CapturePage() {
 
       {result && career && (
         <ReviewPanel
-          key={result.captureId}
-          captureId={result.captureId}
           extracted={result.extracted}
           career={career}
           onApplied={() => {
@@ -97,7 +118,7 @@ interface ReviewRow extends ExtractedPlayer {
   destination: 'generated' | 'youth' | 'regen' | 'snapshot'
 }
 
-function ReviewPanel(props: { captureId: number; extracted: VisionResult; career: Career; onApplied: () => void }) {
+function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied: () => void }) {
   const { extracted, career } = props
   const isSquadScreen = extracted.screenType === 'elenco'
   const [season, setSeason] = useState(career.current_season)
@@ -117,35 +138,28 @@ function ReviewPanel(props: { captureId: number; extracted: VisionResult; career
     setError(null)
     try {
       for (const row of rows.filter((r) => r.include)) {
-        const created = await api<{ id: number }>('/api/career-players', {
-          method: 'POST',
-          body: JSON.stringify({
-            careerId: career.id,
-            origin: row.destination === 'snapshot' ? 'youth' : row.destination,
-            name: row.name,
-            positions: row.positions || '—',
-            age: row.age,
-            overallOriginal: row.overall,
-            potentialOriginal: row.potential,
-            notes: [row.notes, row.value ? `Valor visto: ${row.value}` : null].filter(Boolean).join(' · ') || undefined,
-            jerseyNumber: row.jerseyNumber,
-            status: row.destination === 'generated' ? 'elenco' : 'base',
-            inSquad: row.destination === 'generated',
-          }),
+        const created = createCareerPlayer({
+          careerId: career.id,
+          origin: row.destination === 'snapshot' ? 'youth' : row.destination,
+          name: row.name,
+          positions: row.positions || '—',
+          age: row.age,
+          overallOriginal: row.overall,
+          potentialOriginal: row.potential,
+          notes: [row.notes, row.value ? `Valor visto: ${row.value}` : null].filter(Boolean).join(' · ') || undefined,
+          jerseyNumber: row.jerseyNumber,
+          status: row.destination === 'generated' ? 'elenco' : 'base',
+          inSquad: row.destination === 'generated',
         })
         // Snapshot inicial datado — registra o estado visto na foto na temporada atual.
         if (row.overall != null || row.potential != null) {
-          await api(`/api/career-players/${created.id}/snapshots`, {
-            method: 'POST',
-            body: JSON.stringify({
-              season, dateIngame: date || undefined,
-              overall: row.overall, potential: row.potential,
-              position: row.positions, formNotes: 'Registrado por foto',
-            }),
+          addSnapshot(created.id, {
+            season, dateIngame: date || undefined,
+            overall: row.overall, potential: row.potential,
+            position: row.positions, formNotes: 'Registrado por foto',
           })
         }
       }
-      await api(`/api/captures/${props.captureId}`, { method: 'PATCH', body: JSON.stringify({ applied: true }) })
       props.onApplied()
     } catch (e) {
       setError((e as Error).message)

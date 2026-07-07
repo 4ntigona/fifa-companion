@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { api, versionLabel, type Career, type VersionInfo } from '../api/client'
+import { api, versionLabel, type VersionInfo } from '../api/client'
+import { listCareers, getAiSettings, PROVIDER_LABELS, DEFAULT_MODELS } from '../store'
 
 interface ImportStatus {
   running: boolean
@@ -18,15 +19,11 @@ export default function Home() {
 
   const { data: careersData } = useQuery({
     queryKey: ['careers'],
-    queryFn: () => api<{ careers: Career[] }>('/api/careers'),
+    queryFn: async () => listCareers(),
   })
   const { data: versionsData } = useQuery({
     queryKey: ['versions'],
     queryFn: () => api<{ versions: VersionInfo[] }>('/api/versions'),
-  })
-  const { data: status } = useQuery({
-    queryKey: ['status'],
-    queryFn: () => api<{ visionAvailable: boolean; visionProvider: string; visionModel: string; kaggleConfigured: boolean; importedVersions: { v: number; players: number }[] }>('/api/status'),
   })
   const { data: importStatus } = useQuery({
     queryKey: ['import-status'],
@@ -56,6 +53,13 @@ export default function Home() {
   const careers = careersData?.careers ?? []
   const versions = versionsData?.versions ?? []
   const anyImported = versions.some((v) => v.imported)
+
+  // Disponibilidade de IA vem do localStorage (BYOK), não do servidor.
+  const ai = getAiSettings()
+  const aiKey = ai.keys[ai.activeProvider]
+  const visionAvailable = Boolean(aiKey)
+  const visionProvider = PROVIDER_LABELS[ai.activeProvider]
+  const visionModel = ai.models[ai.activeProvider] || DEFAULT_MODELS[ai.activeProvider]
 
   function toggleVersion(v: number) {
     setSelectedVersions((sel) => (sel.includes(v) ? sel.filter((x) => x !== v) : [...sel, v]))
@@ -171,11 +175,11 @@ export default function Home() {
 
       <section>
         <h2 className="mb-4 text-xl font-semibold tracking-tight text-ink">Câmera / IA</h2>
-        <div className={` p-5 text-sm ${status?.visionAvailable ? 'bg-tint-mint text-charcoal' : 'card bg-surface-soft text-slate-ink'}`}>
-          {status?.visionAvailable ? (
+        <div className={` p-5 text-sm ${visionAvailable ? 'bg-tint-mint text-charcoal' : 'card bg-surface-soft text-slate-ink'}`}>
+          {visionAvailable ? (
             <p>
-              <span className="font-semibold">Análise de fotos ativa</span> via {status.visionProvider}
-              {' '}(<code className="text-[13px]">{status.visionModel}</code>) — tire fotos da tela do jogo dentro de uma carreira.
+              <span className="font-semibold">Análise de fotos ativa</span> via {visionProvider}
+              {' '}(<code className="text-[13px]">{visionModel}</code>) — tire fotos da tela do jogo dentro de uma carreira.
             </p>
           ) : (
             <p>

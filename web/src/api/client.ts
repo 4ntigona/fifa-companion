@@ -11,6 +11,16 @@ export async function api<T = unknown>(path: string, init?: RequestInit): Promis
   return res.json() as Promise<T>
 }
 
+/** Análise de foto (stateless) no servidor, com BYOK vindo do localStorage. */
+export async function analyzePhoto(input: {
+  provider: string; apiKey: string; model: string; mediaType: string; imageBase64: string
+}): Promise<VisionResult> {
+  const r = await api<{ extracted: VisionResult }>('/api/analyze', {
+    method: 'POST', body: JSON.stringify(input),
+  })
+  return r.extracted
+}
+
 export const fmtEur = (v?: number | null) =>
   v == null ? '—' : v >= 1_000_000 ? `€${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `€${Math.round(v / 1000)}K` : `€${v}`
 

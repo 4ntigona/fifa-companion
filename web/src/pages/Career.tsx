@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { api, fmtEur, versionLabel, type Career, type CareerPlayer } from '../api/client'
+import { fmtEur, versionLabel, type CareerPlayer } from '../api/client'
+import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer } from '../store'
 
 export default function CareerPage() {
   const { id } = useParams()
@@ -12,11 +13,11 @@ export default function CareerPage() {
 
   const { data } = useQuery({
     queryKey: ['career', id],
-    queryFn: () => api<{ career: Career }>(`/api/careers/${id}`),
+    queryFn: async () => getCareer(Number(id)),
   })
   const { data: playersData } = useQuery({
     queryKey: ['career-players', id],
-    queryFn: () => api<{ players: CareerPlayer[] }>(`/api/careers/${id}/players`),
+    queryFn: async () => listCareerPlayers(Number(id)),
   })
 
   const career = data?.career
@@ -25,8 +26,8 @@ export default function CareerPage() {
   const youth = players.filter((p) => p.origin === 'youth' || p.origin === 'regen' || p.status === 'base')
 
   const updateSeason = useMutation({
-    mutationFn: (payload: { currentSeason?: string; currentDateIngame?: string }) =>
-      api(`/api/careers/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+    mutationFn: async (payload: { currentSeason?: string; currentDateIngame?: string }) =>
+      updateCareer(Number(id), payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['career', id] }); setEditingSeason(false) },
   })
 
@@ -193,18 +194,15 @@ function AddPlayerModal({ careerId, version, onClose }: { careerId: number; vers
   const [notes, setNotes] = useState('')
 
   const create = useMutation({
-    mutationFn: () =>
-      api('/api/career-players', {
-        method: 'POST',
-        body: JSON.stringify({
-          careerId, origin, name, positions: positions || '—',
-          age: age ? Number(age) : undefined,
-          overallOriginal: overall ? Number(overall) : undefined,
-          potentialOriginal: potential ? Number(potential) : undefined,
-          strengths: strengths || undefined, notes: notes || undefined,
-          status: origin === 'generated' ? 'elenco' : 'base',
-          inSquad: origin === 'generated',
-        }),
+    mutationFn: async () =>
+      createCareerPlayer({
+        careerId, origin, name, positions: positions || '—',
+        age: age ? Number(age) : undefined,
+        overallOriginal: overall ? Number(overall) : undefined,
+        potentialOriginal: potential ? Number(potential) : undefined,
+        strengths: strengths || undefined, notes: notes || undefined,
+        status: origin === 'generated' ? 'elenco' : 'base',
+        inSquad: origin === 'generated',
       }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['career-players', String(careerId)] }); onClose() },
   })

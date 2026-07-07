@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { aiProvider, providerKey, providerModel, PROVIDER_LABELS, type AiProvider } from '../settings.js'
+
+export const AI_PROVIDERS = ['anthropic', 'openai', 'gemini', 'openrouter'] as const
+export type AiProvider = (typeof AI_PROVIDERS)[number]
 
 export interface ExtractedPlayer {
   name: string
@@ -35,41 +37,27 @@ Em telas de olheiros/base o potencial costuma aparecer como faixa (ex. "78-92");
 
 const USER_TEXT = 'Analise esta foto de tela do modo carreira e extraia os dados visíveis.'
 
-export function visionAvailable(): boolean {
-  return Boolean(providerKey(aiProvider()))
-}
-
-export function visionInfo(): { provider: AiProvider; providerLabel: string; model: string; available: boolean } {
-  const provider = aiProvider()
-  return {
-    provider,
-    providerLabel: PROVIDER_LABELS[provider],
-    model: providerModel(provider),
-    available: Boolean(providerKey(provider)),
-  }
-}
-
-export async function analyzeCapture(imageBase64: string, mediaType: string): Promise<VisionResult> {
-  const provider = aiProvider()
-  const key = providerKey(provider)
-  if (!key) {
-    throw new Error(`Chave da ${PROVIDER_LABELS[provider]} não configurada — adicione em Configurações para usar a análise de fotos.`)
-  }
-  const model = providerModel(provider)
-
+/** Analisa a foto usando o provedor/chave/modelo fornecidos pelo cliente (BYOK, stateless). */
+export async function analyzeCapture(
+  provider: AiProvider,
+  apiKey: string,
+  model: string,
+  imageBase64: string,
+  mediaType: string,
+): Promise<VisionResult> {
   let text: string
   switch (provider) {
     case 'anthropic':
-      text = await callAnthropic(key, model, imageBase64, mediaType)
+      text = await callAnthropic(apiKey, model, imageBase64, mediaType)
       break
     case 'gemini':
-      text = await callGemini(key, model, imageBase64, mediaType)
+      text = await callGemini(apiKey, model, imageBase64, mediaType)
       break
     case 'openai':
-      text = await callOpenAiCompatible('https://api.openai.com/v1/chat/completions', key, model, imageBase64, mediaType)
+      text = await callOpenAiCompatible('https://api.openai.com/v1/chat/completions', apiKey, model, imageBase64, mediaType)
       break
     case 'openrouter':
-      text = await callOpenAiCompatible('https://openrouter.ai/api/v1/chat/completions', key, model, imageBase64, mediaType)
+      text = await callOpenAiCompatible('https://openrouter.ai/api/v1/chat/completions', apiKey, model, imageBase64, mediaType)
       break
   }
 
@@ -157,9 +145,8 @@ async function callGemini(key: string, model: string, b64: string, mediaType: st
 }
 
 /** Valida a chave de um provedor com uma chamada barata (lista de modelos). */
-export async function testProvider(provider: AiProvider): Promise<{ ok: boolean; error?: string }> {
-  const key = providerKey(provider)
-  if (!key) return { ok: false, error: 'Nenhuma chave configurada.' }
+export async function testProvider(provider: AiProvider, key: string): Promise<{ ok: boolean; error?: string }> {
+  if (!key) return { ok: false, error: 'Nenhuma chave informada.' }
   try {
     let res: Response
     switch (provider) {

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { api, fmtEur, versionLabel, type Career, type CareerPlayer } from '../api/client'
+import { fmtEur, versionLabel } from '../api/client'
+import { getCareerPlayer, addSnapshot } from '../store'
 
 export default function PlayerPage() {
   const { id } = useParams()
@@ -11,7 +12,7 @@ export default function PlayerPage() {
 
   const { data } = useQuery({
     queryKey: ['career-player', id],
-    queryFn: () => api<{ player: CareerPlayer; career: Career }>(`/api/career-players/${id}`),
+    queryFn: async () => getCareerPlayer(Number(id)),
   })
   if (!data) return <p className="pt-6 text-slate-ink">Carregando…</p>
   const { player: p, career } = data
@@ -166,15 +167,12 @@ function SnapshotModal(props: {
   const [notes, setNotes] = useState('')
 
   const create = useMutation({
-    mutationFn: () =>
-      api(`/api/career-players/${props.playerId}/snapshots`, {
-        method: 'POST',
-        body: JSON.stringify({
-          season, dateIngame: date || undefined,
-          overall: overall ? Number(overall) : undefined,
-          potential: potential ? Number(potential) : undefined,
-          position: position || undefined, formNotes: notes || undefined,
-        }),
+    mutationFn: async () =>
+      addSnapshot(props.playerId, {
+        season, dateIngame: date || undefined,
+        overall: overall ? Number(overall) : undefined,
+        potential: potential ? Number(potential) : undefined,
+        position: position || undefined, formNotes: notes || undefined,
       }),
     onSuccess: props.onSaved,
   })

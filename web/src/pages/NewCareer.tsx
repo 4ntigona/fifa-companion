@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api, fmtEur, type SofifaTeam, type VersionInfo } from '../api/client'
+import { createCareer } from '../store'
 
 interface CountryLeagues {
   country: string
@@ -61,23 +62,20 @@ export default function NewCareer() {
 
   const create = useMutation({
     mutationFn: () =>
-      api<{ id: number; squadLoaded: number }>('/api/careers', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: name || (teamType === 'created' ? createdName : teamsData?.teams.find((t) => t.team_id === teamId)?.team_name) || 'Carreira',
-          fifaVersion: version,
-          teamType,
-          sofifaTeamId: teamType === 'existing' ? teamId : undefined,
-          createdTeamName: teamType === 'created' ? createdName : undefined,
-          createdTeamBudgetEur: teamType === 'created' && createdBudget ? Number(createdBudget) : undefined,
-          createdTeamLeague: teamType === 'created'
-            ? (selectedLeague ? `${selectedLeague.name} (${country})` : undefined)
-            : undefined,
-          replacedTeamId: teamType === 'created' ? replacedTeamId ?? undefined : undefined,
-          objectives: objectives ? objectives.split('\n').filter(Boolean) : undefined,
-          squadQuality: teamType === 'created' ? quality || undefined : undefined,
-          currentSeason: season || defaultSeason,
-        }),
+      createCareer({
+        name: name || (teamType === 'created' ? createdName : teamsData?.teams.find((t) => t.team_id === teamId)?.team_name) || 'Carreira',
+        fifaVersion: version!,
+        teamType,
+        sofifaTeamId: teamType === 'existing' ? teamId ?? undefined : undefined,
+        createdTeamName: teamType === 'created' ? createdName : undefined,
+        createdTeamBudgetEur: teamType === 'created' && createdBudget ? Number(createdBudget) : undefined,
+        createdTeamLeague: teamType === 'created'
+          ? (selectedLeague ? `${selectedLeague.name} (${country})` : undefined)
+          : undefined,
+        replacedTeamId: teamType === 'created' ? replacedTeamId ?? undefined : undefined,
+        objectives: objectives ? objectives.split('\n').filter(Boolean) : undefined,
+        squadQuality: teamType === 'created' ? quality || undefined : undefined,
+        currentSeason: season || defaultSeason,
       }),
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ['careers'] })
