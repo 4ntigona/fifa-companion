@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import { exportBackup, importBackup, storageUsage, shareBackupOnServer, recoverBackupFromServer } from '../store'
+import { exportBackup, importBackup, storageUsage, shareBackupOnServer, recoverBackupFromServer, getAiSettings, setAiSettings } from '../store'
 
 type AiProvider = 'anthropic' | 'openai' | 'gemini' | 'openrouter'
 
@@ -61,43 +61,54 @@ function StatusBadge({ ok, label }: { ok: boolean; label: string }) {
 }
 
 function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => void }) {
-  const [selected, setSelected] = useState<AiProvider>(ai.activeProvider)
+  const qc = useQueryClient()
+  const localSettings = getAiSettings()
+  const [selected, setSelected] = useState<AiProvider>(localSettings.activeProvider)
   const [key, setKey] = useState('')
-  const [model, setModel] = useState('')
+  const [model, setModel] = useState(localSettings.models[selected] || '')
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
 
   const info = ai.providers[selected]
+  const localKey = localSettings.keys[selected]
+  const isConfigured = Boolean(localKey) || info.fromEnv
+  const currentModel = localSettings.models[selected] || info.model
+  const isActive = localSettings.activeProvider === selected
   const hints = KEY_HINTS[selected]
-  const isActive = ai.activeProvider === selected
 
-  const save = useMutation({
-    mutationFn: () =>
-      api('/api/settings', {
-        method: 'PUT',
-        body: JSON.stringify({
-          provider: selected,
-          ...(key && { apiKey: key }),
-          ...(model !== '' && { model }),
-        }),
-      }),
-    onSuccess: () => { setKey(''); setModel(''); setTestResult(null); onSaved() },
-  })
+  const handleSave = () => {
+    setAiSettings({
+      ...(key && { key: { provider: selected, value: key } }),
+      ...(model !== '' && { model: { provider: selected, value: model } }),
+    })
+    setKey('')
+    setTestResult(null)
+    qc.invalidateQueries({ queryKey: ['status'] })
+    onSaved()
+  }
 
-  const activate = useMutation({
-    mutationFn: () => api('/api/settings', { method: 'PUT', body: JSON.stringify({ activeProvider: selected }) }),
-    onSuccess: onSaved,
-  })
+  const handleActivate = () => {
+    setAiSettings({ activeProvider: selected })
+    qc.invalidateQueries({ queryKey: ['status'] })
+    onSaved()
+  }
 
   const test = useMutation({
     mutationFn: () =>
       api<{ ok: boolean; error?: string }>('/api/settings/test-ai', {
-        method: 'POST', body: JSON.stringify({ provider: selected }),
+        method: 'POST',
+        body: JSON.stringify({
+          provider: selected,
+          apiKey: key.trim() || localKey || '',
+        }),
       }),
     onSuccess: setTestResult,
   })
 
   function pick(p: AiProvider) {
-    setSelected(p); setKey(''); setModel(''); setTestResult(null)
+    setSelected(p)
+    setKey('')
+    setModel(localSettings.models[p] || '')
+    setTestResult(null)
   }
 
   return (
@@ -105,23 +116,26 @@ function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => voi
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-ink">IA — leitura de fotos (BYOK)</h2>
         <StatusBadge
-          ok={ai.providers[ai.activeProvider].configured}
-          label={`ativo: ${ai.providers[ai.activeProvider].label}`}
+          ok={Boolean(localSettings.keys[localSettings.activeProvider]) || ai.providers[localSettings.activeProvider].fromEnv}
+          label={`ativo: ${ai.providers[localSettings.activeProvider].label}`}
         />
       </div>
       <p className="text-sm text-slate-ink">
         Traga sua própria chave do provedor que preferir. O app usa o provedor <b>ativo</b> para analisar
-        as fotos da tela do jogo.
+        as fotos da tela do jogo. As chaves são salvas localmente no navegador e enviadas apenas para processamento de fotos.
       </p>
 
       <div className="flex flex-wrap gap-2">
-        {(Object.keys(ai.providers) as AiProvider[]).map((p) => (
-          <button key={p} onClick={() => pick(p)} className={selected === p ? 'pill-tab-active' : 'pill-tab'}>
-            {ai.providers[p].label}
-            {ai.providers[p].configured && ' ✓'}
-            {ai.activeProvider === p && ' · ativo'}
-          </button>
-        ))}
+        {(Object.keys(ai.providers) as AiProvider[]).map((p) => {
+          const hasKey = Boolean(localSettings.keys[p]) || ai.providers[p].fromEnv
+          return (
+            <button key={p} onClick={() => pick(p)} className={selected === p ? 'pill-tab-active' : 'pill-tab'}>
+              {ai.providers[p].label}
+              {hasKey && ' ✓'}
+              {localSettings.activeProvider === p && ' · ativo'}
+            </button>
+          )
+        })}
       </div>
 
       <div className="space-y-2 border border-hairline bg-surface-soft p-4">
@@ -130,14 +144,14 @@ function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => voi
           <a href={hints.url} target="_blank" rel="noreferrer" className="text-link underline">
             {hints.url.replace('https://', '')}
           </a>
-          {info.configured && (
-            <> · salva: {info.fromEnv ? 'via server/.env' : info.masked}</>
+          {isConfigured && (
+            <> · salva: {localKey ? 'no seu navegador (local)' : 'via server/.env'}</>
           )}
         </p>
         <input
           value={key}
           onChange={(e) => setKey(e.target.value)}
-          placeholder={info.configured ? `Chave (atual: ${info.masked ?? 'via .env'})` : hints.placeholder}
+          placeholder={isConfigured ? `Chave (atual: ${localKey ? '••••••••' : 'via .env'})` : hints.placeholder}
           type="password"
           autoComplete="off"
           className="input"
@@ -145,20 +159,20 @@ function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => voi
         <input
           value={model}
           onChange={(e) => setModel(e.target.value)}
-          placeholder={`Modelo (atual: ${info.model})`}
+          placeholder={`Modelo (atual: ${currentModel})`}
           autoComplete="off"
           className="input"
         />
         <p className="text-[13px] text-stone">O modelo precisa aceitar imagens. Padrão: {info.defaultModel}</p>
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => save.mutate()} disabled={(!key && !model) || save.isPending} className="btn-primary">
+          <button onClick={handleSave} disabled={(!key && !model)} className="btn-primary">
             Salvar
           </button>
-          <button onClick={() => test.mutate()} disabled={!info.configured || test.isPending} className="btn-secondary">
+          <button onClick={() => test.mutate()} disabled={!isConfigured && !key || test.isPending} className="btn-secondary">
             {test.isPending ? 'Testando…' : 'Testar chave'}
           </button>
           {!isActive && (
-            <button onClick={() => activate.mutate()} disabled={!info.configured || activate.isPending} className="btn-secondary">
+            <button onClick={handleActivate} disabled={!isConfigured} className="btn-secondary">
               Usar este provedor
             </button>
           )}

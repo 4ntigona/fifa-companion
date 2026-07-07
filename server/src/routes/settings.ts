@@ -56,8 +56,11 @@ export function settingsRoutes(app: FastifyInstance) {
   })
 
   app.post('/api/settings/test-ai', async (req) => {
-    const { provider } = z.object({ provider: providerEnum.optional() }).parse(req.body ?? {})
-    return testProvider((provider ?? aiProvider()) as AiProvider)
+    const { provider, apiKey } = z.object({
+      provider: providerEnum.optional(),
+      apiKey: z.string().optional(),
+    }).parse(req.body ?? {})
+    return testProvider((provider ?? aiProvider()) as AiProvider, apiKey)
   })
 
   // compat

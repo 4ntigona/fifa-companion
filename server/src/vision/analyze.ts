@@ -49,13 +49,19 @@ export function visionInfo(): { provider: AiProvider; providerLabel: string; mod
   }
 }
 
-export async function analyzeCapture(imageBase64: string, mediaType: string): Promise<VisionResult> {
-  const provider = aiProvider()
-  const key = providerKey(provider)
+export async function analyzeCapture(
+  imageBase64: string,
+  mediaType: string,
+  clientProvider?: string,
+  clientKey?: string,
+  clientModel?: string
+): Promise<VisionResult> {
+  const provider = (clientProvider || aiProvider()) as AiProvider
+  const key = clientKey || providerKey(provider)
   if (!key) {
     throw new Error(`Chave da ${PROVIDER_LABELS[provider]} não configurada — adicione em Configurações para usar a análise de fotos.`)
   }
-  const model = providerModel(provider)
+  const model = clientModel || providerModel(provider)
 
   let text: string
   switch (provider) {
@@ -157,8 +163,8 @@ async function callGemini(key: string, model: string, b64: string, mediaType: st
 }
 
 /** Valida a chave de um provedor com uma chamada barata (lista de modelos). */
-export async function testProvider(provider: AiProvider): Promise<{ ok: boolean; error?: string }> {
-  const key = providerKey(provider)
+export async function testProvider(provider: AiProvider, clientKey?: string): Promise<{ ok: boolean; error?: string }> {
+  const key = clientKey || providerKey(provider)
   if (!key) return { ok: false, error: 'Nenhuma chave configurada.' }
   try {
     let res: Response

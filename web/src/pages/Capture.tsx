@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { api, type Career, type ExtractedPlayer, type VisionResult } from '../api/client'
-import { getCareer, createCareerPlayer, addSnapshot } from '../store'
+import { getCareer, createCareerPlayer, addSnapshot, getAiSettings } from '../store'
 
 const SCREEN_LABEL: Record<string, string> = {
   elenco: 'Elenco', perfil_jogador: 'Perfil de jogador', base_olheiros: 'Base/Olheiros',
@@ -25,9 +25,17 @@ export default function CapturePage() {
 
   const upload = useMutation({
     mutationFn: async (file: File) => {
+      const ai = getAiSettings()
+      const activeProvider = ai.activeProvider
+      const apiKey = ai.keys[activeProvider] || ''
+      const model = ai.models[activeProvider] || ''
+
       const fd = new FormData()
       fd.append('careerId', String(id))
       fd.append('image', file)
+      fd.append('provider', activeProvider)
+      fd.append('apiKey', apiKey)
+      fd.append('model', model)
       return api<{ id: number; extracted: VisionResult | null; error: string | null }>('/api/captures', {
         method: 'POST', body: fd,
       })

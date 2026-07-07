@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api, versionLabel, type Career, type VersionInfo } from '../api/client'
-import { listCareers } from '../store'
+import { listCareers, getAiSettings } from '../store'
 
 interface ImportStatus {
   running: boolean
@@ -53,6 +53,16 @@ export default function Home() {
       qc.invalidateQueries({ queryKey: ['status'] })
     }
   }, [phase, qc])
+
+  const ai = getAiSettings()
+  const localActiveProvider = ai.activeProvider
+  const localHasKey = Boolean(ai.keys[localActiveProvider])
+  const providerLabel = localActiveProvider === 'anthropic' ? 'Anthropic (Claude)' : localActiveProvider === 'openai' ? 'OpenAI (ChatGPT)' : localActiveProvider === 'gemini' ? 'Google Gemini' : 'OpenRouter'
+  const modelLabel = ai.models[localActiveProvider] || (localActiveProvider === 'anthropic' ? 'claude-sonnet-5' : localActiveProvider === 'openai' ? 'gpt-5.1' : localActiveProvider === 'gemini' ? 'gemini-2.5-flash' : 'google/gemini-2.5-flash')
+
+  const visionActive = localHasKey || Boolean(status?.visionAvailable)
+  const visionProvider = localHasKey ? providerLabel : status?.visionProvider ?? ''
+  const visionModel = localHasKey ? modelLabel : status?.visionModel ?? ''
 
   const careers = careersData?.careers ?? []
   const versions = versionsData?.versions ?? []
@@ -172,11 +182,11 @@ export default function Home() {
 
       <section>
         <h2 className="mb-4 text-xl font-semibold tracking-tight text-ink">Câmera / IA</h2>
-        <div className={` p-5 text-sm ${status?.visionAvailable ? 'bg-tint-mint text-charcoal' : 'card bg-surface-soft text-slate-ink'}`}>
-          {status?.visionAvailable ? (
+        <div className={` p-5 text-sm ${visionActive ? 'bg-tint-mint text-charcoal' : 'card bg-surface-soft text-slate-ink'}`}>
+          {visionActive ? (
             <p>
-              <span className="font-semibold">Análise de fotos ativa</span> via {status.visionProvider}
-              {' '}(<code className="text-[13px]">{status.visionModel}</code>) — tire fotos da tela do jogo dentro de uma carreira.
+              <span className="font-semibold">Análise de fotos activa</span> via {visionProvider}
+              {' '}(<code className="text-[13px]">{visionModel}</code>) — tire fotos da tela do jogo dentro de uma carreira.
             </p>
           ) : (
             <p>

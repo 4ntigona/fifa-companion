@@ -18,6 +18,9 @@ export function captureRoutes(app: FastifyInstance) {
     }
 
     const careerId = file.fields?.careerId?.value ? Number(file.fields.careerId.value) : null
+    const provider = file.fields?.provider?.value as string | undefined
+    const apiKey = file.fields?.apiKey?.value as string | undefined
+    const model = file.fields?.model?.value as string | undefined
     const ext = mediaType.split('/')[1].replace('jpeg', 'jpg')
     const fileName = `capture-${Date.now()}.${ext}`
     writeFileSync(join(DATA_DIR, 'captures', fileName), buf)
@@ -25,7 +28,7 @@ export function captureRoutes(app: FastifyInstance) {
     let extracted = null
     let error: string | null = null
     try {
-      extracted = await analyzeCapture(buf.toString('base64'), mediaType)
+      extracted = await analyzeCapture(buf.toString('base64'), mediaType, provider, apiKey, model)
     } catch (e) {
       error = String(e instanceof Error ? e.message : e)
     }
