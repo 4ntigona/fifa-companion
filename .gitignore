@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dev-dist/
+server/.env
+server/data/*.db
+server/data/*.db-*
+server/data/captures/
+server/data/kaggle/
+.DS_Store
