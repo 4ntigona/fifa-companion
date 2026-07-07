@@ -1,6 +1,9 @@
 export async function api<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+  // Content-Type só quando há corpo: Fastify rejeita (400) um Content-Type
+  // application/json em requisição sem corpo (ex.: DELETE sem body).
+  const hasBody = init?.body != null && !(init.body instanceof FormData)
   const res = await fetch(path, {
-    headers: init?.body instanceof FormData ? undefined : { 'Content-Type': 'application/json' },
+    headers: hasBody ? { 'Content-Type': 'application/json' } : undefined,
     ...init,
   })
   if (!res.ok) {

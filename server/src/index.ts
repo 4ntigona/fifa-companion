@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { gameDataRoutes } from './routes/game-data.js'
 import { importRoutes } from './routes/import.js'
 import { analyzeRoutes } from './routes/analyze.js'
+import { syncRoutes } from './routes/sync.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -19,6 +20,7 @@ await app.register(cors, { origin: true })
 gameDataRoutes(app)
 importRoutes(app)
 analyzeRoutes(app)
+syncRoutes(app)
 
 // Front buildado (SPA). Em produção o mesmo processo serve API + app.
 const webDist = process.env.WEB_DIST

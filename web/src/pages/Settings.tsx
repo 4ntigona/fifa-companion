@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import {
   getAiSettings, setAiSettings, PROVIDER_LABELS, DEFAULT_MODELS,
   exportBackup, importBackup, storageUsage, type AiProvider,
+  getSyncInfo, generateRestoreKey, pushToRestoreKey, restoreFromKey, removeRestoreKey,
 } from '../store'
 
 const PROVIDERS: AiProvider[] = ['anthropic', 'openai', 'gemini', 'openrouter']
@@ -26,10 +27,11 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-semibold tracking-tight text-ink">Configurações</h1>
       <p className="text-sm text-slate-ink">
         Suas carreiras e chaves de IA ficam salvas apenas neste dispositivo (no navegador).
-        Use o backup abaixo para levar os dados para outro aparelho.
+        Use a chave de restauração ou o backup em arquivo para levar os dados para outro aparelho.
       </p>
 
       <AiSection ai={ai} onChange={refresh} />
+      <SyncSection />
       <BackupSection />
     </div>
   )
@@ -137,6 +139,109 @@ function AiSection({ ai, onChange }: { ai: ReturnType<typeof getAiSettings>; onC
           )}
         </div>
       </div>
+    </section>
+  )
+}
+
+function SyncSection() {
+  const [info, setInfo] = useState(getSyncInfo())
+  const [revealed, setRevealed] = useState(false)
+  const [restoreCode, setRestoreCode] = useState('')
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const refresh = () => setInfo(getSyncInfo())
+
+  const generate = useMutation({
+    mutationFn: () => generateRestoreKey(),
+    onSuccess: () => { refresh(); setRevealed(true); setMsg({ ok: true, text: 'Chave gerada — guarde-a em local seguro, ela dá acesso total aos seus dados.' }) },
+    onError: (e) => setMsg({ ok: false, text: (e as Error).message }),
+  })
+  const push = useMutation({
+    mutationFn: () => pushToRestoreKey(),
+    onSuccess: () => { refresh(); setMsg({ ok: true, text: 'Dados atualizados na chave.' }) },
+    onError: (e) => setMsg({ ok: false, text: (e as Error).message }),
+  })
+  const remove = useMutation({
+    mutationFn: () => removeRestoreKey(),
+    onSuccess: () => { refresh(); setMsg({ ok: true, text: 'Chave removida do servidor. Seus dados aqui neste dispositivo continuam intactos.' }) },
+    onError: (e) => setMsg({ ok: false, text: (e as Error).message }),
+  })
+  const restore = useMutation({
+    mutationFn: () => restoreFromKey(restoreCode),
+    onSuccess: (r) => {
+      setMsg({ ok: true, text: `Restaurado: ${r.careers} carreira(s), ${r.players} jogador(es). Recarregando…` })
+      setTimeout(() => location.reload(), 1200)
+    },
+    onError: (e) => setMsg({ ok: false, text: (e as Error).message }),
+  })
+
+  function onGenerate() {
+    setMsg(null)
+    if (info.code && !confirm('Já existe uma chave. Gerar uma nova substitui a anterior (a antiga deixa de funcionar). Continuar?')) return
+    generate.mutate()
+  }
+  function onRemove() {
+    setMsg(null)
+    if (!confirm('Remover a chave do servidor? Ela deixa de poder restaurar seus dados em outro aparelho. Os dados deste dispositivo não são apagados.')) return
+    remove.mutate()
+  }
+  function onRestore() {
+    setMsg(null)
+    if (!confirm('Restaurar substitui TODOS os dados atuais deste dispositivo pelos dados da chave. Continuar?')) return
+    restore.mutate()
+  }
+  function copyCode() {
+    if (info.code) navigator.clipboard?.writeText(info.code)
+  }
+
+  return (
+    <section className="card space-y-3 p-6">
+      <h2 className="text-lg font-semibold text-ink">Chave de restauração</h2>
+      <p className="text-sm text-slate-ink">
+        Gere uma chave única para guardar seus dados no servidor sem precisar exportar arquivo toda
+        hora — basta a chave para restaurar em qualquer aparelho. Quem tiver a chave acessa seus
+        dados: trate-a como uma senha.
+      </p>
+
+      {info.code ? (
+        <div className="space-y-2 border border-hairline bg-surface-soft p-4">
+          <p className="text-[13px] text-steel">
+            {info.lastSyncedAt && <>Última atualização: {new Date(info.lastSyncedAt).toLocaleString('pt-BR')}</>}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <code className={`bg-canvas px-3 py-2 text-lg font-semibold tracking-wider text-ink ${revealed ? '' : 'blur-sm select-none'}`}>
+              {info.code}
+            </code>
+            <button onClick={() => setRevealed((r) => !r)} className="btn-secondary text-[13px]">
+              {revealed ? 'Ocultar' : 'Revelar'}
+            </button>
+            <button onClick={copyCode} className="btn-secondary text-[13px]">Copiar</button>
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button onClick={() => push.mutate()} disabled={push.isPending} className="btn-primary">
+              {push.isPending ? 'Atualizando…' : 'Atualizar dados na chave'}
+            </button>
+            <button onClick={onGenerate} disabled={generate.isPending} className="btn-secondary">Gerar nova chave</button>
+            <button onClick={onRemove} disabled={remove.isPending} className="btn-secondary">Remover chave</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={onGenerate} disabled={generate.isPending} className="btn-primary">
+          {generate.isPending ? 'Gerando…' : 'Gerar chave de restauração'}
+        </button>
+      )}
+
+      <div className="space-y-2 border border-hairline bg-surface-soft p-4">
+        <p className="text-[13px] text-steel">Tem uma chave de outro dispositivo? Restaure aqui.</p>
+        <div className="flex flex-wrap gap-2">
+          <input value={restoreCode} onChange={(e) => setRestoreCode(e.target.value.toUpperCase())}
+            placeholder="XXXX-XXXX-XXXX" className="input flex-1" />
+          <button onClick={onRestore} disabled={!restoreCode.trim() || restore.isPending} className="btn-secondary">
+            {restore.isPending ? 'Restaurando…' : 'Restaurar'}
+          </button>
+        </div>
+      </div>
+
+      {msg && <p className={`text-sm font-medium ${msg.ok ? 'text-success' : 'text-error'}`}>{msg.text}</p>}
     </section>
   )
 }

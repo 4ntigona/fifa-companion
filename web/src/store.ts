@@ -32,6 +32,11 @@ export interface AiSettings {
   models: Partial<Record<AiProvider, string>>
 }
 
+export interface SyncInfo {
+  code: string | null
+  lastSyncedAt: string | null
+}
+
 interface LocalDb {
   version: 1
   counters: { career: number; player: number; snapshot: number; prospect: number }
@@ -40,6 +45,7 @@ interface LocalDb {
   snapshots: Snapshot[]
   prospects: Prospect[]
   ai: AiSettings
+  sync: SyncInfo
 }
 
 function emptyDb(): LocalDb {
@@ -51,6 +57,7 @@ function emptyDb(): LocalDb {
     snapshots: [],
     prospects: [],
     ai: { activeProvider: 'anthropic', keys: {}, models: {} },
+    sync: { code: null, lastSyncedAt: null },
   }
 }
 
@@ -60,7 +67,7 @@ function load(): LocalDb {
     if (!raw) return emptyDb()
     const db = JSON.parse(raw) as LocalDb
     if (db.version !== 1) throw new Error('versão desconhecida')
-    return { ...emptyDb(), ...db, ai: { ...emptyDb().ai, ...db.ai } }
+    return { ...emptyDb(), ...db, ai: { ...emptyDb().ai, ...db.ai }, sync: { ...emptyDb().sync, ...db.sync } }
   } catch {
     return emptyDb()
   }
@@ -403,10 +410,74 @@ export async function importBackup(file: File): Promise<{ careers: number; playe
   if (data?.version !== 1 || !Array.isArray(data.careers) || !Array.isArray(data.careerPlayers)) {
     throw new Error('Arquivo de backup inválido (formato não reconhecido).')
   }
-  save({ ...emptyDb(), ...data, ai: { ...emptyDb().ai, ...data.ai } })
+  save({ ...emptyDb(), ...data, ai: { ...emptyDb().ai, ...data.ai }, sync: { ...emptyDb().sync, ...data.sync } })
   return { careers: data.careers.length, players: data.careerPlayers.length }
 }
 
 export function storageUsage(): { bytes: number } {
   return { bytes: (localStorage.getItem(STORAGE_KEY) ?? '').length }
+}
+
+/* ---------------- chave de restauração (backup guardado no servidor) ---------------- */
+
+export function getSyncInfo(): SyncInfo {
+  return load().sync
+}
+
+/** Serializa tudo, exceto o próprio ponteiro de sync (evita guardar código dentro do código). */
+function snapshotForSync(db: LocalDb): string {
+  const { sync: _sync, ...rest } = db
+  return JSON.stringify(rest)
+}
+
+/** Gera uma chave nova no servidor com o estado atual e passa a usá-la. */
+export async function generateRestoreKey(): Promise<string> {
+  const db = load()
+  const { code } = await api<{ code: string }>('/api/sync', {
+    method: 'POST', body: JSON.stringify({ data: snapshotForSync(db) }),
+  })
+  db.sync = { code, lastSyncedAt: nowIso() }
+  save(db)
+  return code
+}
+
+/** Reenvia o estado atual para a chave já existente. */
+export async function pushToRestoreKey(): Promise<void> {
+  const db = load()
+  if (!db.sync.code) throw new Error('Nenhuma chave de restauração gerada ainda.')
+  await api(`/api/sync/${encodeURIComponent(db.sync.code)}`, {
+    method: 'PUT', body: JSON.stringify({ data: snapshotForSync(db) }),
+  })
+  db.sync.lastSyncedAt = nowIso()
+  save(db)
+}
+
+/** Busca uma chave no servidor e SUBSTITUI todos os dados locais por ela. */
+export async function restoreFromKey(rawCode: string): Promise<{ careers: number; players: number }> {
+  const code = rawCode.trim().toUpperCase()
+  if (!code) throw new Error('Informe a chave.')
+  const r = await api<{ data: string; updatedAt: string }>(`/api/sync/${encodeURIComponent(code)}`)
+  const data = JSON.parse(r.data) as Omit<LocalDb, 'sync'>
+  if (data?.version !== 1 || !Array.isArray(data.careers) || !Array.isArray(data.careerPlayers)) {
+    throw new Error('Chave inválida — dados corrompidos ou em formato desconhecido.')
+  }
+  save({
+    ...emptyDb(), ...data, ai: { ...emptyDb().ai, ...data.ai },
+    sync: { code, lastSyncedAt: nowIso() },
+  })
+  return { careers: data.careers.length, players: data.careerPlayers.length }
+}
+
+/** Apaga a chave do servidor e para de usá-la. Os dados locais não são afetados. */
+export async function removeRestoreKey(): Promise<void> {
+  const db = load()
+  if (db.sync.code) {
+    try {
+      await api(`/api/sync/${encodeURIComponent(db.sync.code)}`, { method: 'DELETE' })
+    } catch {
+      // melhor esforço — mesmo se o servidor estiver fora, esquecemos a chave localmente
+    }
+  }
+  db.sync = { code: null, lastSyncedAt: null }
+  save(db)
 }

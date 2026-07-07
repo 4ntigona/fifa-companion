@@ -15,14 +15,20 @@ O app nunca inventa nem reduz atributos — o que não foi importado aparece com
 ## Arquitetura (onde ficam os dados)
 
 - **No seu navegador (localStorage):** suas carreiras, elencos, jogadores da base/regens,
-  snapshots de evolução, prospecção e as **chaves de IA (BYOK)**. Nada disso vai para o servidor.
-  Use **⚙️ Configurações → Backup** para exportar/importar um arquivo `.json` e levar tudo para
-  outro dispositivo.
-- **No servidor (SQLite, compartilhado, somente leitura):** apenas a database original do jogo
-  (`sofifa_players` / `sofifa_teams`), importada uma vez por versão.
+  snapshots de evolução, prospecção e as **chaves de IA (BYOK)**. Nada disso vai para o servidor
+  automaticamente.
+- **Chave de restauração (⚙️ Configurações):** gere um código único (ex. `QTUV-GJSA-8Z6S`) que
+  guarda uma cópia dos seus dados no servidor — não precisa exportar/importar arquivo toda vez.
+  Em outro aparelho, cole o código e restaure. Quem tiver o código acessa os dados: trate-o como
+  senha. Pode gerar uma chave nova (invalida a antiga), atualizar os dados na chave atual ou
+  **remover** a chave do servidor a qualquer momento (os dados no dispositivo não são afetados).
+- **Backup em arquivo (⚙️ Configurações):** alternativa manual — exporta/importa um `.json`.
+- **No servidor (SQLite, compartilhado, somente leitura):** a database original do jogo
+  (`sofifa_players` / `sofifa_teams`, importada uma vez por versão) e, opcionalmente, os blobs das
+  chaves de restauração (tabela `sync_blobs` — texto opaco, sem leitura/indexação pelo app).
 - **Análise de fotos:** stateless. O navegador manda a imagem + o provedor/chave/modelo escolhidos
   para `POST /api/analyze`, que só faz proxy para o provedor de IA (Anthropic, OpenAI, Gemini ou
-  OpenRouter) e devolve o JSON extraído. A chave nunca é gravada no servidor.
+  OpenRouter) e devolve o JSON extraído. A chave de IA nunca é gravada no servidor.
 
 ## Rodando localmente
 
@@ -134,11 +140,13 @@ deploy. Guarde `server/data/` num backup se quiser preservar a importação.
 
 ## Estrutura
 
-- `server/` — Fastify + SQLite (better-sqlite3). Só a database do jogo (somente leitura) + rotas
+- `server/` — Fastify + SQLite (better-sqlite3). Database do jogo (somente leitura) + rotas
   `/api/versions`, `/api/teams`, `/api/players`, `/api/team/...` (leitura), `/api/import/*`
-  (importação) e `/api/analyze` + `/api/test-ai` (proxy de IA stateless). Em produção, também
-  serve `web/dist` com fallback de SPA.
-- `web/src/store.ts` — armazenamento local (localStorage) das carreiras + BYOK + export/import.
+  (importação), `/api/analyze` + `/api/test-ai` (proxy de IA stateless) e `/api/sync/*`
+  (blob opaco da chave de restauração — criar/ler/atualizar/apagar por código). Em produção,
+  também serve `web/dist` com fallback de SPA.
+- `web/src/store.ts` — armazenamento local (localStorage) das carreiras + BYOK + chave de
+  restauração + export/import de arquivo.
 - `web/` — React + Vite + Tailwind (PWA, PT-BR, mobile-first).
 
 ## Conceitos
@@ -152,7 +160,10 @@ deploy. Guarde `server/data/` num backup se quiser preservar a importação.
   database original da versão da carreira; shortlist com status (observando → contratado, que
   move o jogador para o elenco).
 - **BYOK**: traga a chave do provedor de IA que preferir (Anthropic, OpenAI, Gemini, OpenRouter);
-  fica no seu navegador e é usada só para ler as fotos da tela.
+  fica no seu navegador e é usada só para ler as fotos da tela. Pode remover a qualquer momento.
+- **Chave de restauração**: código único (12 caracteres) que aponta para uma cópia dos seus dados
+  guardada no servidor — gerar, atualizar, restaurar em outro aparelho e remover, tudo em
+  ⚙️ Configurações. Não é uma conta/login: é só um código, então quem o tiver acessa os dados.
 
 Dados do jogo © EA Sports, compilados pela comunidade via [SoFIFA](https://sofifa.com).
 Projeto pessoal, não comercial.

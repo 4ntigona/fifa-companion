@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { fmtEur, versionLabel, type CareerPlayer } from '../api/client'
-import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer } from '../store'
+import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer, deleteCareer } from '../store'
 
 export default function CareerPage() {
   const { id } = useParams()
+  const nav = useNavigate()
   const qc = useQueryClient()
   const [tab, setTab] = useState<'elenco' | 'base'>('elenco')
   const [editingSeason, setEditingSeason] = useState(false)
@@ -30,6 +31,17 @@ export default function CareerPage() {
       updateCareer(Number(id), payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['career', id] }); setEditingSeason(false) },
   })
+
+  const remove = useMutation({
+    mutationFn: async () => deleteCareer(Number(id)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['careers'] }); nav('/') },
+  })
+  function onDelete() {
+    if (!career) return
+    if (confirm(`Excluir a carreira "${career.name}"? Todos os jogadores, snapshots e a shortlist dela serão apagados. Essa ação não pode ser desfeita.`)) {
+      remove.mutate()
+    }
+  }
 
   if (!career) return <p className="pt-6 text-slate-ink">Carregando…</p>
 
@@ -105,6 +117,10 @@ export default function CareerPage() {
           <button onClick={() => setShowAddPlayer(true)}
             className="border border-white/40 px-[18px] py-2.5 text-sm font-medium text-white hover:bg-white/10">
             + Jogador
+          </button>
+          <button onClick={onDelete} disabled={remove.isPending}
+            className="ml-auto border border-error/60 px-[18px] py-2.5 text-sm font-medium text-error hover:bg-error/10">
+            {remove.isPending ? 'Excluindo…' : '🗑 Excluir carreira'}
           </button>
         </div>
       </section>
