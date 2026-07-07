@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -13,5 +13,8 @@ export const db = new Database(join(DATA_DIR, 'companion.db'))
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 
-const schema = readFileSync(join(here, 'schema.sql'), 'utf-8')
+const schemaPath = existsSync(join(here, 'schema.sql'))
+  ? join(here, 'schema.sql')
+  : join(here, '..', '..', 'src', 'db', 'schema.sql')
+const schema = readFileSync(schemaPath, 'utf-8')
 db.exec(schema)
