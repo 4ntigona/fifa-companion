@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api, fmtEur, type SofifaTeam, type VersionInfo } from '../api/client'
 import { createCareer } from '../store'
+import { useDebouncedValue } from '../hooks'
 
 interface CountryLeagues {
   country: string
@@ -27,7 +28,9 @@ export default function NewCareer() {
   const [quality, setQuality] = useState('')
   const [objectives, setObjectives] = useState('')
 
-  const { data: versionsData } = useQuery({
+  const debouncedTeamQuery = useDebouncedValue(teamQuery)
+
+  const { data: versionsData, isError: versionsError, error: versionsErr, refetch: refetchVersions } = useQuery({
     queryKey: ['versions'],
     queryFn: () => api<{ versions: VersionInfo[] }>('/api/versions'),
   })
@@ -44,14 +47,14 @@ export default function NewCareer() {
   const selectedLeague = countryLeagues.find((l) => String(l.id) === leagueId)
 
   const { data: teamsData } = useQuery({
-    queryKey: ['teams', version, leagueId, teamQuery],
+    queryKey: ['teams', version, leagueId, debouncedTeamQuery],
     queryFn: () =>
       api<{ teams: SofifaTeam[] }>(
         `/api/teams/${version}?` +
-        new URLSearchParams({ ...(leagueId && { leagueId }), ...(teamQuery && { q: teamQuery }) }),
+        new URLSearchParams({ ...(leagueId && { leagueId }), ...(debouncedTeamQuery && { q: debouncedTeamQuery }) }),
       ),
     // sem liga escolhida, busca por nome ainda funciona (todas as ligas)
-    enabled: version != null && Boolean(selected?.imported) && Boolean(leagueId || teamQuery),
+    enabled: version != null && Boolean(selected?.imported) && Boolean(leagueId || debouncedTeamQuery),
   })
 
   const defaultSeason = useMemo(() => {
@@ -94,6 +97,13 @@ export default function NewCareer() {
 
       <section>
         <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-steel">Versão do jogo</h2>
+        {versionsError ? (
+          <div className="card bg-tint-rose p-5 text-sm text-charcoal">
+            <p className="font-semibold">Sem conexão com o servidor.</p>
+            <p className="mt-1">{(versionsErr as Error).message}</p>
+            <button onClick={() => refetchVersions()} className="btn-secondary mt-3">Tentar de novo</button>
+          </div>
+        ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           {versions.map((v) => (
             <button
@@ -112,6 +122,7 @@ export default function NewCareer() {
             </button>
           ))}
         </div>
+        )}
         {selected && !selected.imported && (
           <p className="mt-2  bg-tint-peach p-3 text-[13px] text-orange-deep">
             Database do {selected.label} não importada — importe na tela inicial.

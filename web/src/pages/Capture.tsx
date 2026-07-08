@@ -29,6 +29,7 @@ export default function CapturePage() {
   const { id } = useParams()
   const qc = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
+  const lastFileRef = useRef<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [result, setResult] = useState<{ extracted: VisionResult } | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
@@ -62,6 +63,7 @@ export default function CapturePage() {
 
   function onFile(file: File | undefined) {
     if (!file) return
+    lastFileRef.current = file
     setResult(null)
     setAnalysisError(null)
     setPreview(URL.createObjectURL(file))
@@ -94,9 +96,14 @@ export default function CapturePage() {
       {preview && <img src={preview} alt="captura" className="card max-h-64 w-full object-contain p-1" />}
       {upload.isPending && <p className="animate-pulse text-sm font-medium text-primary">Analisando a foto com IA…</p>}
       {(analysisError || upload.isError) && (
-        <p className="bg-tint-rose p-4 text-sm text-charcoal">
-          {analysisError ?? (upload.error as Error)?.message}
-        </p>
+        <div className="bg-tint-rose p-4 text-sm text-charcoal">
+          <p>{analysisError ?? (upload.error as Error)?.message}</p>
+          {lastFileRef.current && (
+            <button onClick={() => onFile(lastFileRef.current!)} className="btn-secondary mt-3">
+              Tentar novamente
+            </button>
+          )}
+        </div>
       )}
 
       {result && career && (

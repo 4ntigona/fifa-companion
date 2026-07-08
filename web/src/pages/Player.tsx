@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useEscapeClose } from '../hooks'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -10,10 +11,18 @@ export default function PlayerPage() {
   const qc = useQueryClient()
   const [showSnapshot, setShowSnapshot] = useState(false)
 
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ['career-player', id],
     queryFn: async () => getCareerPlayer(Number(id)),
+    retry: false,
   })
+  if (isError) return (
+    <div className="card mt-6 bg-surface-soft p-6 text-sm text-slate-ink">
+      <p className="font-semibold text-ink">Jogador não encontrado neste dispositivo.</p>
+      <p className="mt-1">Ele pode ter sido excluído ou os dados foram restaurados de outro backup.</p>
+      <Link to="/" className="btn-primary mt-3 inline-block">Voltar ao início</Link>
+    </div>
+  )
   if (!data) return <p className="pt-6 text-slate-ink">Carregando…</p>
   const { player: p, career } = data
   const snaps = p.snapshots ?? []
@@ -159,6 +168,7 @@ function SnapshotModal(props: {
   onClose: () => void
   onSaved: () => void
 }) {
+  useEscapeClose(props.onClose)
   const [season, setSeason] = useState(props.defaultSeason)
   const [date, setDate] = useState(props.defaultDate ?? '')
   const [overall, setOverall] = useState(props.lastOverall != null ? String(props.lastOverall) : '')
@@ -179,11 +189,11 @@ function SnapshotModal(props: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy-deep/50 sm:items-center" onClick={props.onClose}>
-      <div className="w-full max-w-md space-y-2  bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)] sm:" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" className="w-full max-w-md space-y-2  bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)] sm:" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-semibold text-ink">Registrar evolução</h3>
         <p className="text-[13px] text-steel">Sempre vinculada à temporada/data do jogo — é assim que o desenvolvimento é acompanhado.</p>
         <div className="flex gap-2">
-          <input value={season} onChange={(e) => setSeason(e.target.value)} placeholder="Temporada *" className="input w-1/2" />
+          <input autoFocus value={season} onChange={(e) => setSeason(e.target.value)} placeholder="Temporada *" className="input w-1/2" />
           <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="input w-1/2" />
         </div>
         <div className="flex gap-2">

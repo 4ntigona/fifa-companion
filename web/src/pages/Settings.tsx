@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api } from '../api/client'
+import ConfirmDialog from '../components/ConfirmDialog'
 import {
   getAiSettings, setAiSettings, PROVIDER_LABELS, DEFAULT_MODELS,
   exportBackup, importBackup, storageUsage, type AiProvider,
@@ -148,6 +149,7 @@ function SyncSection() {
   const [revealed, setRevealed] = useState(false)
   const [restoreCode, setRestoreCode] = useState('')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [pending, setPending] = useState<null | 'regenerate' | 'removeKey' | 'restore'>(null)
   const refresh = () => setInfo(getSyncInfo())
 
   const generate = useMutation({
@@ -176,22 +178,32 @@ function SyncSection() {
 
   function onGenerate() {
     setMsg(null)
-    if (info.code && !confirm('Já existe uma chave. Gerar uma nova substitui a anterior (a antiga deixa de funcionar). Continuar?')) return
+    if (info.code) { setPending('regenerate'); return } // já existe: confirmar substituição
     generate.mutate()
   }
-  function onRemove() {
-    setMsg(null)
-    if (!confirm('Remover a chave do servidor? Ela deixa de poder restaurar seus dados em outro aparelho. Os dados deste dispositivo não são apagados.')) return
-    remove.mutate()
-  }
-  function onRestore() {
-    setMsg(null)
-    if (!confirm('Restaurar substitui TODOS os dados atuais deste dispositivo pelos dados da chave. Continuar?')) return
-    restore.mutate()
-  }
+  function onRemove() { setMsg(null); setPending('removeKey') }
+  function onRestore() { setMsg(null); setPending('restore') }
   function copyCode() {
     if (info.code) navigator.clipboard?.writeText(info.code)
   }
+
+  const CONFIRM = {
+    regenerate: {
+      title: 'Gerar nova chave',
+      message: 'Já existe uma chave. Gerar uma nova substitui a anterior (a antiga deixa de funcionar). Continuar?',
+      label: 'Gerar nova', run: () => generate.mutate(),
+    },
+    removeKey: {
+      title: 'Remover chave',
+      message: 'Remover a chave do servidor? Ela deixa de poder restaurar seus dados em outro aparelho. Os dados deste dispositivo não são apagados.',
+      label: 'Remover', run: () => remove.mutate(),
+    },
+    restore: {
+      title: 'Restaurar dados',
+      message: 'Restaurar substitui TODOS os dados atuais deste dispositivo pelos dados da chave. Continuar?',
+      label: 'Restaurar', run: () => restore.mutate(),
+    },
+  } as const
 
   return (
     <section className="card space-y-3 p-6">
@@ -242,6 +254,16 @@ function SyncSection() {
       </div>
 
       {msg && <p className={`text-sm font-medium ${msg.ok ? 'text-success' : 'text-error'}`}>{msg.text}</p>}
+
+      {pending && (
+        <ConfirmDialog
+          title={CONFIRM[pending].title}
+          message={CONFIRM[pending].message}
+          confirmLabel={CONFIRM[pending].label}
+          onConfirm={() => { const p = pending; setPending(null); CONFIRM[p].run() }}
+          onCancel={() => setPending(null)}
+        />
+      )}
     </section>
   )
 }
@@ -249,11 +271,15 @@ function SyncSection() {
 function BackupSection() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const kb = (storageUsage().bytes / 1024).toFixed(1)
 
-  async function onImport(file: File | undefined) {
+  function onImport(file: File | undefined) {
     if (!file) return
-    if (!confirm('Importar um backup substitui TODOS os dados atuais deste dispositivo. Continuar?')) return
+    setPendingFile(file) // confirmar antes de substituir os dados
+  }
+
+  async function doImport(file: File) {
     try {
       const r = await importBackup(file)
       setMsg({ ok: true, text: `Backup importado: ${r.careers} carreira(s), ${r.players} jogador(es). Recarregando…` })
@@ -277,6 +303,16 @@ function BackupSection() {
         <button onClick={() => fileRef.current?.click()} className="btn-secondary">Importar backup</button>
       </div>
       {msg && <p className={`text-sm font-medium ${msg.ok ? 'text-success' : 'text-error'}`}>{msg.text}</p>}
+
+      {pendingFile && (
+        <ConfirmDialog
+          title="Importar backup"
+          message="Importar um backup substitui TODOS os dados atuais deste dispositivo. Continuar?"
+          confirmLabel="Importar"
+          onConfirm={() => { const f = pendingFile; setPendingFile(null); doImport(f) }}
+          onCancel={() => setPendingFile(null)}
+        />
+      )}
     </section>
   )
 }

@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { fmtEur, versionLabel, type CareerPlayer } from '../api/client'
 import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer, deleteCareer } from '../store'
+import { useEscapeClose } from '../hooks'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function CareerPage() {
   const { id } = useParams()
@@ -11,10 +13,12 @@ export default function CareerPage() {
   const [tab, setTab] = useState<'elenco' | 'base'>('elenco')
   const [editingSeason, setEditingSeason] = useState(false)
   const [showAddPlayer, setShowAddPlayer] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ['career', id],
     queryFn: async () => getCareer(Number(id)),
+    retry: false,
   })
   const { data: playersData } = useQuery({
     queryKey: ['career-players', id],
@@ -36,13 +40,14 @@ export default function CareerPage() {
     mutationFn: async () => deleteCareer(Number(id)),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['careers'] }); nav('/') },
   })
-  function onDelete() {
-    if (!career) return
-    if (confirm(`Excluir a carreira "${career.name}"? Todos os jogadores, snapshots e a shortlist dela serão apagados. Essa ação não pode ser desfeita.`)) {
-      remove.mutate()
-    }
-  }
 
+  if (isError) return (
+    <div className="card mt-6 bg-surface-soft p-6 text-sm text-slate-ink">
+      <p className="font-semibold text-ink">Carreira não encontrada neste dispositivo.</p>
+      <p className="mt-1">Ela pode ter sido excluída ou os dados foram restaurados de outro backup.</p>
+      <Link to="/" className="btn-primary mt-3 inline-block">Voltar ao início</Link>
+    </div>
+  )
   if (!career) return <p className="pt-6 text-slate-ink">Carregando…</p>
 
   const objectives: string[] = career.objectives ? JSON.parse(career.objectives) : []
@@ -118,7 +123,7 @@ export default function CareerPage() {
             className="border border-white/40 px-[18px] py-2.5 text-sm font-medium text-white hover:bg-white/10">
             + Jogador
           </button>
-          <button onClick={onDelete} disabled={remove.isPending}
+          <button onClick={() => setConfirmingDelete(true)} disabled={remove.isPending}
             className="ml-auto border border-error/60 px-[18px] py-2.5 text-sm font-medium text-error hover:bg-error/10">
             {remove.isPending ? 'Excluindo…' : '🗑 Excluir carreira'}
           </button>
@@ -143,6 +148,15 @@ export default function CareerPage() {
       </section>
 
       {showAddPlayer && <AddPlayerModal careerId={Number(id)} version={career.fifa_version} onClose={() => setShowAddPlayer(false)} />}
+      {confirmingDelete && career && (
+        <ConfirmDialog
+          title="Excluir carreira"
+          message={`Excluir "${career.name}"? Todos os jogadores, snapshots e a shortlist dela serão apagados. Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          onConfirm={() => { setConfirmingDelete(false); remove.mutate() }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   )
 }
@@ -200,6 +214,7 @@ function PlayerList({ players }: { players: CareerPlayer[] }) {
 
 function AddPlayerModal({ careerId, version, onClose }: { careerId: number; version: number; onClose: () => void }) {
   const qc = useQueryClient()
+  useEscapeClose(onClose)
   const [origin, setOrigin] = useState<'generated' | 'youth' | 'regen'>('youth')
   const [name, setName] = useState('')
   const [positions, setPositions] = useState('')
@@ -225,7 +240,7 @@ function AddPlayerModal({ careerId, version, onClose }: { careerId: number; vers
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy-deep/50 sm:items-center" onClick={onClose}>
-      <div className="w-full max-w-md space-y-2  bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)] sm:" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" className="w-full max-w-md space-y-2  bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)] sm:" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-semibold text-ink">Adicionar jogador</h3>
         <p className="text-[13px] text-steel">
           Para jogadores reais da database do {versionLabel(version)}, use a Prospecção. Aqui entram os que só existem no seu save.
@@ -238,7 +253,7 @@ function AddPlayerModal({ careerId, version, onClose }: { careerId: number; vers
             </button>
           ))}
         </div>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome *" className="input" />
+        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome *" className="input" />
         <div className="flex gap-2">
           <input value={positions} onChange={(e) => setPositions(e.target.value)} placeholder="Posições (ST, CAM)" className="input w-1/2" />
           <input value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade" inputMode="numeric" className="input w-1/2" />

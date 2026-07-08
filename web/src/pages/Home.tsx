@@ -21,7 +21,7 @@ export default function Home() {
     queryKey: ['careers'],
     queryFn: async () => listCareers(),
   })
-  const { data: versionsData } = useQuery({
+  const { data: versionsData, isError: versionsError, error: versionsErr, refetch: refetchVersions } = useQuery({
     queryKey: ['versions'],
     queryFn: () => api<{ versions: VersionInfo[] }>('/api/versions'),
   })
@@ -101,7 +101,14 @@ export default function Home() {
 
       <section>
         <h2 className="mb-4 text-xl font-semibold tracking-tight text-ink">Databases do jogo</h2>
-        {!anyImported && !importing && (
+        {versionsError && (
+          <div className="card mb-3 bg-tint-rose p-5 text-sm text-charcoal">
+            <p className="font-semibold">Sem conexão com o servidor.</p>
+            <p className="mt-1">{(versionsErr as Error).message}</p>
+            <button onClick={() => refetchVersions()} className="btn-secondary mt-3">Tentar de novo</button>
+          </div>
+        )}
+        {!anyImported && !importing && !versionsError && (
           <div className="mb-3  bg-tint-yellow-bold p-5 text-sm text-charcoal">
             <p className="font-semibold">Nenhuma database importada ainda.</p>
             <p className="mt-1">

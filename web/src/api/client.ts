@@ -2,13 +2,23 @@ export async function api<T = unknown>(path: string, init?: RequestInit): Promis
   // Content-Type só quando há corpo: Fastify rejeita (400) um Content-Type
   // application/json em requisição sem corpo (ex.: DELETE sem body).
   const hasBody = init?.body != null && !(init.body instanceof FormData)
-  const res = await fetch(path, {
-    headers: hasBody ? { 'Content-Type': 'application/json' } : undefined,
-    ...init,
-  })
+  let res: Response
+  try {
+    res = await fetch(path, {
+      headers: hasBody ? { 'Content-Type': 'application/json' } : undefined,
+      ...init,
+    })
+  } catch {
+    throw new Error('Não foi possível falar com o servidor. Verifique sua conexão — ou se o servidor do app está no ar.')
+  }
   if (!res.ok) {
-    let msg = `Erro ${res.status}`
-    try { msg = (await res.json()).error ?? msg } catch { /* mantém msg */ }
+    let msg: string | null = null
+    try { msg = (await res.json()).error ?? null } catch { /* corpo não-JSON */ }
+    if (!msg) {
+      msg = res.status >= 500
+        ? `O servidor está indisponível no momento (HTTP ${res.status}). Tente de novo em instantes.`
+        : `Erro ${res.status}`
+    }
     throw new Error(msg)
   }
   return res.json() as Promise<T>

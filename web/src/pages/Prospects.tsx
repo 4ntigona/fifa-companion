@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import { api, fmtEur, versionLabel, type Prospect, type SofifaPlayer } from '../api/client'
 import { getCareer, listProspects, addProspect as addProspectStore, updateProspect as updateProspectStore, removeProspect as removeProspectStore } from '../store'
+import { useDebouncedValue } from '../hooks'
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'CF', 'ST']
 const STATUS_LABEL: Record<Prospect['status'], string> = {
@@ -20,6 +21,14 @@ export default function ProspectsPage() {
   const [minOverall, setMinOverall] = useState('')
   const [maxValue, setMaxValue] = useState('')
   const [sort, setSort] = useState('potential')
+  const [limit, setLimit] = useState(50)
+
+  // valores debounced — não busca a cada tecla
+  const dq = useDebouncedValue(q)
+  const dMaxAge = useDebouncedValue(maxAge)
+  const dMinOverall = useDebouncedValue(minOverall)
+  const dMinPotential = useDebouncedValue(minPotential)
+  const dMaxValue = useDebouncedValue(maxValue)
 
   const { data: careerData } = useQuery({
     queryKey: ['career', id],
@@ -27,15 +36,19 @@ export default function ProspectsPage() {
   })
   const version = careerData?.career.fifa_version
 
+  // volta o limite ao mudar qualquer filtro
+  useEffect(() => { setLimit(50) }, [dq, position, dMaxAge, dMinOverall, dMinPotential, dMaxValue, sort])
+
   const params = new URLSearchParams({
-    ...(q && { q }), ...(position && { position }), ...(maxAge && { maxAge }),
-    ...(minPotential && { minPotential }), ...(minOverall && { minOverall }),
-    ...(maxValue && { maxValue: String(Number(maxValue) * 1_000_000) }), sort, limit: '50',
+    ...(dq && { q: dq }), ...(position && { position }), ...(dMaxAge && { maxAge: dMaxAge }),
+    ...(dMinPotential && { minPotential: dMinPotential }), ...(dMinOverall && { minOverall: dMinOverall }),
+    ...(dMaxValue && { maxValue: String(Number(dMaxValue) * 1_000_000) }), sort, limit: String(limit),
   })
-  const { data: searchData, isFetching } = useQuery({
+  const { data: searchData, isFetching, isError: searchError, error: searchErr, refetch: refetchSearch } = useQuery({
     queryKey: ['player-search', version, params.toString()],
     queryFn: () => api<{ players: SofifaPlayer[]; total: number }>(`/api/players/${version}?${params}`),
     enabled: version != null && tab === 'buscar',
+    placeholderData: (prev) => prev,
   })
 
   const { data: prospectsData } = useQuery({
@@ -103,6 +116,14 @@ export default function ProspectsPage() {
             ))}
           </div>
 
+          {searchError ? (
+            <div className="card bg-tint-rose p-5 text-sm text-charcoal">
+              <p className="font-semibold">Sem conexão com o servidor.</p>
+              <p className="mt-1">{(searchErr as Error).message}</p>
+              <button onClick={() => refetchSearch()} className="btn-secondary mt-3">Tentar de novo</button>
+            </div>
+          ) : (
+          <>
           {isFetching && <p className="text-sm text-steel">Buscando…</p>}
           {searchData && (
             <p className="text-[13px] text-stone">{searchData.total.toLocaleString('pt-BR')} jogadores encontrados</p>
@@ -133,6 +154,13 @@ export default function ProspectsPage() {
               </li>
             ))}
           </ul>
+          {searchData && searchData.players.length < searchData.total && searchData.players.length < 200 && (
+            <button onClick={() => setLimit((l) => l + 50)} disabled={isFetching} className="btn-secondary w-full">
+              {isFetching ? 'Carregando…' : `Carregar mais (${searchData.players.length} de ${searchData.total.toLocaleString('pt-BR')})`}
+            </button>
+          )}
+          </>
+          )}
         </>
       )}
 
