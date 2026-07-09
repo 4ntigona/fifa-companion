@@ -71,6 +71,18 @@ export async function downloadDatasetFile(
   if (magic[0] === 0x50 && magic[1] === 0x4b) {
     const zipPath = `${dest}.zip`
     renameSync(tmp, zipPath)
+
+    // Verify unzip is installed on the system
+    const checkUnzip = spawnSync('unzip', ['-v'])
+    if (checkUnzip.error) {
+      rmSync(zipPath, { force: true })
+      throw new Error(
+        `O comando 'unzip' não está instalado no sistema. ` +
+        `Instale-o usando 'sudo apt install unzip' (Linux) ou 'brew install unzip' (macOS), ` +
+        `ou extraia o arquivo manualmente para a pasta: ${KAGGLE_DIR}`
+      )
+    }
+
     const r = spawnSync('unzip', ['-o', zipPath, '-d', KAGGLE_DIR], { encoding: 'utf-8' })
     rmSync(zipPath, { force: true })
     if (r.status !== 0 || !existsSync(dest)) {
