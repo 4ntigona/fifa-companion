@@ -389,7 +389,8 @@ export function aiModel(p: AiProvider): string {
 
 export function exportBackup() {
   const db = load()
-  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' })
+  const cleanDb = { ...db, ai: { ...db.ai, keys: {} } }
+  const blob = new Blob([JSON.stringify(cleanDb, null, 2)], { type: 'application/json' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = `career-companion-backup-${nowIso().slice(0, 10)}.json`
@@ -403,7 +404,16 @@ export async function importBackup(file: File): Promise<{ careers: number; playe
   if (data?.version !== 1 || !Array.isArray(data.careers) || !Array.isArray(data.careerPlayers)) {
     throw new Error('Arquivo de backup inválido (formato não reconhecido).')
   }
-  save({ ...emptyDb(), ...data, ai: { ...emptyDb().ai, ...data.ai } })
+  const current = load()
+  save({
+    ...emptyDb(),
+    ...data,
+    ai: {
+      ...emptyDb().ai,
+      ...data.ai,
+      keys: current.ai.keys, // preserve keys local to this client
+    },
+  })
   return { careers: data.careers.length, players: data.careerPlayers.length }
 }
 
@@ -413,9 +423,10 @@ export function storageUsage(): { bytes: number } {
 
 export async function shareBackupOnServer(): Promise<string> {
   const db = load()
+  const cleanDb = { ...db, ai: { ...db.ai, keys: {} } }
   const res = await api<{ code: string }>('/api/backups/share', {
     method: 'POST',
-    body: JSON.stringify(db),
+    body: JSON.stringify(cleanDb),
   })
   return res.code
 }
@@ -427,6 +438,15 @@ export async function recoverBackupFromServer(code: string): Promise<{ careers: 
   if (data?.version !== 1 || !Array.isArray(data.careers) || !Array.isArray(data.careerPlayers)) {
     throw new Error('O backup recuperado do servidor possui formato inválido.')
   }
-  save({ ...emptyDb(), ...data, ai: { ...emptyDb().ai, ...data.ai } })
+  const current = load()
+  save({
+    ...emptyDb(),
+    ...data,
+    ai: {
+      ...emptyDb().ai,
+      ...data.ai,
+      keys: current.ai.keys, // preserve keys local to this client
+    },
+  })
   return { careers: data.careers.length, players: data.careerPlayers.length }
 }
