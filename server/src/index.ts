@@ -8,9 +8,6 @@ import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { DATA_DIR } from './db/index.js'
 import { gameDataRoutes } from './routes/game-data.js'
-import { careerRoutes } from './routes/careers.js'
-import { playerRoutes } from './routes/players.js'
-import { prospectRoutes } from './routes/prospects.js'
 import { captureRoutes } from './routes/captures.js'
 import { settingsRoutes } from './routes/settings.js'
 import { importRoutes } from './routes/import.js'
@@ -53,9 +50,6 @@ if (existsSync(webDist)) {
 }
 
 gameDataRoutes(app)
-careerRoutes(app)
-playerRoutes(app)
-prospectRoutes(app)
 captureRoutes(app)
 settingsRoutes(app)
 importRoutes(app)
