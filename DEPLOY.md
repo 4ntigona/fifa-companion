@@ -1,5 +1,15 @@
 # Guia de Deploy VPS — FIFA Career Companion
 
+> [!TIP]
+> **Automação**: Você pode automatizar todos os passos manuais de atualização e deploy listados neste guia executando o script de deploy automatizado na raiz do projeto:
+> ```bash
+> ./deploy-vps.sh
+> ```
+> Para simular e ver o que o script fará sem realizar nenhuma alteração real, use o modo de demonstração:
+> ```bash
+> ./deploy-vps.sh --dry-run
+> ```
+
 Este guia descreve os passos para configurar, atualizar e manter a aplicação FIFA Career Companion em uma VPS com **Debian 12**, **CloudPanel** e **PM2**, garantindo a persistência dos dados (banco de dados SQLite e imagens capturadas).
 
 ---
