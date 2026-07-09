@@ -40,8 +40,18 @@ export function backupRoutes(app: FastifyInstance) {
     return { code }
   })
 
-  app.get<{ Params: { code: string } }>('/api/backups/recover/:code', async (req, reply) => {
-    const code = req.params.code.trim().toUpperCase()
+  app.get<{ Params: { code: string } }>(
+    '/api/backups/recover/:code',
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '1 minute',
+        },
+      },
+    },
+    async (req, reply) => {
+      const code = req.params.code.trim().toUpperCase()
     if (!code) {
       return reply.code(400).send({ error: 'Código de backup inválido.' })
     }

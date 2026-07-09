@@ -1,6 +1,7 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
+import rateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
 import { join, dirname } from 'node:path'
 import { existsSync } from 'node:fs'
@@ -22,6 +23,10 @@ const app = Fastify({ logger: true })
 
 await app.register(cors, { origin: true })
 await app.register(multipart, { attachFieldsToBody: false })
+await app.register(rateLimit, {
+  max: 100,
+  timeWindow: '1 minute',
+})
 
 // Registrar a pasta de capturas primeiro
 await app.register(fastifyStatic, {
