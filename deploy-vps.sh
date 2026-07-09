@@ -1,33 +1,12 @@
 #!/bin/bash
 set -e
 
-PERSISTENT_DIR="/home/companion/persistent_data"
 PROJECT_DIR="$(pwd)"
 APP_NAME="fifa-companion"
 
 echo "=================================================="
 echo "    FIFA Companion VPS Auto-Deploy Script         "
 echo "=================================================="
-
-# Check for dry-run
-DRY_RUN=false
-if [ "$1" = "--dry-run" ]; then
-    DRY_RUN=true
-fi
-
-if [ "$DRY_RUN" = true ]; then
-    echo "--- DRY RUN MODE: Simulando sequência de deploy ---"
-    echo "1. Verificar instalação de dependências: node, npm, pm2, unzip"
-    echo "2. Criar diretório persistente: $PERSISTENT_DIR/captures"
-    echo "3. Migrar pasta física server/data (se existir e não for link simbólico) para $PERSISTENT_DIR/"
-    echo "4. Criar link simbólico de $PERSISTENT_DIR para $PROJECT_DIR/server/data"
-    echo "5. Atualizar repositório Git: git pull origin vps-deploy-persistence-setup"
-    echo "6. Instalar dependências npm: npm install"
-    echo "7. Compilar frontend e backend: npm run build"
-    echo "8. Gerenciar processo PM2 (reiniciar se existir, iniciar se não existir): $APP_NAME"
-    echo "--- FIM DA SIMULAÇÃO ---"
-    exit 0
-fi
 
 # Check requirements
 for cmd in node npm pm2 unzip; do
@@ -37,15 +16,51 @@ for cmd in node npm pm2 unzip; do
     fi
 done
 
+# Auto-detect current system user and default home path
+DETECTED_USER=$(whoami)
+DEFAULT_PERSISTENT_DIR="$HOME/persistent_data"
+
+# Check for dry-run
+DRY_RUN=false
+if [ "$1" = "--dry-run" ]; then
+    DRY_RUN=true
+fi
+
+if [ "$DRY_RUN" = true ]; then
+    echo "--- DRY RUN MODE: Simulando sequência de deploy ---"
+    echo "1. Usuário CloudPanel: $DETECTED_USER"
+    echo "2. Pasta de dados persistente: $DEFAULT_PERSISTENT_DIR/captures"
+    echo "3. Migrar pasta física server/data (se existir e não for link simbólico) para $DEFAULT_PERSISTENT_DIR/"
+    echo "4. Criar link simbólico de $DEFAULT_PERSISTENT_DIR para $PROJECT_DIR/server/data"
+    echo "5. Atualizar repositório Git: git pull origin vps-deploy-persistence-setup"
+    echo "6. Instalar dependências npm: npm install"
+    echo "7. Compilar frontend e backend: npm run build"
+    echo "8. Gerenciar processo PM2: reiniciar/iniciar $APP_NAME"
+    echo "--- FIM DA SIMULAÇÃO ---"
+    exit 0
+fi
+
+# Interactive path and user setup
+echo "Configurações de Instalação:"
+read -p "Nome de usuário do sistema/CloudPanel [Padrão: $DETECTED_USER]: " CLP_USER
+CLP_USER=${CLP_USER:-$DETECTED_USER}
+
+read -p "Caminho da pasta persistente de dados [Padrão: $DEFAULT_PERSISTENT_DIR]: " PERSISTENT_DIR
+PERSISTENT_DIR=${PERSISTENT_DIR:-$DEFAULT_PERSISTENT_DIR}
+
 # Confirm action
-read -p "Deseja iniciar a atualização/instalação por cima da versão atual? (s/N): " confirm
+read -p "Deseja iniciar a atualização/instalação com as configurações acima? (s/N): " confirm
 if [[ ! "$confirm" =~ ^[sS]$ ]]; then
     echo "Operação abortada pelo usuário."
     exit 0
 fi
 
-echo "-> Verificando integridade da pasta persistente..."
+echo "-> Verificando integridade da pasta persistente em: $PERSISTENT_DIR..."
 mkdir -p "$PERSISTENT_DIR/captures"
+
+# Ensure correct owner for persistence path
+echo "-> Ajustando permissões da pasta persistente para o usuário $CLP_USER..."
+chown -R "$CLP_USER:$CLP_USER" "$PERSISTENT_DIR" || echo "Aviso: Não foi possível rodar chown (execute como sudo se necessário)."
 
 # Safe migration: if a physical directory server/data/ exists (not a symlink), copy its contents
 if [ -d "$PROJECT_DIR/server/data" ] && [ ! -L "$PROJECT_DIR/server/data" ]; then
