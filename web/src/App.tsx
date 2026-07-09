@@ -12,7 +12,9 @@ type ThemeMode = 'light' | 'dark' | 'system'
 
 const THEME_ICON: Record<ThemeMode, string> = { light: '☀️', dark: '🌙', system: '🌗' }
 const THEME_LABEL: Record<ThemeMode, string> = {
-  light: 'Tema claro', dark: 'Tema escuro', system: 'Tema automático (segue o dispositivo)',
+  light: 'Tema claro',
+  dark: 'Tema escuro',
+  system: 'Tema automático (segue o dispositivo)',
 }
 
 function useTheme() {
@@ -56,15 +58,22 @@ export default function App() {
           Career <span className="text-primary">\</span> Companion
         </Link>
         <nav className="flex items-center gap-4 text-sm font-medium text-steel">
-          {loc.pathname !== '/' && <Link to="/" className="hover:text-ink">Início</Link>}
-          <Link to="/config" title="Configurações" className="hover:text-ink">⚙️ Config</Link>
+          {loc.pathname !== '/' && (
+            <Link to="/" className="hover:text-ink">
+              Início
+            </Link>
+          )}
+          <Link to="/config" title="Configurações" className="hover:text-ink">
+            ⚙️ Config
+          </Link>
           <button
             onClick={cycle}
             title={`${THEME_LABEL[mode]} — clique para alternar`}
             aria-label={THEME_LABEL[mode]}
             className="border border-hairline px-2.5 py-1 text-sm transition-colors hover:border-hairline-strong"
           >
-            {THEME_ICON[mode]}{mode === 'system' && <span className="ml-1 text-[11px] font-semibold uppercase tracking-wide">auto</span>}
+            {THEME_ICON[mode]}
+            {mode === 'system' && <span className="ml-1 text-[11px] font-semibold uppercase tracking-wide">auto</span>}
           </button>
         </nav>
       </header>
@@ -78,7 +87,11 @@ export default function App() {
         <Route path="/config" element={<SettingsPage />} />
       </Routes>
       <footer className="mt-12 border-t border-hairline pt-4 text-center text-[13px] text-steel">
-        Dados originais do jogo via <a className="text-link underline" href="https://sofifa.com" target="_blank" rel="noreferrer">SoFIFA</a> (dumps públicos). Projeto pessoal, não comercial.
+        Dados originais do jogo via{' '}
+        <a className="text-link underline" href="https://sofifa.com" target="_blank" rel="noreferrer">
+          SoFIFA
+        </a>{' '}
+        (dumps públicos). Projeto pessoal, não comercial.
       </footer>
     </div>
   )

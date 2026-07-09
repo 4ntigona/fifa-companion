@@ -22,18 +22,58 @@ export const TEAMS_CSV = join(KAGGLE_DIR, 'male_teams.csv')
 export const DATASET = 'stefanoleone992/ea-sports-fc-24-complete-player-dataset'
 
 const PLAYER_COLS = [
-  'short_name', 'long_name', 'player_positions', 'overall', 'potential', 'value_eur', 'wage_eur',
-  'age', 'dob', 'height_cm', 'weight_kg', 'club_team_id', 'club_name', 'league_name', 'league_level',
-  'club_position', 'club_jersey_number', 'club_loaned_from', 'club_joined_date', 'club_contract_valid_until_year',
-  'nationality_name', 'preferred_foot', 'weak_foot', 'skill_moves', 'international_reputation',
-  'work_rate', 'body_type', 'player_tags', 'player_traits',
-  'pace', 'shooting', 'passing', 'dribbling', 'defending', 'physic',
+  'short_name',
+  'long_name',
+  'player_positions',
+  'overall',
+  'potential',
+  'value_eur',
+  'wage_eur',
+  'age',
+  'dob',
+  'height_cm',
+  'weight_kg',
+  'club_team_id',
+  'club_name',
+  'league_name',
+  'league_level',
+  'club_position',
+  'club_jersey_number',
+  'club_loaned_from',
+  'club_joined_date',
+  'club_contract_valid_until_year',
+  'nationality_name',
+  'preferred_foot',
+  'weak_foot',
+  'skill_moves',
+  'international_reputation',
+  'work_rate',
+  'body_type',
+  'player_tags',
+  'player_traits',
+  'pace',
+  'shooting',
+  'passing',
+  'dribbling',
+  'defending',
+  'physic',
 ] as const
 
 const TEAM_COLS = [
-  'team_name', 'league_id', 'league_name', 'league_level', 'nationality_name',
-  'overall', 'attack', 'midfield', 'defence', 'transfer_budget_eur', 'club_worth_eur',
-  'international_prestige', 'domestic_prestige', 'rival_team',
+  'team_name',
+  'league_id',
+  'league_name',
+  'league_level',
+  'nationality_name',
+  'overall',
+  'attack',
+  'midfield',
+  'defence',
+  'transfer_budget_eur',
+  'club_worth_eur',
+  'international_prestige',
+  'domestic_prestige',
+  'rival_team',
 ] as const
 
 function num(v: string | undefined): number | null {
@@ -87,8 +127,8 @@ async function launchUpdates(csvPath: string): Promise<Map<number, number>> {
 function canonicalLeagues(teamRowsArray: Record<string, any>[]): Map<number, { name: string; level: number | null }> {
   interface Stat {
     maxVersion: number
-    atMax: Map<string, number>        // "name|level" → contagem na maxVersion
-    global: Map<string, number>       // "name|level" → contagem geral
+    atMax: Map<string, number> // "name|level" → contagem na maxVersion
+    global: Map<string, number> // "name|level" → contagem geral
   }
   const stats = new Map<number, Stat>()
   let fileMaxVersion = 0
@@ -101,8 +141,14 @@ function canonicalLeagues(teamRowsArray: Record<string, any>[]): Map<number, { n
     if (v > fileMaxVersion) fileMaxVersion = v
     const key = `${name}|${row.league_level ?? ''}`
     let s = stats.get(id)
-    if (!s) { s = { maxVersion: v, atMax: new Map(), global: new Map() }; stats.set(id, s) }
-    if (v > s.maxVersion) { s.maxVersion = v; s.atMax = new Map() }
+    if (!s) {
+      s = { maxVersion: v, atMax: new Map(), global: new Map() }
+      stats.set(id, s)
+    }
+    if (v > s.maxVersion) {
+      s.maxVersion = v
+      s.atMax = new Map()
+    }
     if (v === s.maxVersion) s.atMax.set(key, (s.atMax.get(key) ?? 0) + 1)
     s.global.set(key, (s.global.get(key) ?? 0) + 1)
   }
@@ -132,7 +178,7 @@ export async function importFromCsv(
   if (!present.players || !present.teams) {
     throw new Error(
       `Arquivos do dataset não encontrados em ${KAGGLE_DIR}. ` +
-      `Baixe male_players.csv e male_teams.csv do dataset ${DATASET} (Kaggle).`,
+        `Baixe male_players.csv e male_teams.csv do dataset ${DATASET} (Kaggle).`,
     )
   }
 
@@ -173,7 +219,8 @@ export async function importFromCsv(
   `)
   {
     const teamsToInsert = teamRowsArray.filter(
-      (row) => wanted.has(Number(row.fifa_version)) && Number(row.fifa_update) === teamLaunch.get(Number(row.fifa_version))
+      (row) =>
+        wanted.has(Number(row.fifa_version)) && Number(row.fifa_update) === teamLaunch.get(Number(row.fifa_version)),
     )
     flushTeams(teamsToInsert, insertTeam)
     teamRows = teamsToInsert.length
@@ -197,9 +244,17 @@ export async function importFromCsv(
       const v = Number(row.fifa_version)
       if (!wanted.has(v) || Number(row.fifa_update) !== playerLaunch.get(v)) continue
       tx.push(row)
-      if (tx.length >= 2000) { flushPlayers(tx, insertPlayer); playerRows += tx.length; tx.length = 0; onProgress({ phase: 'jogadores', rows: playerRows }) }
+      if (tx.length >= 2000) {
+        flushPlayers(tx, insertPlayer)
+        playerRows += tx.length
+        tx.length = 0
+        onProgress({ phase: 'jogadores', rows: playerRows })
+      }
     }
-    if (tx.length) { flushPlayers(tx, insertPlayer); playerRows += tx.length }
+    if (tx.length) {
+      flushPlayers(tx, insertPlayer)
+      playerRows += tx.length
+    }
   }
 
   // ---- correção dos nomes de liga (pares embaralhados no dump histórico) ----
@@ -213,7 +268,8 @@ export async function importFromCsv(
       }
       // jogadores herdam a liga canônica do próprio clube
       for (const v of versions) {
-        db.prepare(`
+        db.prepare(
+          `
           UPDATE sofifa_players SET
             league_name = (SELECT t.league_name FROM sofifa_teams t
                            WHERE t.fifa_version = sofifa_players.fifa_version AND t.team_id = sofifa_players.club_team_id),
@@ -222,7 +278,8 @@ export async function importFromCsv(
           WHERE fifa_version = ? AND club_team_id IS NOT NULL
             AND EXISTS (SELECT 1 FROM sofifa_teams t
                         WHERE t.fifa_version = sofifa_players.fifa_version AND t.team_id = sofifa_players.club_team_id)
-        `).run(v)
+        `,
+        ).run(v)
       }
     })()
   }
@@ -238,11 +295,24 @@ function flushTeams(rows: Record<string, any>[], stmt: import('better-sqlite3').
       const extra: Record<string, unknown> = {}
       for (const [k, val] of Object.entries(r)) if (!known.has(k) && val !== '') extra[k] = val
       stmt.run(
-        Number(r.fifa_version), Number(r.team_id), r.team_name,
-        num(r.league_id), r.league_name || null, num(r.league_level), r.nationality_name || null,
-        num(r.overall), num(r.attack), num(r.midfield), num(r.defence),
-        num(r.transfer_budget_eur), num(r.club_worth_eur),
-        null, num(r.international_prestige), num(r.domestic_prestige), null, num(r.rival_team),
+        Number(r.fifa_version),
+        Number(r.team_id),
+        r.team_name,
+        num(r.league_id),
+        r.league_name || null,
+        num(r.league_level),
+        r.nationality_name || null,
+        num(r.overall),
+        num(r.attack),
+        num(r.midfield),
+        num(r.defence),
+        num(r.transfer_budget_eur),
+        num(r.club_worth_eur),
+        null,
+        num(r.international_prestige),
+        num(r.domestic_prestige),
+        null,
+        num(r.rival_team),
         JSON.stringify(extra),
       )
     }
@@ -252,19 +322,58 @@ function flushTeams(rows: Record<string, any>[], stmt: import('better-sqlite3').
 function flushPlayers(rows: Record<string, any>[], stmt: import('better-sqlite3').Statement<unknown[], unknown>) {
   db.transaction(() => {
     for (const r of rows) {
-      const known = new Set([...PLAYER_COLS, 'fifa_version', 'fifa_update', 'fifa_update_date', 'player_id', 'sofifa_id', 'player_url', 'update_as_of', 'club_joined', 'club_contract_valid_until'])
+      const known = new Set([
+        ...PLAYER_COLS,
+        'fifa_version',
+        'fifa_update',
+        'fifa_update_date',
+        'player_id',
+        'sofifa_id',
+        'player_url',
+        'update_as_of',
+        'club_joined',
+        'club_contract_valid_until',
+      ])
       const attrs: Record<string, unknown> = {}
       for (const [k, val] of Object.entries(r)) if (!known.has(k) && val !== '') attrs[k] = val
       stmt.run(
-        Number(r.fifa_version), Number(r.player_id ?? r.sofifa_id), r.short_name, r.long_name, r.player_positions,
-        num(r.overall), num(r.potential), num(r.value_eur), num(r.wage_eur),
-        num(r.age), r.dob || null, num(r.height_cm), num(r.weight_kg),
-        num(r.club_team_id), r.club_name || null, r.league_name || null, num(r.league_level),
-        r.club_position || null, num(r.club_jersey_number), r.club_loaned_from || null,
-        (r.club_joined_date ?? r.club_joined) || null, num(r.club_contract_valid_until_year ?? r.club_contract_valid_until), r.nationality_name || null,
-        r.preferred_foot || null, num(r.weak_foot), num(r.skill_moves), num(r.international_reputation),
-        r.work_rate || null, r.body_type || null, r.player_tags || null, r.player_traits || null,
-        num(r.pace), num(r.shooting), num(r.passing), num(r.dribbling), num(r.defending), num(r.physic),
+        Number(r.fifa_version),
+        Number(r.player_id ?? r.sofifa_id),
+        r.short_name,
+        r.long_name,
+        r.player_positions,
+        num(r.overall),
+        num(r.potential),
+        num(r.value_eur),
+        num(r.wage_eur),
+        num(r.age),
+        r.dob || null,
+        num(r.height_cm),
+        num(r.weight_kg),
+        num(r.club_team_id),
+        r.club_name || null,
+        r.league_name || null,
+        num(r.league_level),
+        r.club_position || null,
+        num(r.club_jersey_number),
+        r.club_loaned_from || null,
+        (r.club_joined_date ?? r.club_joined) || null,
+        num(r.club_contract_valid_until_year ?? r.club_contract_valid_until),
+        r.nationality_name || null,
+        r.preferred_foot || null,
+        num(r.weak_foot),
+        num(r.skill_moves),
+        num(r.international_reputation),
+        r.work_rate || null,
+        r.body_type || null,
+        r.player_tags || null,
+        r.player_traits || null,
+        num(r.pace),
+        num(r.shooting),
+        num(r.passing),
+        num(r.dribbling),
+        num(r.defending),
+        num(r.physic),
         JSON.stringify(attrs),
       )
     }

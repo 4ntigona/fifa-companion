@@ -17,7 +17,13 @@ interface ImportState {
 }
 
 const state: ImportState = {
-  running: false, phase: 'ocioso', detail: '', versions: [], progress: null, error: null, finishedAt: null,
+  running: false,
+  phase: 'ocioso',
+  detail: '',
+  versions: [],
+  progress: null,
+  error: null,
+  finishedAt: null,
 }
 
 async function runImport(versions: number[]) {
@@ -30,10 +36,7 @@ async function runImport(versions: number[]) {
   state.finishedAt = null
   try {
     const present = csvFilesPresent()
-    const missing = [
-      ...(present.teams ? [] : ['male_teams.csv']),
-      ...(present.players ? [] : ['male_players.csv']),
-    ]
+    const missing = [...(present.teams ? [] : ['male_teams.csv']), ...(present.players ? [] : ['male_players.csv'])]
     if (missing.length) {
       const creds = kaggleCreds() // opcional: dataset público baixa sem autenticação
       for (const file of missing) {

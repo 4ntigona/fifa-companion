@@ -2,11 +2,20 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import { api, fmtEur, versionLabel, type Career, type Prospect, type SofifaPlayer } from '../api/client'
-import { getCareer, listProspects, addProspect as addProspectLocal, updateProspect as updateProspectLocal, removeProspect as removeProspectLocal } from '../store'
+import {
+  getCareer,
+  listProspects,
+  addProspect as addProspectLocal,
+  updateProspect as updateProspectLocal,
+  removeProspect as removeProspectLocal,
+} from '../store'
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'CF', 'ST']
 const STATUS_LABEL: Record<Prospect['status'], string> = {
-  observando: '👀 Observando', negociando: '🤝 Negociando', contratado: '✅ Contratado', descartado: '✖ Descartado',
+  observando: '👀 Observando',
+  negociando: '🤝 Negociando',
+  contratado: '✅ Contratado',
+  descartado: '✖ Descartado',
 }
 
 export default function ProspectsPage() {
@@ -29,9 +38,14 @@ export default function ProspectsPage() {
   const version = career?.fifa_version
 
   const params = new URLSearchParams({
-    ...(q && { q }), ...(position && { position }), ...(maxAge && { maxAge }),
-    ...(minPotential && { minPotential }), ...(minOverall && { minOverall }),
-    ...(maxValue && { maxValue: String(Number(maxValue) * 1_000_000) }), sort, limit: '50',
+    ...(q && { q }),
+    ...(position && { position }),
+    ...(maxAge && { maxAge }),
+    ...(minPotential && { minPotential }),
+    ...(minOverall && { minOverall }),
+    ...(maxValue && { maxValue: String(Number(maxValue) * 1_000_000) }),
+    sort,
+    limit: '50',
   })
   const { data: searchData, isFetching } = useQuery({
     queryKey: ['player-search', version, params.toString()],
@@ -47,8 +61,7 @@ export default function ProspectsPage() {
   const shortlistIds = new Set(prospects.map((p) => p.sofifa_player_id))
 
   const addProspect = useMutation({
-    mutationFn: (player: SofifaPlayer) =>
-      Promise.resolve(addProspectLocal(Number(id), player)),
+    mutationFn: (player: SofifaPlayer) => Promise.resolve(addProspectLocal(Number(id), player)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['prospects', id] }),
   })
   const updateProspect = useMutation({
@@ -70,9 +83,13 @@ export default function ProspectsPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
           Prospecção {version ? <span className="text-steel">· {versionLabel(version)}</span> : ''}
         </h1>
-        <Link to={`/carreira/${id}`} className="text-sm font-medium text-steel hover:text-ink">← Carreira</Link>
+        <Link to={`/carreira/${id}`} className="text-sm font-medium text-steel hover:text-ink">
+          ← Carreira
+        </Link>
       </div>
-      <p className="text-[13px] text-steel">Busca na database original do jogo — overalls, potenciais e valores reais.</p>
+      <p className="text-[13px] text-steel">
+        Busca na database original do jogo — overalls, potenciais e valores reais.
+      </p>
 
       <div className="flex gap-2">
         <button onClick={() => setTab('buscar')} className={tab === 'buscar' ? 'pill-tab-active' : 'pill-tab'}>
@@ -89,16 +106,50 @@ export default function ProspectsPage() {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nome…" className="input" />
             <select value={position} onChange={(e) => setPosition(e.target.value)} className="input">
               <option value="">Posição</option>
-              {POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+              {POSITIONS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
             </select>
-            <input value={maxAge} onChange={(e) => setMaxAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade máx." inputMode="numeric" className="input" />
-            <input value={minOverall} onChange={(e) => setMinOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall mín." inputMode="numeric" className="input" />
-            <input value={minPotential} onChange={(e) => setMinPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial mín." inputMode="numeric" className="input" />
-            <input value={maxValue} onChange={(e) => setMaxValue(e.target.value.replace(/\D/g, ''))} placeholder="Valor máx. (€M)" inputMode="numeric" className="input" />
+            <input
+              value={maxAge}
+              onChange={(e) => setMaxAge(e.target.value.replace(/\D/g, ''))}
+              placeholder="Idade máx."
+              inputMode="numeric"
+              className="input"
+            />
+            <input
+              value={minOverall}
+              onChange={(e) => setMinOverall(e.target.value.replace(/\D/g, ''))}
+              placeholder="Overall mín."
+              inputMode="numeric"
+              className="input"
+            />
+            <input
+              value={minPotential}
+              onChange={(e) => setMinPotential(e.target.value.replace(/\D/g, ''))}
+              placeholder="Potencial mín."
+              inputMode="numeric"
+              className="input"
+            />
+            <input
+              value={maxValue}
+              onChange={(e) => setMaxValue(e.target.value.replace(/\D/g, ''))}
+              placeholder="Valor máx. (€M)"
+              inputMode="numeric"
+              className="input"
+            />
           </div>
           <div className="flex flex-wrap items-center gap-1.5 text-sm">
             <span className="mr-1 text-[13px] text-steel">Ordenar:</span>
-            {[['potential', 'Potencial'], ['overall', 'Overall'], ['growth', 'Margem'], ['age', 'Idade'], ['value', 'Valor']].map(([k, label]) => (
+            {[
+              ['potential', 'Potencial'],
+              ['overall', 'Overall'],
+              ['growth', 'Margem'],
+              ['age', 'Idade'],
+              ['value', 'Valor'],
+            ].map(([k, label]) => (
               <button key={k} onClick={() => setSort(k)} className={sort === k ? 'pill-tab-active' : 'pill-tab'}>
                 {label}
               </button>
@@ -115,8 +166,12 @@ export default function ProspectsPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <span className="font-semibold text-ink">{p.short_name}</span>
-                    <span className="ml-2 text-[13px] text-steel">{p.positions} · {p.age} anos</span>
-                    <div className="truncate text-[13px] text-slate-ink">{p.club_name ?? '—'} · {p.league_name ?? '—'} · {fmtEur(p.value_eur)}</div>
+                    <span className="ml-2 text-[13px] text-steel">
+                      {p.positions} · {p.age} anos
+                    </span>
+                    <div className="truncate text-[13px] text-slate-ink">
+                      {p.club_name ?? '—'} · {p.league_name ?? '—'} · {fmtEur(p.value_eur)}
+                    </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <div className="text-right">
@@ -161,13 +216,18 @@ export default function ProspectsPage() {
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {(Object.keys(STATUS_LABEL) as Prospect['status'][]).map((s) => (
-                  <button key={s} onClick={() => updateProspect.mutate({ pid: pr.id, status: s })}
-                    className={`${pr.status === s ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
+                  <button
+                    key={s}
+                    onClick={() => updateProspect.mutate({ pid: pr.id, status: s })}
+                    className={`${pr.status === s ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}
+                  >
                     {STATUS_LABEL[s]}
                   </button>
                 ))}
-                <button onClick={() => removeProspect.mutate(pr.id)}
-                  className="ml-auto  px-2 py-1 text-[13px] font-medium text-error hover:bg-tint-rose">
+                <button
+                  onClick={() => removeProspect.mutate(pr.id)}
+                  className="ml-auto  px-2 py-1 text-[13px] font-medium text-error hover:bg-tint-rose"
+                >
                   Remover
                 </button>
               </div>
@@ -184,10 +244,16 @@ function NotesEditor({ value, onSave }: { value: string | null; onSave: (v: stri
   const [v, setV] = useState(value ?? '')
   return (
     <div className="mt-2 flex gap-2">
-      <input value={v} onChange={(e) => setV(e.target.value)} placeholder="Notas…"
-        className="input flex-1 px-2.5 py-1.5 text-[13px]" />
+      <input
+        value={v}
+        onChange={(e) => setV(e.target.value)}
+        placeholder="Notas…"
+        className="input flex-1 px-2.5 py-1.5 text-[13px]"
+      />
       {v !== (value ?? '') && (
-        <button onClick={() => onSave(v)} className="btn-secondary px-3 py-1.5 text-[13px]">Salvar</button>
+        <button onClick={() => onSave(v)} className="btn-secondary px-3 py-1.5 text-[13px]">
+          Salvar
+        </button>
       )}
     </div>
   )

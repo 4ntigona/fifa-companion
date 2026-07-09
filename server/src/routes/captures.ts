@@ -33,17 +33,23 @@ export function captureRoutes(app: FastifyInstance) {
       error = String(e instanceof Error ? e.message : e)
     }
 
-    const res = db.prepare(`
+    const res = db
+      .prepare(
+        `
       INSERT INTO captures (career_id, file_name, screen_type, extracted_json)
       VALUES (?,?,?,?)
-    `).run(careerId, fileName, extracted?.screenType ?? null, extracted ? JSON.stringify(extracted) : null)
+    `,
+      )
+      .run(careerId, fileName, extracted?.screenType ?? null, extracted ? JSON.stringify(extracted) : null)
 
     return { id: Number(res.lastInsertRowid), fileName, extracted, error }
   })
 
   app.get<{ Querystring: { careerId?: string } }>('/api/captures', (req) => {
     const rows = req.query.careerId
-      ? db.prepare(`SELECT * FROM captures WHERE career_id = ? ORDER BY created_at DESC`).all(Number(req.query.careerId))
+      ? db
+          .prepare(`SELECT * FROM captures WHERE career_id = ? ORDER BY created_at DESC`)
+          .all(Number(req.query.careerId))
       : db.prepare(`SELECT * FROM captures ORDER BY created_at DESC LIMIT 50`).all()
     return { captures: rows }
   })
@@ -51,15 +57,15 @@ export function captureRoutes(app: FastifyInstance) {
   app.patch<{ Params: { id: string } }>('/api/captures/:id', (req) => {
     const { applied } = (req.body ?? {}) as { applied?: boolean }
     return {
-      updated: db.prepare(`UPDATE captures SET applied = ? WHERE id = ?`)
-        .run(applied ? 1 : 0, Number(req.params.id)).changes,
+      updated: db.prepare(`UPDATE captures SET applied = ? WHERE id = ?`).run(applied ? 1 : 0, Number(req.params.id))
+        .changes,
     }
   })
 
   app.get('/api/status', () => {
-    const imported = db.prepare(
-      `SELECT fifa_version AS v, COUNT(*) AS players FROM sofifa_players GROUP BY fifa_version ORDER BY v`,
-    ).all()
+    const imported = db
+      .prepare(`SELECT fifa_version AS v, COUNT(*) AS players FROM sofifa_players GROUP BY fifa_version ORDER BY v`)
+      .all()
     const vision = visionInfo()
     return {
       visionAvailable: vision.available,

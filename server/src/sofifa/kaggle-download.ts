@@ -40,7 +40,9 @@ export async function downloadDatasetFile(
   // Dataset público: o download funciona sem autenticação; credenciais são usadas só se configuradas.
   const url = `https://www.kaggle.com/api/v1/datasets/download/${DATASET}/${encodeURIComponent(fileName)}`
   const res = await fetch(url, {
-    headers: creds ? { Authorization: `Basic ${Buffer.from(`${creds.username}:${creds.key}`).toString('base64')}` } : {},
+    headers: creds
+      ? { Authorization: `Basic ${Buffer.from(`${creds.username}:${creds.key}`).toString('base64')}` }
+      : {},
   })
   if (!res.ok || !res.body) {
     throw new Error(
@@ -60,7 +62,10 @@ export async function downloadDatasetFile(
       yield chunk
     }
   }
-  await pipeline(counter(Readable.fromWeb(res.body as import('node:stream/web').ReadableStream)), createWriteStream(tmp))
+  await pipeline(
+    counter(Readable.fromWeb(res.body as import('node:stream/web').ReadableStream)),
+    createWriteStream(tmp),
+  )
 
   // Zip (PK\x03\x04) ou o próprio CSV?
   const fh = await open(tmp, 'r')
@@ -78,15 +83,17 @@ export async function downloadDatasetFile(
       rmSync(zipPath, { force: true })
       throw new Error(
         `O comando 'unzip' não está instalado no sistema. ` +
-        `Instale-o usando 'sudo apt install unzip' (Linux) ou 'brew install unzip' (macOS), ` +
-        `ou extraia o arquivo manualmente para a pasta: ${KAGGLE_DIR}`
+          `Instale-o usando 'sudo apt install unzip' (Linux) ou 'brew install unzip' (macOS), ` +
+          `ou extraia o arquivo manualmente para a pasta: ${KAGGLE_DIR}`,
       )
     }
 
     const r = spawnSync('unzip', ['-o', zipPath, '-d', KAGGLE_DIR], { encoding: 'utf-8' })
     rmSync(zipPath, { force: true })
     if (r.status !== 0 || !existsSync(dest)) {
-      throw new Error(`Falha ao extrair ${fileName}: ${r.stderr || r.stdout || 'arquivo esperado não encontrado no zip'}`)
+      throw new Error(
+        `Falha ao extrair ${fileName}: ${r.stderr || r.stdout || 'arquivo esperado não encontrado no zip'}`,
+      )
     }
   } else {
     renameSync(tmp, dest)

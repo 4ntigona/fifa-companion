@@ -14,7 +14,10 @@ import { KNOWN_VERSIONS } from './source.js'
 import { csvFilesPresent, importFromCsv, DATASET, KAGGLE_DIR } from './kaggle-csv.js'
 import { db } from '../db/index.js'
 
-const args = process.argv.slice(2).map(Number).filter((n) => Number.isFinite(n))
+const args = process.argv
+  .slice(2)
+  .map(Number)
+  .filter((n) => Number.isFinite(n))
 const versions = args.length ? args : [...KNOWN_VERSIONS]
 
 function tryKaggleDownload() {
@@ -22,12 +25,12 @@ function tryKaggleDownload() {
   if (check.error) {
     console.error(
       `\nCSVs não encontrados e o CLI do Kaggle não está instalado.\n` +
-      `Opção A (automática):\n` +
-      `  1. pip3 install kaggle\n` +
-      `  2. kaggle.com → Settings → API → "Create New Token" → salvar em ~/.kaggle/kaggle.json\n` +
-      `  3. rodar npm run import:data de novo\n` +
-      `Opção B (manual): baixar https://www.kaggle.com/datasets/${DATASET}\n` +
-      `  e colocar male_players.csv e male_teams.csv em ${KAGGLE_DIR}\n`,
+        `Opção A (automática):\n` +
+        `  1. pip3 install kaggle\n` +
+        `  2. kaggle.com → Settings → API → "Create New Token" → salvar em ~/.kaggle/kaggle.json\n` +
+        `  3. rodar npm run import:data de novo\n` +
+        `Opção B (manual): baixar https://www.kaggle.com/datasets/${DATASET}\n` +
+        `  e colocar male_players.csv e male_teams.csv em ${KAGGLE_DIR}\n`,
     )
     process.exit(1)
   }
@@ -49,19 +52,26 @@ if (!present.players || !present.teams) tryKaggleDownload()
 
 console.log(`Importando FIFA ${versions.join(', ')} (roster de lançamento de cada versão)…`)
 const job = db
-  .prepare(`INSERT INTO import_jobs (fifa_version, source, status, started_at) VALUES (?, 'kaggle-csv', 'running', datetime('now'))`)
+  .prepare(
+    `INSERT INTO import_jobs (fifa_version, source, status, started_at) VALUES (?, 'kaggle-csv', 'running', datetime('now'))`,
+  )
   .run(versions[0])
 
 try {
   const totals = await importFromCsv(versions, (p) => {
     process.stdout.write(`\r${p.phase}: ${p.rows} registros…      `)
   })
-  db.prepare(`UPDATE import_jobs SET status='done', done=?, total=?, finished_at=datetime('now') WHERE id=?`)
-    .run(totals.players, totals.players, job.lastInsertRowid)
+  db.prepare(`UPDATE import_jobs SET status='done', done=?, total=?, finished_at=datetime('now') WHERE id=?`).run(
+    totals.players,
+    totals.players,
+    job.lastInsertRowid,
+  )
   console.log(`\nConcluído: ${totals.teams} times e ${totals.players} jogadores importados (dados originais do jogo).`)
 } catch (err) {
-  db.prepare(`UPDATE import_jobs SET status='error', error=?, finished_at=datetime('now') WHERE id=?`)
-    .run(String(err), job.lastInsertRowid)
+  db.prepare(`UPDATE import_jobs SET status='error', error=?, finished_at=datetime('now') WHERE id=?`).run(
+    String(err),
+    job.lastInsertRowid,
+  )
   console.error(`\nErro: ${err}`)
   process.exit(1)
 }

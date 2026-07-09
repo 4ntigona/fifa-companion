@@ -6,7 +6,15 @@
  * O servidor guarda apenas a database original do jogo (somente leitura) e
  * analisa fotos de forma stateless. Export/import = arquivo JSON de backup.
  */
-import { api, type Career, type CareerPlayer, type Prospect, type Snapshot, type SofifaPlayer, type SofifaTeam } from './api/client'
+import {
+  api,
+  type Career,
+  type CareerPlayer,
+  type Prospect,
+  type Snapshot,
+  type SofifaPlayer,
+  type SofifaTeam,
+} from './api/client'
 
 const STORAGE_KEY = 'career-companion-v1'
 
@@ -270,10 +278,17 @@ export function deleteCareerPlayer(id: number) {
   })
 }
 
-export function addSnapshot(playerId: number, snap: {
-  season: string; dateIngame?: string; overall?: number; potential?: number
-  position?: string; formNotes?: string
-}): { id: number } {
+export function addSnapshot(
+  playerId: number,
+  snap: {
+    season: string
+    dateIngame?: string
+    overall?: number
+    potential?: number
+    position?: string
+    formNotes?: string
+  },
+): { id: number } {
   return mutate((db) => {
     const id = ++db.counters.snapshot
     db.snapshots.push({
@@ -365,7 +380,12 @@ export function getAiSettings(): AiSettings {
   return load().ai
 }
 
-export function setAiSettings(patch: Partial<AiSettings> & { key?: { provider: AiProvider; value: string }; model?: { provider: AiProvider; value: string } }) {
+export function setAiSettings(
+  patch: Partial<AiSettings> & {
+    key?: { provider: AiProvider; value: string }
+    model?: { provider: AiProvider; value: string }
+  },
+) {
   return mutate((db) => {
     if (patch.activeProvider) db.ai.activeProvider = patch.activeProvider
     if (patch.key) {

@@ -1,7 +1,15 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import { exportBackup, importBackup, storageUsage, shareBackupOnServer, recoverBackupFromServer, getAiSettings, setAiSettings } from '../store'
+import {
+  exportBackup,
+  importBackup,
+  storageUsage,
+  shareBackupOnServer,
+  recoverBackupFromServer,
+  getAiSettings,
+  setAiSettings,
+} from '../store'
 
 type AiProvider = 'anthropic' | 'openai' | 'gemini' | 'openrouter'
 
@@ -45,8 +53,8 @@ export default function SettingsPage() {
     <div className="space-y-6 pt-6">
       <h1 className="text-2xl font-semibold tracking-tight text-ink">Configurações</h1>
       <p className="text-sm text-slate-ink">
-        Os tokens ficam salvos apenas neste Mac (no banco local do app) e são usados só para
-        baixar a database do jogo (Kaggle) e analisar suas fotos (provedor de IA à sua escolha).
+        Os tokens ficam salvos apenas neste Mac (no banco local do app) e são usados só para baixar a database do jogo
+        (Kaggle) e analisar suas fotos (provedor de IA à sua escolha).
       </p>
 
       {data && <AiSection ai={data.ai} onSaved={invalidate} />}
@@ -116,13 +124,16 @@ function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => voi
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-ink">IA — leitura de fotos (BYOK)</h2>
         <StatusBadge
-          ok={Boolean(localSettings.keys[localSettings.activeProvider]) || ai.providers[localSettings.activeProvider].fromEnv}
+          ok={
+            Boolean(localSettings.keys[localSettings.activeProvider]) ||
+            ai.providers[localSettings.activeProvider].fromEnv
+          }
           label={`ativo: ${ai.providers[localSettings.activeProvider].label}`}
         />
       </div>
       <p className="text-sm text-slate-ink">
-        Traga sua própria chave do provedor que preferir. O app usa o provedor <b>ativo</b> para analisar
-        as fotos da tela do jogo. As chaves são salvas localmente no navegador e enviadas apenas para processamento de fotos.
+        Traga sua própria chave do provedor que preferir. O app usa o provedor <b>ativo</b> para analisar as fotos da
+        tela do jogo. As chaves são salvas localmente no navegador e enviadas apenas para processamento de fotos.
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -144,9 +155,7 @@ function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => voi
           <a href={hints.url} target="_blank" rel="noreferrer" className="text-link underline">
             {hints.url.replace('https://', '')}
           </a>
-          {isConfigured && (
-            <> · salva: {localKey ? 'no seu navegador (local)' : 'via server/.env'}</>
-          )}
+          {isConfigured && <> · salva: {localKey ? 'no seu navegador (local)' : 'via server/.env'}</>}
         </p>
         <input
           value={key}
@@ -165,10 +174,14 @@ function AiSection({ ai, onSaved }: { ai: SettingsData['ai']; onSaved: () => voi
         />
         <p className="text-[13px] text-stone">O modelo precisa aceitar imagens. Padrão: {info.defaultModel}</p>
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={handleSave} disabled={(!key && !model)} className="btn-primary">
+          <button onClick={handleSave} disabled={!key && !model} className="btn-primary">
             Salvar
           </button>
-          <button onClick={() => test.mutate()} disabled={!isConfigured && !key || test.isPending} className="btn-secondary">
+          <button
+            onClick={() => test.mutate()}
+            disabled={(!isConfigured && !key) || test.isPending}
+            className="btn-secondary"
+          >
             {test.isPending ? 'Testando…' : 'Testar chave'}
           </button>
           {!isActive && (
@@ -201,7 +214,12 @@ function KaggleSection({ data, onSaved }: { data?: SettingsData['kaggle']; onSav
           ...(key && { kaggleKey: key }),
         }),
       }),
-    onSuccess: () => { setUsername(''); setKey(''); setTestResult(null); onSaved() },
+    onSuccess: () => {
+      setUsername('')
+      setKey('')
+      setTestResult(null)
+      onSaved()
+    },
   })
   const test = useMutation({
     mutationFn: () => api<{ ok: boolean; error?: string }>('/api/settings/test-kaggle', { method: 'POST' }),
@@ -217,14 +235,19 @@ function KaggleSection({ data, onSaved }: { data?: SettingsData['kaggle']; onSav
         <StatusBadge ok={Boolean(data?.configured)} label={data?.configured ? 'configurado' : 'não necessário'} />
       </div>
       <p className="text-sm text-slate-ink">
-        O dataset é público e a importação funciona <b>sem conta</b>. Só preencha se o download automático
-        falhar algum dia (ex.: o Kaggle passar a exigir login): crie o token em{' '}
-        <a href="https://www.kaggle.com/settings" target="_blank" rel="noreferrer" className="text-link underline">kaggle.com/settings</a>{' '}
+        O dataset é público e a importação funciona <b>sem conta</b>. Só preencha se o download automático falhar algum
+        dia (ex.: o Kaggle passar a exigir login): crie o token em{' '}
+        <a href="https://www.kaggle.com/settings" target="_blank" rel="noreferrer" className="text-link underline">
+          kaggle.com/settings
+        </a>{' '}
         → API → <b>Create New Token</b> e copie o <code className="bg-surface px-1 text-[13px]">username</code> e a{' '}
-        <code className="bg-surface px-1 text-[13px]">key</code> do <code className="bg-surface px-1 text-[13px]">kaggle.json</code>.
+        <code className="bg-surface px-1 text-[13px]">key</code> do{' '}
+        <code className="bg-surface px-1 text-[13px]">kaggle.json</code>.
       </p>
       {data?.configured && (
-        <p className="text-[13px] text-steel">Salvo: usuário <b>{data.username}</b> · key {data.maskedKey}</p>
+        <p className="text-[13px] text-steel">
+          Salvo: usuário <b>{data.username}</b> · key {data.maskedKey}
+        </p>
       )}
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
@@ -330,8 +353,8 @@ function BackupSection() {
     <section className="card space-y-4 p-6">
       <h2 className="text-lg font-semibold text-ink">Backup e Sincronização de Dados (LocalStorage)</h2>
       <p className="text-sm text-slate-ink">
-        Como os dados da sua carreira ficam salvos localmente no navegador ({formatSize(usage.bytes)} em uso),
-        use as opções abaixo para transferir o progresso entre dispositivos ou mantê-los seguros.
+        Como os dados da sua carreira ficam salvos localmente no navegador ({formatSize(usage.bytes)} em uso), use as
+        opções abaixo para transferir o progresso entre dispositivos ou mantê-los seguros.
       </p>
 
       <div className="grid gap-6 border-t border-hairline pt-4 md:grid-cols-2">
@@ -361,7 +384,8 @@ function BackupSection() {
         <div className="space-y-2 border-t border-hairline pt-4 md:border-t-0 md:border-l md:border-hairline md:pl-6 md:pt-0">
           <h3 className="text-sm font-semibold text-ink">Sincronização na Nuvem (VPS)</h3>
           <p className="text-xs text-steel">
-            Gere uma chave única legível para carregar seus dados na sua VPS e sincronizá-los em outro dispositivo sem arquivos.
+            Gere uma chave única legível para carregar seus dados na sua VPS e sincronizá-los em outro dispositivo sem
+            arquivos.
           </p>
 
           <div className="flex flex-col gap-3 pt-1">
@@ -383,7 +407,11 @@ function BackupSection() {
                 placeholder="Código (ex: H5F9X2)"
                 className="input text-sm font-mono uppercase"
               />
-              <button onClick={handleRecover} disabled={loadingRecover || !recoverCode.trim()} className="btn-secondary whitespace-nowrap">
+              <button
+                onClick={handleRecover}
+                disabled={loadingRecover || !recoverCode.trim()}
+                className="btn-secondary whitespace-nowrap"
+              >
                 {loadingRecover ? 'Baixando...' : 'Restaurar via Chave'}
               </button>
             </div>
@@ -392,7 +420,9 @@ function BackupSection() {
       </div>
 
       {importStatus && (
-        <div className={`mt-3 p-3 text-sm ${importStatus.ok ? 'bg-tint-mint text-charcoal' : 'bg-tint-rose text-charcoal'}`}>
+        <div
+          className={`mt-3 p-3 text-sm ${importStatus.ok ? 'bg-tint-mint text-charcoal' : 'bg-tint-rose text-charcoal'}`}
+        >
           {importStatus.message}
         </div>
       )}

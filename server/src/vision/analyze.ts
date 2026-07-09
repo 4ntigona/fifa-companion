@@ -54,12 +54,14 @@ export async function analyzeCapture(
   mediaType: string,
   clientProvider?: string,
   clientKey?: string,
-  clientModel?: string
+  clientModel?: string,
 ): Promise<VisionResult> {
   const provider = (clientProvider || aiProvider()) as AiProvider
   const key = clientKey || providerKey(provider)
   if (!key) {
-    throw new Error(`Chave da ${PROVIDER_LABELS[provider]} não configurada — adicione em Configurações para usar a análise de fotos.`)
+    throw new Error(
+      `Chave da ${PROVIDER_LABELS[provider]} não configurada — adicione em Configurações para usar a análise de fotos.`,
+    )
   }
   const model = clientModel || providerModel(provider)
 
@@ -72,10 +74,22 @@ export async function analyzeCapture(
       text = await callGemini(key, model, imageBase64, mediaType)
       break
     case 'openai':
-      text = await callOpenAiCompatible('https://api.openai.com/v1/chat/completions', key, model, imageBase64, mediaType)
+      text = await callOpenAiCompatible(
+        'https://api.openai.com/v1/chat/completions',
+        key,
+        model,
+        imageBase64,
+        mediaType,
+      )
       break
     case 'openrouter':
-      text = await callOpenAiCompatible('https://openrouter.ai/api/v1/chat/completions', key, model, imageBase64, mediaType)
+      text = await callOpenAiCompatible(
+        'https://openrouter.ai/api/v1/chat/completions',
+        key,
+        model,
+        imageBase64,
+        mediaType,
+      )
       break
   }
 
@@ -104,11 +118,20 @@ async function callAnthropic(key: string, model: string, b64: string, mediaType:
       },
     ],
   })
-  return msg.content.filter((b) => b.type === 'text').map((b) => (b as { text: string }).text).join('')
+  return msg.content
+    .filter((b) => b.type === 'text')
+    .map((b) => (b as { text: string }).text)
+    .join('')
 }
 
 /** OpenAI e OpenRouter compartilham o formato chat/completions. */
-async function callOpenAiCompatible(url: string, key: string, model: string, b64: string, mediaType: string): Promise<string> {
+async function callOpenAiCompatible(
+  url: string,
+  key: string,
+  model: string,
+  b64: string,
+  mediaType: string,
+): Promise<string> {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
@@ -126,7 +149,7 @@ async function callOpenAiCompatible(url: string, key: string, model: string, b64
       ],
     }),
   })
-  const body = await res.json().catch(() => null) as any
+  const body = (await res.json().catch(() => null)) as any
   if (!res.ok) {
     throw new Error(body?.error?.message || `Provedor respondeu HTTP ${res.status}`)
   }
@@ -144,15 +167,12 @@ async function callGemini(key: string, model: string, b64: string, mediaType: st
       system_instruction: { parts: [{ text: SYSTEM }] },
       contents: [
         {
-          parts: [
-            { inline_data: { mime_type: mediaType, data: b64 } },
-            { text: USER_TEXT },
-          ],
+          parts: [{ inline_data: { mime_type: mediaType, data: b64 } }, { text: USER_TEXT }],
         },
       ],
     }),
   })
-  const body = await res.json().catch(() => null) as any
+  const body = (await res.json().catch(() => null)) as any
   if (!res.ok) {
     throw new Error(body?.error?.message || `Gemini respondeu HTTP ${res.status}`)
   }
@@ -181,16 +201,19 @@ export async function testProvider(provider: AiProvider, clientKey?: string): Pr
         res = await fetch('https://openrouter.ai/api/v1/models', { headers: { Authorization: `Bearer ${key}` } })
         break
       case 'gemini':
-        res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', { headers: { 'x-goog-api-key': key } })
+        res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+          headers: { 'x-goog-api-key': key },
+        })
         break
     }
     if (res.ok) return { ok: true }
-    const body = await res.json().catch(() => null) as any
+    const body = (await res.json().catch(() => null)) as any
     return {
       ok: false,
-      error: res.status === 401 || res.status === 403
-        ? 'Chave inválida ou sem permissão.'
-        : body?.error?.message || `Provedor respondeu HTTP ${res.status}.`,
+      error:
+        res.status === 401 || res.status === 403
+          ? 'Chave inválida ou sem permissão.'
+          : body?.error?.message || `Provedor respondeu HTTP ${res.status}.`,
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)

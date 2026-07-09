@@ -48,7 +48,7 @@ export default function NewCareer() {
     queryFn: () =>
       api<{ teams: SofifaTeam[] }>(
         `/api/teams/${version}?` +
-        new URLSearchParams({ ...(leagueId && { leagueId }), ...(teamQuery && { q: teamQuery }) }),
+          new URLSearchParams({ ...(leagueId && { leagueId }), ...(teamQuery && { q: teamQuery }) }),
       ),
     // sem liga escolhida, busca por nome ainda funciona (todas as ligas)
     enabled: version != null && Boolean(selected?.imported) && Boolean(leagueId || teamQuery),
@@ -63,16 +63,18 @@ export default function NewCareer() {
   const create = useMutation({
     mutationFn: () =>
       createCareer({
-        name: name || (teamType === 'created' ? createdName : teamsData?.teams.find((t) => t.team_id === teamId)?.team_name) || 'Carreira',
+        name:
+          name ||
+          (teamType === 'created' ? createdName : teamsData?.teams.find((t) => t.team_id === teamId)?.team_name) ||
+          'Carreira',
         fifaVersion: version!,
         teamType,
-        sofifaTeamId: teamType === 'existing' ? teamId ?? undefined : undefined,
+        sofifaTeamId: teamType === 'existing' ? (teamId ?? undefined) : undefined,
         createdTeamName: teamType === 'created' ? createdName : undefined,
         createdTeamBudgetEur: teamType === 'created' && createdBudget ? Number(createdBudget) : undefined,
-        createdTeamLeague: teamType === 'created'
-          ? (selectedLeague ? `${selectedLeague.name} (${country})` : undefined)
-          : undefined,
-        replacedTeamId: teamType === 'created' ? replacedTeamId ?? undefined : undefined,
+        createdTeamLeague:
+          teamType === 'created' ? (selectedLeague ? `${selectedLeague.name} (${country})` : undefined) : undefined,
+        replacedTeamId: teamType === 'created' ? (replacedTeamId ?? undefined) : undefined,
         objectives: objectives ? objectives.split('\n').filter(Boolean) : undefined,
         squadQuality: teamType === 'created' ? quality || undefined : undefined,
         currentSeason: season || defaultSeason,
@@ -98,7 +100,12 @@ export default function NewCareer() {
           {versions.map((v) => (
             <button
               key={v.fifaVersion}
-              onClick={() => { setVersion(v.fifaVersion); setTeamId(null); setCountry(''); setLeagueId('') }}
+              onClick={() => {
+                setVersion(v.fifaVersion)
+                setTeamId(null)
+                setCountry('')
+                setLeagueId('')
+              }}
               className={` p-3 text-sm transition-colors ${
                 version === v.fifaVersion
                   ? 'bg-tint-lavender font-semibold text-charcoal ring-2 ring-primary'
@@ -114,8 +121,8 @@ export default function NewCareer() {
         </div>
         {selected && !selected.imported && (
           <p className="mt-2  bg-tint-peach p-3 text-[13px] text-orange-deep">
-            Database do {selected.label} não importada — importe na tela inicial.
-            Sem ela, só é possível carreira de clube criado com jogadores por foto/manual.
+            Database do {selected.label} não importada — importe na tela inicial. Sem ela, só é possível carreira de
+            clube criado com jogadores por foto/manual.
           </p>
         )}
       </section>
@@ -145,24 +152,34 @@ export default function NewCareer() {
               <div className="flex gap-2">
                 <select
                   value={country}
-                  onChange={(e) => { setCountry(e.target.value); setLeagueId(''); setTeamId(null) }}
+                  onChange={(e) => {
+                    setCountry(e.target.value)
+                    setLeagueId('')
+                    setTeamId(null)
+                  }}
                   className="input w-1/2"
                 >
                   <option value="">País…</option>
                   {countries.map((c) => (
-                    <option key={c.country} value={c.country}>{c.country}</option>
+                    <option key={c.country} value={c.country}>
+                      {c.country}
+                    </option>
                   ))}
                 </select>
                 <select
                   value={leagueId}
-                  onChange={(e) => { setLeagueId(e.target.value); setTeamId(null) }}
+                  onChange={(e) => {
+                    setLeagueId(e.target.value)
+                    setTeamId(null)
+                  }}
                   disabled={!country}
                   className="input w-1/2"
                 >
                   <option value="">{country ? 'Liga…' : 'Escolha o país'}</option>
                   {countryLeagues.map((l) => (
                     <option key={`${l.id}`} value={String(l.id)}>
-                      {l.name}{l.level != null && l.level > 1 ? ` (${l.level}ª div.)` : ''} · {l.teams} times
+                      {l.name}
+                      {l.level != null && l.level > 1 ? ` (${l.level}ª div.)` : ''} · {l.teams} times
                     </option>
                   ))}
                 </select>
@@ -189,7 +206,8 @@ export default function NewCareer() {
                         <span className="font-semibold text-success">{t.overall ?? '—'}</span>
                       </div>
                       <div className="text-[13px] text-slate-ink">
-                        {t.league_name} · ATA {t.attack ?? '—'} · MEI {t.midfield ?? '—'} · DEF {t.defence ?? '—'} · Verba {fmtEur(t.transfer_budget_eur)}
+                        {t.league_name} · ATA {t.attack ?? '—'} · MEI {t.midfield ?? '—'} · DEF {t.defence ?? '—'} ·
+                        Verba {fmtEur(t.transfer_budget_eur)}
                       </div>
                     </button>
                   </li>
@@ -200,35 +218,60 @@ export default function NewCareer() {
 
           {teamType === 'created' && (
             <div className="space-y-2">
-              <input value={createdName} onChange={(e) => setCreatedName(e.target.value)} placeholder="Nome do clube criado *" className="input" />
+              <input
+                value={createdName}
+                onChange={(e) => setCreatedName(e.target.value)}
+                placeholder="Nome do clube criado *"
+                className="input"
+              />
               <div className="flex gap-2">
-                <input value={createdBudget} onChange={(e) => setCreatedBudget(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Verba de transferência (€)" inputMode="numeric" className="input w-1/2" />
-                <input value={quality} onChange={(e) => setQuality(e.target.value)} placeholder="Qualidade do elenco (ex. 4.5★)" className="input w-1/2" />
+                <input
+                  value={createdBudget}
+                  onChange={(e) => setCreatedBudget(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Verba de transferência (€)"
+                  inputMode="numeric"
+                  className="input w-1/2"
+                />
+                <input
+                  value={quality}
+                  onChange={(e) => setQuality(e.target.value)}
+                  placeholder="Qualidade do elenco (ex. 4.5★)"
+                  className="input w-1/2"
+                />
               </div>
               {selected?.imported ? (
                 <>
                   <div className="flex gap-2">
                     <select
                       value={country}
-                      onChange={(e) => { setCountry(e.target.value); setLeagueId(''); setReplacedTeamId(null) }}
+                      onChange={(e) => {
+                        setCountry(e.target.value)
+                        setLeagueId('')
+                        setReplacedTeamId(null)
+                      }}
                       className="input w-1/2"
                     >
                       <option value="">País da liga…</option>
                       {countries.map((c) => (
-                        <option key={c.country} value={c.country}>{c.country}</option>
+                        <option key={c.country} value={c.country}>
+                          {c.country}
+                        </option>
                       ))}
                     </select>
                     <select
                       value={leagueId}
-                      onChange={(e) => { setLeagueId(e.target.value); setReplacedTeamId(null) }}
+                      onChange={(e) => {
+                        setLeagueId(e.target.value)
+                        setReplacedTeamId(null)
+                      }}
                       disabled={!country}
                       className="input w-1/2"
                     >
                       <option value="">{country ? 'Liga do clube…' : 'Escolha o país'}</option>
                       {countryLeagues.map((l) => (
                         <option key={`${l.id}`} value={String(l.id)}>
-                          {l.name}{l.level != null && l.level > 1 ? ` (${l.level}ª div.)` : ''}
+                          {l.name}
+                          {l.level != null && l.level > 1 ? ` (${l.level}ª div.)` : ''}
                         </option>
                       ))}
                     </select>
@@ -239,9 +282,13 @@ export default function NewCareer() {
                     disabled={!leagueId}
                     className="input"
                   >
-                    <option value="">{leagueId ? 'Time substituído pelo seu clube…' : 'Escolha a liga primeiro'}</option>
+                    <option value="">
+                      {leagueId ? 'Time substituído pelo seu clube…' : 'Escolha a liga primeiro'}
+                    </option>
                     {teamsData?.teams.map((t) => (
-                      <option key={t.team_id} value={t.team_id}>{t.team_name}</option>
+                      <option key={t.team_id} value={t.team_id}>
+                        {t.team_name}
+                      </option>
                     ))}
                   </select>
                 </>
@@ -250,9 +297,13 @@ export default function NewCareer() {
                   Importe a database do {selected?.label} para escolher liga e time substituído das listas reais.
                 </p>
               )}
-              <textarea value={objectives} onChange={(e) => setObjectives(e.target.value)} rows={3}
+              <textarea
+                value={objectives}
+                onChange={(e) => setObjectives(e.target.value)}
+                rows={3}
                 placeholder={'Objetivos do conselho (um por linha)\nEx.: Terminar no meio da tabela'}
-                className="input h-auto" />
+                className="input h-auto"
+              />
             </div>
           )}
         </section>
@@ -261,8 +312,18 @@ export default function NewCareer() {
       {version != null && (
         <section className="space-y-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-wide text-steel">Detalhes</h2>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da carreira (opcional)" className="input" />
-          <input value={season || defaultSeason} onChange={(e) => setSeason(e.target.value)} placeholder="Temporada inicial" className="input" />
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nome da carreira (opcional)"
+            className="input"
+          />
+          <input
+            value={season || defaultSeason}
+            onChange={(e) => setSeason(e.target.value)}
+            placeholder="Temporada inicial"
+            className="input"
+          />
         </section>
       )}
 
@@ -272,7 +333,11 @@ export default function NewCareer() {
         disabled={!canCreate || create.isPending}
         className="btn-primary w-full py-3"
       >
-        {create.isPending ? 'Criando…' : teamType === 'existing' ? 'Criar carreira (carrega o elenco completo)' : 'Criar carreira'}
+        {create.isPending
+          ? 'Criando…'
+          : teamType === 'existing'
+            ? 'Criar carreira (carrega o elenco completo)'
+            : 'Criar carreira'}
       </button>
     </div>
   )

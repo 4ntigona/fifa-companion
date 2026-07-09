@@ -1,8 +1,17 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import {
-  AI_PROVIDERS, DEFAULT_MODELS, PROVIDER_LABELS, aiProvider, getSetting,
-  kaggleCreds, mask, providerKey, providerModel, setSetting, type AiProvider,
+  AI_PROVIDERS,
+  DEFAULT_MODELS,
+  PROVIDER_LABELS,
+  aiProvider,
+  getSetting,
+  kaggleCreds,
+  mask,
+  providerKey,
+  providerModel,
+  setSetting,
+  type AiProvider,
 } from '../settings.js'
 import { testProvider } from '../vision/analyze.js'
 import { testKaggleCreds } from '../sofifa/kaggle-download.js'
@@ -14,14 +23,17 @@ export function settingsRoutes(app: FastifyInstance) {
     ai: {
       activeProvider: aiProvider(),
       providers: Object.fromEntries(
-        AI_PROVIDERS.map((p) => [p, {
-          label: PROVIDER_LABELS[p],
-          configured: Boolean(providerKey(p)),
-          masked: mask(getSetting(p === 'anthropic' ? 'anthropic_api_key' : `${p}_api_key`)),
-          fromEnv: p === 'anthropic' && !getSetting('anthropic_api_key') && Boolean(process.env.ANTHROPIC_API_KEY),
-          model: providerModel(p),
-          defaultModel: DEFAULT_MODELS[p],
-        }]),
+        AI_PROVIDERS.map((p) => [
+          p,
+          {
+            label: PROVIDER_LABELS[p],
+            configured: Boolean(providerKey(p)),
+            masked: mask(getSetting(p === 'anthropic' ? 'anthropic_api_key' : `${p}_api_key`)),
+            fromEnv: p === 'anthropic' && !getSetting('anthropic_api_key') && Boolean(process.env.ANTHROPIC_API_KEY),
+            model: providerModel(p),
+            defaultModel: DEFAULT_MODELS[p],
+          },
+        ]),
       ),
     },
     kaggle: {
@@ -32,16 +44,18 @@ export function settingsRoutes(app: FastifyInstance) {
   }))
 
   app.put('/api/settings', (req) => {
-    const body = z.object({
-      activeProvider: providerEnum.optional(),
-      provider: providerEnum.optional(),          // alvo de apiKey/model abaixo
-      apiKey: z.string().optional(),
-      model: z.string().optional(),
-      // compat com formato antigo
-      anthropicApiKey: z.string().optional(),
-      kaggleUsername: z.string().optional(),
-      kaggleKey: z.string().optional(),
-    }).parse(req.body ?? {})
+    const body = z
+      .object({
+        activeProvider: providerEnum.optional(),
+        provider: providerEnum.optional(), // alvo de apiKey/model abaixo
+        apiKey: z.string().optional(),
+        model: z.string().optional(),
+        // compat com formato antigo
+        anthropicApiKey: z.string().optional(),
+        kaggleUsername: z.string().optional(),
+        kaggleKey: z.string().optional(),
+      })
+      .parse(req.body ?? {})
 
     if (body.activeProvider) setSetting('ai_provider', body.activeProvider)
     if (body.provider) {
@@ -56,10 +70,12 @@ export function settingsRoutes(app: FastifyInstance) {
   })
 
   app.post('/api/settings/test-ai', async (req) => {
-    const { provider, apiKey } = z.object({
-      provider: providerEnum.optional(),
-      apiKey: z.string().optional(),
-    }).parse(req.body ?? {})
+    const { provider, apiKey } = z
+      .object({
+        provider: providerEnum.optional(),
+        apiKey: z.string().optional(),
+      })
+      .parse(req.body ?? {})
     return testProvider((provider ?? aiProvider()) as AiProvider, apiKey)
   })
 

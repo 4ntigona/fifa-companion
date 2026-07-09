@@ -34,8 +34,7 @@ export function backupRoutes(app: FastifyInstance) {
       return reply.code(500).send({ error: 'Falha ao gerar código de backup único.' })
     }
 
-    db.prepare('INSERT INTO server_backups (code, backup_json) VALUES (?, ?)')
-      .run(code, backupJson)
+    db.prepare('INSERT INTO server_backups (code, backup_json) VALUES (?, ?)').run(code, backupJson)
 
     return { code }
   })
@@ -52,19 +51,21 @@ export function backupRoutes(app: FastifyInstance) {
     },
     async (req, reply) => {
       const code = req.params.code.trim().toUpperCase()
-    if (!code) {
-      return reply.code(400).send({ error: 'Código de backup inválido.' })
-    }
+      if (!code) {
+        return reply.code(400).send({ error: 'Código de backup inválido.' })
+      }
 
-    const row = db.prepare('SELECT backup_json FROM server_backups WHERE code = ?').get(code) as { backup_json: string } | undefined
-    if (!row) {
-      return reply.code(404).send({ error: 'Backup não encontrado. Verifique o código e tente novamente.' })
-    }
+      const row = db.prepare('SELECT backup_json FROM server_backups WHERE code = ?').get(code) as
+        { backup_json: string } | undefined
+      if (!row) {
+        return reply.code(404).send({ error: 'Backup não encontrado. Verifique o código e tente novamente.' })
+      }
 
-    try {
-      return JSON.parse(row.backup_json)
-    } catch {
-      return reply.code(500).send({ error: 'Backup corrompido no servidor.' })
-    }
-  })
+      try {
+        return JSON.parse(row.backup_json)
+      } catch {
+        return reply.code(500).send({ error: 'Backup corrompido no servidor.' })
+      }
+    },
+  )
 }

@@ -33,31 +33,53 @@ export function gameDataRoutes(app: FastifyInstance) {
          GROUP BY league_id, league_name, nationality_name`,
       )
       .all(Number(req.params.version)) as {
-        league_id: number | null; league_name: string; league_level: number | null
-        nationality_name: string | null; team_count: number
-      }[]
+      league_id: number | null
+      league_name: string
+      league_level: number | null
+      nationality_name: string | null
+      team_count: number
+    }[]
 
     // nacionalidade predominante por liga
-    const byLeague = new Map<string, { id: number | null; name: string; level: number | null; country: string; countryTeams: number; teams: number }>()
+    const byLeague = new Map<
+      string,
+      { id: number | null; name: string; level: number | null; country: string; countryTeams: number; teams: number }
+    >()
     for (const r of rows) {
       const key = `${r.league_id}|${r.league_name}`
       const country = r.nationality_name ?? 'Outros'
       const cur = byLeague.get(key)
       if (!cur) {
-        byLeague.set(key, { id: r.league_id, name: r.league_name, level: r.league_level, country, countryTeams: r.team_count, teams: r.team_count })
+        byLeague.set(key, {
+          id: r.league_id,
+          name: r.league_name,
+          level: r.league_level,
+          country,
+          countryTeams: r.team_count,
+          teams: r.team_count,
+        })
       } else {
         cur.teams += r.team_count
-        if (r.team_count > cur.countryTeams) { cur.country = country; cur.countryTeams = r.team_count }
+        if (r.team_count > cur.countryTeams) {
+          cur.country = country
+          cur.countryTeams = r.team_count
+        }
       }
     }
 
-    const countries = new Map<string, { country: string; leagues: { id: number | null; name: string; level: number | null; teams: number }[] }>()
+    const countries = new Map<
+      string,
+      { country: string; leagues: { id: number | null; name: string; level: number | null; teams: number }[] }
+    >()
     for (const l of byLeague.values()) {
       if (!countries.has(l.country)) countries.set(l.country, { country: l.country, leagues: [] })
       countries.get(l.country)!.leagues.push({ id: l.id, name: l.name, level: l.level, teams: l.teams })
     }
     const list = [...countries.values()]
-      .map((c) => ({ ...c, leagues: c.leagues.sort((a, b) => (a.level ?? 9) - (b.level ?? 9) || a.name.localeCompare(b.name)) }))
+      .map((c) => ({
+        ...c,
+        leagues: c.leagues.sort((a, b) => (a.level ?? 9) - (b.level ?? 9) || a.name.localeCompare(b.name)),
+      }))
       .sort((a, b) => a.country.localeCompare(b.country))
     return { countries: list }
   })
@@ -68,9 +90,17 @@ export function gameDataRoutes(app: FastifyInstance) {
       const { league, leagueId, q } = req.query
       const conds = ['fifa_version = ?', `(league_name IS NULL OR league_name != 'Friendly International')`]
       const params: unknown[] = [Number(req.params.version)]
-      if (leagueId) { conds.push('league_id = ?'); params.push(Number(leagueId)) }
-      else if (league) { conds.push('league_name = ?'); params.push(league) }
-      if (q) { conds.push('team_name LIKE ?'); params.push(`%${q}%`) }
+      if (leagueId) {
+        conds.push('league_id = ?')
+        params.push(Number(leagueId))
+      } else if (league) {
+        conds.push('league_name = ?')
+        params.push(league)
+      }
+      if (q) {
+        conds.push('team_name LIKE ?')
+        params.push(`%${q}%`)
+      }
       const rows = db
         .prepare(`SELECT * FROM sofifa_teams WHERE ${conds.join(' AND ')} ORDER BY overall DESC LIMIT 100`)
         .all(...params)
@@ -91,32 +121,85 @@ export function gameDataRoutes(app: FastifyInstance) {
   app.get<{
     Params: { version: string }
     Querystring: {
-      q?: string; position?: string; minAge?: string; maxAge?: string
-      minOverall?: string; maxOverall?: string; minPotential?: string
-      maxValue?: string; league?: string; nationality?: string
-      sort?: string; limit?: string; offset?: string
+      q?: string
+      position?: string
+      minAge?: string
+      maxAge?: string
+      minOverall?: string
+      maxOverall?: string
+      minPotential?: string
+      maxValue?: string
+      league?: string
+      nationality?: string
+      sort?: string
+      limit?: string
+      offset?: string
     }
   }>('/api/players/:version', (req) => {
     const {
-      q, position, minAge, maxAge, minOverall, maxOverall, minPotential,
-      maxValue, league, nationality, sort, limit, offset,
+      q,
+      position,
+      minAge,
+      maxAge,
+      minOverall,
+      maxOverall,
+      minPotential,
+      maxValue,
+      league,
+      nationality,
+      sort,
+      limit,
+      offset,
     } = req.query
     const conds = ['fifa_version = ?']
     const params: unknown[] = [Number(req.params.version)]
-    if (q) { conds.push('(short_name LIKE ? OR long_name LIKE ?)'); params.push(`%${q}%`, `%${q}%`) }
-    if (position) { conds.push(`(',' || REPLACE(positions, ' ', '') || ',') LIKE ?`); params.push(`%,${position},%`) }
-    if (minAge) { conds.push('age >= ?'); params.push(Number(minAge)) }
-    if (maxAge) { conds.push('age <= ?'); params.push(Number(maxAge)) }
-    if (minOverall) { conds.push('overall >= ?'); params.push(Number(minOverall)) }
-    if (maxOverall) { conds.push('overall <= ?'); params.push(Number(maxOverall)) }
-    if (minPotential) { conds.push('potential >= ?'); params.push(Number(minPotential)) }
-    if (maxValue) { conds.push('value_eur <= ?'); params.push(Number(maxValue)) }
-    if (league) { conds.push('league_name = ?'); params.push(league) }
-    if (nationality) { conds.push('nationality_name = ?'); params.push(nationality) }
+    if (q) {
+      conds.push('(short_name LIKE ? OR long_name LIKE ?)')
+      params.push(`%${q}%`, `%${q}%`)
+    }
+    if (position) {
+      conds.push(`(',' || REPLACE(positions, ' ', '') || ',') LIKE ?`)
+      params.push(`%,${position},%`)
+    }
+    if (minAge) {
+      conds.push('age >= ?')
+      params.push(Number(minAge))
+    }
+    if (maxAge) {
+      conds.push('age <= ?')
+      params.push(Number(maxAge))
+    }
+    if (minOverall) {
+      conds.push('overall >= ?')
+      params.push(Number(minOverall))
+    }
+    if (maxOverall) {
+      conds.push('overall <= ?')
+      params.push(Number(maxOverall))
+    }
+    if (minPotential) {
+      conds.push('potential >= ?')
+      params.push(Number(minPotential))
+    }
+    if (maxValue) {
+      conds.push('value_eur <= ?')
+      params.push(Number(maxValue))
+    }
+    if (league) {
+      conds.push('league_name = ?')
+      params.push(league)
+    }
+    if (nationality) {
+      conds.push('nationality_name = ?')
+      params.push(nationality)
+    }
 
     const sortMap: Record<string, string> = {
-      overall: 'overall DESC', potential: 'potential DESC',
-      growth: '(potential - overall) DESC', age: 'age ASC', value: 'value_eur DESC',
+      overall: 'overall DESC',
+      potential: 'potential DESC',
+      growth: '(potential - overall) DESC',
+      age: 'age ASC',
+      value: 'value_eur DESC',
     }
     const orderBy = sortMap[sort ?? ''] ?? 'potential DESC'
     const lim = Math.min(Number(limit ?? 50), 200)
@@ -126,7 +209,9 @@ export function gameDataRoutes(app: FastifyInstance) {
     const rows = db
       .prepare(`SELECT * FROM sofifa_players WHERE ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`)
       .all(...params, lim, off)
-    const total = (db.prepare(`SELECT COUNT(*) AS c FROM sofifa_players WHERE ${where}`).get(...params) as { c: number }).c
+    const total = (
+      db.prepare(`SELECT COUNT(*) AS c FROM sofifa_players WHERE ${where}`).get(...params) as { c: number }
+    ).c
     return { players: rows, total }
   })
 

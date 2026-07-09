@@ -9,7 +9,10 @@ export function getSetting(key: string): string | null {
 
 export function setSetting(key: string, value: string | null) {
   if (value == null || value === '') db.prepare(`DELETE FROM settings WHERE key = ?`).run(key)
-  else db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`).run(key, value)
+  else
+    db.prepare(
+      `INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    ).run(key, value)
 }
 
 export function anthropicKey(): string | null {

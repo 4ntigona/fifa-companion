@@ -57,4 +57,3 @@ backupRoutes(app)
 
 const port = Number(process.env.PORT ?? 3344)
 await app.listen({ port, host: '0.0.0.0' })
-

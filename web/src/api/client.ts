@@ -5,14 +5,24 @@ export async function api<T = unknown>(path: string, init?: RequestInit): Promis
   })
   if (!res.ok) {
     let msg = `Erro ${res.status}`
-    try { msg = (await res.json()).error ?? msg } catch { /* mantém msg */ }
+    try {
+      msg = (await res.json()).error ?? msg
+    } catch {
+      /* mantém msg */
+    }
     throw new Error(msg)
   }
   return res.json() as Promise<T>
 }
 
 export const fmtEur = (v?: number | null) =>
-  v == null ? '—' : v >= 1_000_000 ? `€${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `€${Math.round(v / 1000)}K` : `€${v}`
+  v == null
+    ? '—'
+    : v >= 1_000_000
+      ? `€${(v / 1_000_000).toFixed(1)}M`
+      : v >= 1000
+        ? `€${Math.round(v / 1000)}K`
+        : `€${v}`
 
 export const versionLabel = (v: number) => (v <= 23 ? `FIFA ${v}` : `FC ${v}`)
 

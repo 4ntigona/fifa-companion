@@ -24,7 +24,8 @@ export default function PlayerPage() {
     ...(baseOvr != null ? [{ label: 'Original', overall: baseOvr, potencial: basePot }] : []),
     ...snaps.map((s) => ({
       label: `${s.season}${s.date_ingame ? ` ${s.date_ingame.slice(5)}` : ''}`,
-      overall: s.overall, potencial: s.potential,
+      overall: s.overall,
+      potencial: s.potential,
     })),
   ]
 
@@ -34,13 +35,18 @@ export default function PlayerPage() {
     <div className="space-y-6 pt-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">{p.name}</h1>
-        <Link to={`/carreira/${p.career_id}`} className="text-sm font-medium text-steel hover:text-ink">← Carreira</Link>
+        <Link to={`/carreira/${p.career_id}`} className="text-sm font-medium text-steel hover:text-ink">
+          ← Carreira
+        </Link>
       </div>
 
       <section className="card p-5 text-sm">
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-slate-ink">{p.positions}{p.age ? ` · ${p.age} anos` : ''}</span>
+            <span className="text-slate-ink">
+              {p.positions}
+              {p.age ? ` · ${p.age} anos` : ''}
+            </span>
             <span className={p.origin === 'sofifa' ? 'tag-purple' : 'tag-orange'}>
               {p.origin === 'sofifa' ? `database ${versionLabel(career.fifa_version)}` : p.origin}
             </span>
@@ -52,17 +58,30 @@ export default function PlayerPage() {
         </div>
         {p.sofifa && (
           <div className="mt-3 grid grid-cols-3 gap-1 text-[13px] text-charcoal sm:grid-cols-6">
-            <div>PAC <b>{p.sofifa.pace ?? '—'}</b></div>
-            <div>SHO <b>{p.sofifa.shooting ?? '—'}</b></div>
-            <div>PAS <b>{p.sofifa.passing ?? '—'}</b></div>
-            <div>DRI <b>{p.sofifa.dribbling ?? '—'}</b></div>
-            <div>DEF <b>{p.sofifa.defending ?? '—'}</b></div>
-            <div>FIS <b>{p.sofifa.physic ?? '—'}</b></div>
+            <div>
+              PAC <b>{p.sofifa.pace ?? '—'}</b>
+            </div>
+            <div>
+              SHO <b>{p.sofifa.shooting ?? '—'}</b>
+            </div>
+            <div>
+              PAS <b>{p.sofifa.passing ?? '—'}</b>
+            </div>
+            <div>
+              DRI <b>{p.sofifa.dribbling ?? '—'}</b>
+            </div>
+            <div>
+              DEF <b>{p.sofifa.defending ?? '—'}</b>
+            </div>
+            <div>
+              FIS <b>{p.sofifa.physic ?? '—'}</b>
+            </div>
           </div>
         )}
         {p.sofifa && (
           <div className="mt-2 text-[13px] text-steel">
-            {p.sofifa.club_name} · {p.sofifa.league_name} · Valor original {fmtEur(p.sofifa.value_eur)} · Salário {fmtEur(p.sofifa.wage_eur)}
+            {p.sofifa.club_name} · {p.sofifa.league_name} · Valor original {fmtEur(p.sofifa.value_eur)} · Salário{' '}
+            {fmtEur(p.sofifa.wage_eur)}
             {p.sofifa.preferred_foot ? ` · Pé ${p.sofifa.preferred_foot === 'Left' ? 'esquerdo' : 'direito'}` : ''}
             {p.sofifa.weak_foot ? ` · Pé ruim ${p.sofifa.weak_foot}★` : ''}
             {p.sofifa.skill_moves ? ` · Skills ${p.sofifa.skill_moves}★` : ''}
@@ -70,13 +89,26 @@ export default function PlayerPage() {
         )}
         {(baseOvr != null || basePot != null) && (
           <div className="mt-2 text-[13px] text-steel">
-            Original no jogo: <b className="text-charcoal">{baseOvr ?? '—'}</b> OVR / <b className="text-charcoal">{basePot ?? '—'}</b> POT
+            Original no jogo: <b className="text-charcoal">{baseOvr ?? '—'}</b> OVR /{' '}
+            <b className="text-charcoal">{basePot ?? '—'}</b> POT
           </div>
         )}
-        {p.strengths && <div className="mt-2 text-charcoal"><span className="text-steel">Pontos fortes:</span> {p.strengths}</div>}
-        {p.notes && <div className="mt-1 text-charcoal"><span className="text-steel">Observações:</span> {p.notes}</div>}
+        {p.strengths && (
+          <div className="mt-2 text-charcoal">
+            <span className="text-steel">Pontos fortes:</span> {p.strengths}
+          </div>
+        )}
+        {p.notes && (
+          <div className="mt-1 text-charcoal">
+            <span className="text-steel">Observações:</span> {p.notes}
+          </div>
+        )}
         {p.regenOf && (
-          <div className="mt-2"><span className="tag-orange">Regen de {p.regenOf.short_name} ({p.regenOf.overall} OVR original)</span></div>
+          <div className="mt-2">
+            <span className="tag-orange">
+              Regen de {p.regenOf.short_name} ({p.regenOf.overall} OVR original)
+            </span>
+          </div>
         )}
       </section>
 
@@ -91,12 +123,48 @@ export default function PlayerPage() {
           <div className="card h-56 p-3">
             <ResponsiveContainer>
               <LineChart data={chartData}>
-                <XAxis dataKey="label" stroke="var(--color-stone)" fontSize={11} tickLine={false} axisLine={{ stroke: 'var(--color-hairline)' }} />
-                <YAxis domain={['dataMin - 3', 'dataMax + 3']} stroke="var(--color-stone)" fontSize={11} width={30} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: 'var(--color-canvas)', border: '1px solid var(--color-hairline)', borderRadius: 0, fontSize: 12, color: 'var(--color-ink)' }} />
+                <XAxis
+                  dataKey="label"
+                  stroke="var(--color-stone)"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={{ stroke: 'var(--color-hairline)' }}
+                />
+                <YAxis
+                  domain={['dataMin - 3', 'dataMax + 3']}
+                  stroke="var(--color-stone)"
+                  fontSize={11}
+                  width={30}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: 'var(--color-canvas)',
+                    border: '1px solid var(--color-hairline)',
+                    borderRadius: 0,
+                    fontSize: 12,
+                    color: 'var(--color-ink)',
+                  }}
+                />
                 <Legend />
-                <Line type="monotone" dataKey="overall" name="Overall" stroke="var(--color-primary)" strokeWidth={2} dot={{ fill: 'var(--color-primary)' }} />
-                <Line type="monotone" dataKey="potencial" name="Potencial" stroke="var(--color-steel)" strokeWidth={2} strokeDasharray="4 3" dot={{ fill: 'var(--color-steel)' }} />
+                <Line
+                  type="monotone"
+                  dataKey="overall"
+                  name="Overall"
+                  stroke="var(--color-primary)"
+                  strokeWidth={2}
+                  dot={{ fill: 'var(--color-primary)' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="potencial"
+                  name="Potencial"
+                  stroke="var(--color-steel)"
+                  strokeWidth={2}
+                  strokeDasharray="4 3"
+                  dot={{ fill: 'var(--color-steel)' }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -109,11 +177,15 @@ export default function PlayerPage() {
           {[...snaps].reverse().map((s) => (
             <li key={s.id} className="card flex items-center justify-between p-2.5">
               <span className="text-charcoal">
-                📅 {s.season}{s.date_ingame ? ` · ${s.date_ingame}` : ''}
+                📅 {s.season}
+                {s.date_ingame ? ` · ${s.date_ingame}` : ''}
                 {s.position ? ` · ${s.position}` : ''}
                 {s.form_notes ? <span className="ml-1 text-[13px] text-stone">({s.form_notes})</span> : ''}
               </span>
-              <span><b className="text-success">{s.overall ?? '—'}</b><span className="text-stone"> / {s.potential ?? '—'}</span></span>
+              <span>
+                <b className="text-success">{s.overall ?? '—'}</b>
+                <span className="text-stone"> / {s.potential ?? '—'}</span>
+              </span>
             </li>
           ))}
         </ul>
@@ -121,7 +193,9 @@ export default function PlayerPage() {
 
       {p.origin === 'sofifa' && Object.keys(attrs).length > 0 && (
         <details className="card p-5 text-sm">
-          <summary className="cursor-pointer font-semibold text-ink">Todos os atributos originais ({versionLabel(career.fifa_version)})</summary>
+          <summary className="cursor-pointer font-semibold text-ink">
+            Todos os atributos originais ({versionLabel(career.fifa_version)})
+          </summary>
           <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[13px] text-charcoal sm:grid-cols-3">
             {Object.entries(attrs)
               .filter(([, v]) => v !== '' && v != null)
@@ -143,7 +217,10 @@ export default function PlayerPage() {
           lastOverall={snaps.at(-1)?.overall ?? baseOvr}
           lastPotential={snaps.at(-1)?.potential ?? basePot}
           onClose={() => setShowSnapshot(false)}
-          onSaved={() => { qc.invalidateQueries({ queryKey: ['career-player', id] }); setShowSnapshot(false) }}
+          onSaved={() => {
+            qc.invalidateQueries({ queryKey: ['career-player', id] })
+            setShowSnapshot(false)
+          }}
         />
       )}
     </div>
@@ -168,36 +245,79 @@ function SnapshotModal(props: {
 
   const create = useMutation({
     mutationFn: () =>
-      Promise.resolve(addSnapshot(props.playerId, {
-        season, dateIngame: date || undefined,
-        overall: overall ? Number(overall) : undefined,
-        potential: potential ? Number(potential) : undefined,
-        position: position || undefined, formNotes: notes || undefined,
-      })),
+      Promise.resolve(
+        addSnapshot(props.playerId, {
+          season,
+          dateIngame: date || undefined,
+          overall: overall ? Number(overall) : undefined,
+          potential: potential ? Number(potential) : undefined,
+          position: position || undefined,
+          formNotes: notes || undefined,
+        }),
+      ),
     onSuccess: props.onSaved,
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy-deep/50 sm:items-center" onClick={props.onClose}>
-      <div className="w-full max-w-md space-y-2  bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)] sm:" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-navy-deep/50 sm:items-center"
+      onClick={props.onClose}
+    >
+      <div
+        className="w-full max-w-md space-y-2  bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)] sm:"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-semibold text-ink">Registrar evolução</h3>
-        <p className="text-[13px] text-steel">Sempre vinculada à temporada/data do jogo — é assim que o desenvolvimento é acompanhado.</p>
+        <p className="text-[13px] text-steel">
+          Sempre vinculada à temporada/data do jogo — é assim que o desenvolvimento é acompanhado.
+        </p>
         <div className="flex gap-2">
-          <input value={season} onChange={(e) => setSeason(e.target.value)} placeholder="Temporada *" className="input w-1/2" />
+          <input
+            value={season}
+            onChange={(e) => setSeason(e.target.value)}
+            placeholder="Temporada *"
+            className="input w-1/2"
+          />
           <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="input w-1/2" />
         </div>
         <div className="flex gap-2">
-          <input value={overall} onChange={(e) => setOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall atual" inputMode="numeric" className="input w-1/2" />
-          <input value={potential} onChange={(e) => setPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial atual" inputMode="numeric" className="input w-1/2" />
+          <input
+            value={overall}
+            onChange={(e) => setOverall(e.target.value.replace(/\D/g, ''))}
+            placeholder="Overall atual"
+            inputMode="numeric"
+            className="input w-1/2"
+          />
+          <input
+            value={potential}
+            onChange={(e) => setPotential(e.target.value.replace(/\D/g, ''))}
+            placeholder="Potencial atual"
+            inputMode="numeric"
+            className="input w-1/2"
+          />
         </div>
         <div className="flex gap-2">
-          <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Posição (se mudou)" className="input w-1/2" />
-          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Forma/observações" className="input w-1/2" />
+          <input
+            value={position}
+            onChange={(e) => setPosition(e.target.value)}
+            placeholder="Posição (se mudou)"
+            className="input w-1/2"
+          />
+          <input
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Forma/observações"
+            className="input w-1/2"
+          />
         </div>
         {create.isError && <p className="text-[13px] text-error">{(create.error as Error).message}</p>}
         <div className="flex gap-2 pt-1">
-          <button onClick={() => create.mutate()} disabled={!season || create.isPending} className="btn-primary flex-1">Salvar</button>
-          <button onClick={props.onClose} className="btn-secondary">Cancelar</button>
+          <button onClick={() => create.mutate()} disabled={!season || create.isPending} className="btn-primary flex-1">
+            Salvar
+          </button>
+          <button onClick={props.onClose} className="btn-secondary">
+            Cancelar
+          </button>
         </div>
       </div>
     </div>
