@@ -12,6 +12,7 @@
  */
 import { createReadStream, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import readline from 'node:readline'
 import { parse } from 'csv-parse'
 import { db, DATA_DIR } from '../db/index.js'
 
@@ -48,10 +49,27 @@ export function csvFilesPresent(): { players: boolean; teams: boolean } {
 /** Descobre o menor fifa_update por versão presente no CSV (primeira passada, só 2 colunas). */
 async function launchUpdates(csvPath: string): Promise<Map<number, number>> {
   const map = new Map<number, number>()
-  const parser = createReadStream(csvPath).pipe(parse({ columns: true, relaxQuotes: true }))
-  for await (const row of parser) {
-    const v = Number(row.fifa_version)
-    const u = Number(row.fifa_update)
+  const rl = readline.createInterface({
+    input: createReadStream(csvPath),
+    crlfDelay: Infinity,
+  })
+
+  let isHeader = true
+  let verIdx = -1
+  let updIdx = -1
+
+  for await (const line of rl) {
+    if (isHeader) {
+      const cols = line.split(',')
+      verIdx = cols.indexOf('fifa_version')
+      updIdx = cols.indexOf('fifa_update')
+      isHeader = false
+      continue
+    }
+    // Extract first columns by simple splitting (since version and update are numbers near start)
+    const cols = line.split(',', Math.max(verIdx, updIdx) + 2)
+    const v = Number(cols[verIdx])
+    const u = Number(cols[updIdx])
     if (!Number.isFinite(v) || !Number.isFinite(u)) continue
     const cur = map.get(v)
     if (cur === undefined || u < cur) map.set(v, u)
@@ -66,7 +84,7 @@ async function launchUpdates(csvPath: string): Promise<Map<number, number>> {
  * league_id — e, para ligas que não existem mais nela, usamos a moda global. Nenhum
  * nome é inventado: tudo sai do próprio arquivo.
  */
-async function canonicalLeagues(teamsCsv: string): Promise<Map<number, { name: string; level: number | null }>> {
+function canonicalLeagues(teamRowsArray: Record<string, any>[]): Map<number, { name: string; level: number | null }> {
   interface Stat {
     maxVersion: number
     atMax: Map<string, number>        // "name|level" → contagem na maxVersion
@@ -75,8 +93,7 @@ async function canonicalLeagues(teamsCsv: string): Promise<Map<number, { name: s
   const stats = new Map<number, Stat>()
   let fileMaxVersion = 0
 
-  const parser = createReadStream(teamsCsv).pipe(parse({ columns: true, relaxQuotes: true }))
-  for await (const row of parser) {
+  for (const row of teamRowsArray) {
     const id = Number(row.league_id)
     const v = Number(row.fifa_version)
     const name = row.league_name
@@ -121,8 +138,26 @@ export async function importFromCsv(
 
   onProgress({ phase: 'preparando', rows: 0 })
   const playerLaunch = await launchUpdates(PLAYERS_CSV)
-  const teamLaunch = await launchUpdates(TEAMS_CSV)
-  const leagues = await canonicalLeagues(TEAMS_CSV)
+
+  // 1. Read teams once
+  const teamRowsArray: Record<string, any>[] = []
+  const teamParser = createReadStream(TEAMS_CSV).pipe(parse({ columns: true, relaxQuotes: true }))
+  for await (const row of teamParser) {
+    teamRowsArray.push(row)
+  }
+
+  // 2. Compute min updates for teams in-memory
+  const teamLaunch = new Map<number, number>()
+  for (const row of teamRowsArray) {
+    const v = Number(row.fifa_version)
+    const u = Number(row.fifa_update)
+    if (!Number.isFinite(v) || !Number.isFinite(u)) continue
+    const cur = teamLaunch.get(v)
+    if (cur === undefined || u < cur) teamLaunch.set(v, u)
+  }
+
+  // 3. Compute canonical leagues in-memory
+  const leagues = canonicalLeagues(teamRowsArray)
 
   const wanted = new Set(versions)
   let teamRows = 0
@@ -137,15 +172,11 @@ export async function importFromCsv(
     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `)
   {
-    const parser = createReadStream(TEAMS_CSV).pipe(parse({ columns: true, relaxQuotes: true }))
-    const tx: Record<string, unknown>[] = []
-    for await (const row of parser) {
-      const v = Number(row.fifa_version)
-      if (!wanted.has(v) || Number(row.fifa_update) !== teamLaunch.get(v)) continue
-      tx.push(row)
-      if (tx.length >= 2000) { flushTeams(tx, insertTeam); teamRows += tx.length; tx.length = 0; onProgress({ phase: 'times', rows: teamRows }) }
-    }
-    if (tx.length) { flushTeams(tx, insertTeam); teamRows += tx.length }
+    const teamsToInsert = teamRowsArray.filter(
+      (row) => wanted.has(Number(row.fifa_version)) && Number(row.fifa_update) === teamLaunch.get(Number(row.fifa_version))
+    )
+    flushTeams(teamsToInsert, insertTeam)
+    teamRows = teamsToInsert.length
     onProgress({ phase: 'times', rows: teamRows })
   }
 
