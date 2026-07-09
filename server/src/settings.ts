@@ -31,7 +31,7 @@ export const PROVIDER_LABELS: Record<AiProvider, string> = {
 /** Modelos padrão (editáveis pelo usuário) — precisam suportar visão. */
 export const DEFAULT_MODELS: Record<AiProvider, string> = {
   anthropic: process.env.VISION_MODEL || 'claude-sonnet-5',
-  openai: 'gpt-5.1',
+  openai: 'gpt-4o',
   gemini: 'gemini-2.5-flash',
   openrouter: 'google/gemini-2.5-flash',
 }

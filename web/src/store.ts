@@ -21,7 +21,7 @@ export const PROVIDER_LABELS: Record<AiProvider, string> = {
 
 export const DEFAULT_MODELS: Record<AiProvider, string> = {
   anthropic: 'claude-sonnet-5',
-  openai: 'gpt-5.1',
+  openai: 'gpt-4o',
   gemini: 'gemini-2.5-flash',
   openrouter: 'google/gemini-2.5-flash',
 }
