@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api, versionLabel, type Career, type VersionInfo } from '../api/client'
-import { listCareers, getAiSettings } from '../store'
+import { listCareers, getAiSettings, PROVIDER_LABELS, DEFAULT_MODELS } from '../store'
 
 interface ImportStatus {
   running: boolean
@@ -57,8 +57,8 @@ export default function Home() {
   const ai = getAiSettings()
   const localActiveProvider = ai.activeProvider
   const localHasKey = Boolean(ai.keys[localActiveProvider])
-  const providerLabel = localActiveProvider === 'anthropic' ? 'Anthropic (Claude)' : localActiveProvider === 'openai' ? 'OpenAI (ChatGPT)' : localActiveProvider === 'gemini' ? 'Google Gemini' : 'OpenRouter'
-  const modelLabel = ai.models[localActiveProvider] || (localActiveProvider === 'anthropic' ? 'claude-sonnet-5' : localActiveProvider === 'openai' ? 'gpt-5.1' : localActiveProvider === 'gemini' ? 'gemini-2.5-flash' : 'google/gemini-2.5-flash')
+  const providerLabel = PROVIDER_LABELS[localActiveProvider]
+  const modelLabel = ai.models[localActiveProvider] || DEFAULT_MODELS[localActiveProvider]
 
   const visionActive = localHasKey || Boolean(status?.visionAvailable)
   const visionProvider = localHasKey ? providerLabel : status?.visionProvider ?? ''
