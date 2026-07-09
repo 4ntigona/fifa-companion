@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PERSISTENT_DIR="/home/fifa-companion/persistent_data"
+PERSISTENT_DIR="/home/companion/persistent_data"
 PROJECT_DIR="$(pwd)"
 APP_NAME="fifa-companion"
 

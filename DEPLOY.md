@@ -40,21 +40,21 @@ Acesse a VPS via SSH e execute os comandos abaixo para criar a estrutura persist
 
 ```bash
 # Criar pasta persistente fora da pasta de build
-mkdir -p /home/fifa-companion/persistent_data/captures
+mkdir -p /home/companion/persistent_data/captures
 
 # Garantir as permissões corretas (ajuste o usuário conforme o CloudPanel)
-chown -R clp-user:clp-user /home/fifa-companion/persistent_data
+chown -R clp-user:clp-user /home/companion/persistent_data
 ```
 
 ### 2. Configurar o Projeto e Criar o Link Simbólico
-Navegue até a pasta do seu site criada no CloudPanel (ex: `/home/fifa-companion/htdocs/seu-site/`):
+Navegue até a pasta do seu site criada no CloudPanel (ex: `/home/companion/htdocs/companion.pedrorivera.me/`):
 
 ```bash
 # Clonar/Acessar o repositório
-cd /home/fifa-companion/htdocs/seu-site
+cd /home/companion/htdocs/companion.pedrorivera.me
 
 # Criar o symlink ligando a pasta do servidor à pasta do projeto
-ln -s /home/fifa-companion/persistent_data ./server/data
+ln -s /home/companion/persistent_data ./server/data
 ```
 
 ### 3. Instalar Dependências e Compilar
