@@ -1,32 +1,85 @@
 # Implementation Plans
 
-Gerado pelo skill improve em 2026-07-07 (invocação: `plan` — melhorar a UX do app), contra o
-commit `bdd5c7e`. Cada executor: leia o plano inteiro antes de começar, honre as STOP conditions
-e atualize sua linha ao terminar.
+Índice de planos gerados pelo skill `improve`. Execute na ordem abaixo salvo onde as dependências
+disserem o contrário. Cada executor: leia o plano inteiro antes de começar, honre as STOP
+conditions, rode as verificações, e atualize sua linha ao terminar.
+
+- **001** (`plan` — UX): gerado contra `bdd5c7e`, já **DONE**.
+- **002–013**: auditoria `deep` gerada contra `feba0bf` (2026-07-08).
 
 ## Execution order & status
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001  | Feedback e interação confiáveis (erros amigáveis, debounce, "carregar mais", diálogos acessíveis, retry na captura) | P1 | M | — | DONE (implementado direto na árvore `claude` após o fluxo de worktree isolado se mostrar inviável neste ambiente — 2 dispatches receberam base defasada. tsc + vite build OK; 0 confirm() restantes; verificado no navegador: paginação +50, diálogo acessível com Escape/foco, exclusão em cascata, carreira-não-encontrada, card de erro de rede + retry.) |
+| 001 | Feedback e interação confiáveis (erros/debounce/paginação/diálogos/retry) | P1 | M | — | DONE |
+| 002 | Baseline de verificação — vitest, scripts agregados, CLAUDE.md | P1 | S | — | DONE (desvio: vitest ^2.1.8→^4.1.10 e happy-dom ^15→^20.10.6 — as versões do plano traziam advisory crítico de RCE em happy-dom e moderado em esbuild/vite via vitest; bump para as latest resolveu, `npm audit` limpo exceto o @fastify/static já coberto pelo plano 005) |
+| 003 | Segurança: não persistir chaves BYOK no servidor/backup | P1 | S | 002 (p/ teste) | TODO |
+| 004 | Segurança: hardening das rotas públicas (auth/rate-limit/quota/CORS/HOST/GC/headers) | P1 | M | 002 (p/ teste) | TODO |
+| 005 | Deps/segurança: bump @fastify/static (advisory) | P2 | S | — | TODO |
+| 006 | Testes de caracterização de store.ts | P1 | M | 002 | TODO |
+| 007 | Correctness store/captura (quota/atômico/counters/retry/objectURL) | P2 | M | 002, 006 rec. | TODO |
+| 008 | Perf: code-splitting + lazy Recharts | P2 | S | — | TODO |
+| 009 | Perf: projeção de colunas + dedup COUNT em /api/players | P2 | M | 002/006 rec. | TODO |
+| 010 | Direção: filtros liga/nacionalidade/idade-mín. na prospecção | P2 | S | — | TODO |
+| 011 | Direção: prioridade da shortlist | P3 | S | — | TODO |
+| 012 | Direção: captura → evolução em jogador existente | P2 | M | 007 rec. | TODO |
+| 013 | Direção: ciclo de vida do status do jogador | P3 | M | — | TODO |
 
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (com motivo) | REJECTED (com justificativa)
+Status: TODO | IN PROGRESS | DONE | BLOCKED (com motivo) | REJECTED (com justificativa)
+
+## Recomendação de sequência
+
+1. **002** primeiro — desbloqueia testes para tudo (é a baseline de verificação).
+2. **Segurança antes de publicar no VPS**: 003, 004, 005 (o app está indo para produção; rotas de
+   escrita anônimas + chaves BYOK no servidor são o cluster crítico).
+3. **006** (caracterização de store.ts) antes de **007** (mexer em store.ts) e de **009** (que muda
+   o fluxo de reidratação do store).
+4. Perf (008, 009) e Direção (010–013) em paralelo depois, conforme apetite. 008/010/011 são S e
+   independentes — bons "quick wins".
 
 ## Dependency notes
 
-- Nenhuma dependência entre planos (plano único).
-- Os steps do 001 são independentes entre si na ordem dada; o step 6 depende do step 2
-  (hook `useEscapeClose`) e o step 7 também.
+- 003, 004, 006, 007, 009 são mais seguros com o 002 (test runner) pronto — mas 003/004/005/008/010/011
+  podem ser feitos sem testes se necessário (têm verificação por tsc/build/manual).
+- 007 e 003 tocam ambos `web/src/store.ts` — se executados em paralelo, reconcilie os diffs.
+- 006 (caracterização) deve ser ATUALIZADO após 007 mudar o comportamento (counters/quota).
+- 012 fica mais limpo após 007 (apply atômico via `applyCapturedPlayers`), mas não depende dele.
+- 009 e 010 ambos tocam a prospecção/`game-data.ts` — 010 não depende de 009 (usa `league_name`/
+  `nationality_name`, que permanecem na projeção do 009).
 
-## Findings considered and rejected / deferred
+## Findings considered and rejected
 
-- **Bottom-nav fixa no mobile**: adiada — mexe no layout de todas as telas e é uma decisão de
-  design (DESIGN.md registra densidade de navegação atual: 2 itens); reavaliar depois do 001.
-- **Sistema de toasts global**: rejeitado por ora — as mensagens inline (`{ ok, text }` no padrão
-  de `Settings.tsx`) cobrem os fluxos atuais sem dependência nova.
-- **Instalar test runner (vitest)**: fora do escopo de UX; vale um plano próprio de qualidade se
-  o projeto continuar crescendo.
-- **Virtualização de listas / paginação por cursor no servidor**: desnecessário com o teto atual
-  de 200 resultados por busca.
-- **Focus-trap completo nos modais**: parcial de propósito (Escape + foco inicial + aria);
-  suficiente para o tamanho do app — anotado como manutenção no plano 001.
+- **DESIGN.md "é doc de outro projeto"** → REJEITADO: a estética terminal (PEDRO\RIVERA, IBM Plex
+  Mono, preto/vermelho, raio zero) foi **adotada de propósito** pelo dono nesta sessão. Não é erro.
+  (Ficou apenas uma nota: `plans/README` do 001 cita "DESIGN.md registra 2 itens de navegação", que
+  não existe no arquivo — correção trivial de doc, não vira plano.)
+- **Injeção de SQL em game-data.ts** → REJEITADO: todos os filtros usam bind params; `ORDER BY` vem
+  de allowlist (`sortMap`) com fallback fixo.
+- **Código de sync "enumerável"** → REJEITADO: alfabeto 31 × 12 chars ≈ 59 bits (não brute-forçável);
+  o risco real é ausência de rate-limit, coberto no plano 004.
+- **XSS / segredos commitados / prompt-injection em arquivos** → nenhum encontrado (5 agentes).
+- **Bottom-nav mobile, toasts globais, virtualização de lista, focus-trap completo** → adiados no
+  001 (ver histórico); reavaliar depois.
+- **Import em worker_thread (PERF/CORRECTNESS)** → NÃO planejado agora: efeito é grande (L) e o
+  import é ação pontual de setup; o hardening do 004 (restringir/rate-limit o import) mitiga o
+  vetor de abuso. Reabrir se a importação em produção travar o servidor na prática.
+- **Blob localStorage: não duplicar attributes_json / migrar p/ IndexedDB (PERF)** → NÃO planejado:
+  o 009 já corta o over-fetch na origem (servidor); a amplificação de escrita local é modesta no
+  volume atual. Reabrir se `storageUsage()` crescer.
+- **Auto-hospedar fonte IBM Plex Mono (PERF/PWA offline)** → NÃO planejado agora (S, MED): bom
+  follow-up, mas abaixo do corte deste lote.
+- **Comparação de jogadores lado a lado (DIRECTION-06)** → NÃO planejado agora: boa ideia, mas a
+  forma (prospecto×prospecto vs elenco×elenco) é decisão de design em aberto; reabrir como spike.
+- **Auto-sync da chave de restauração (DIRECTION-04)** → NÃO planejado agora: interage com o 004
+  (rate-limit) e o 003 (o que vai no blob); reavaliar depois desses.
+- **ESLint/Prettier/CI (DX)** → NÃO planejado neste lote: legítimo, mas depende do 002; vira plano
+  próprio se desejado.
+
+## Cobertura da auditoria (o que NÃO foi auditado a fundo)
+
+`deep`, 5 de 6 subagentes concluíram (correctness, segurança, performance, testes+DX, direção). O
+agente de **tech-debt/deps/docs** interrompeu por limite de sessão; o essencial foi complementado à
+mão (deps via `npm outdated` — tudo dentro dos ranges, só `@fastify/static` força bump → plano 005;
+duplicação de constantes `AiProvider`/modelos entre web e server observada, baixa alavancagem, não
+planejada). Não coberto a fundo: duplicação/arquitetura fina (ex.: card de erro repetido em 3
+páginas, `mask()` duplicado) e docs além do já apontado.
