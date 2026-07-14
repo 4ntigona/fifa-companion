@@ -47,7 +47,9 @@ export interface VersionInfo {
   createClub: boolean
 }
 
-export interface SofifaPlayer {
+/** Subconjunto de colunas devolvido pela busca (`GET /api/players/:version`) — sem
+ *  attributes_json nem os atributos individuais, que só vêm na reidratação completa. */
+export interface SofifaPlayerListItem {
   fifa_version: number
   player_id: number
   short_name: string
@@ -61,6 +63,9 @@ export interface SofifaPlayer {
   club_name: string | null
   league_name: string | null
   nationality_name: string | null
+}
+
+export interface SofifaPlayer extends SofifaPlayerListItem {
   club_jersey_number: number | null
   club_loaned_from: string | null
   preferred_foot: string | null

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
-import { api, fmtEur, versionLabel, type Prospect, type SofifaPlayer } from '../api/client'
+import { api, fmtEur, versionLabel, type Prospect, type SofifaPlayer, type SofifaPlayerListItem } from '../api/client'
 import { getCareer, listProspects, addProspect as addProspectStore, updateProspect as updateProspectStore, removeProspect as removeProspectStore } from '../store'
 import { useDebouncedValue } from '../hooks'
 
@@ -47,7 +47,7 @@ export default function ProspectsPage() {
   })
   const { data: searchData, isFetching, isError: searchError, error: searchErr, refetch: refetchSearch } = useQuery({
     queryKey: ['player-search', version, params.toString()],
-    queryFn: () => api<{ players: SofifaPlayer[]; total: number }>(`/api/players/${version}?${params}`),
+    queryFn: () => api<{ players: SofifaPlayerListItem[]; total: number }>(`/api/players/${version}?${params}`),
     enabled: version != null && tab === 'buscar',
     placeholderData: (prev) => prev,
   })
@@ -60,7 +60,12 @@ export default function ProspectsPage() {
   const shortlistIds = new Set(prospects.map((p) => p.sofifa_player_id))
 
   const addProspect = useMutation({
-    mutationFn: async (player: SofifaPlayer) => addProspectStore(Number(id), player),
+    // a busca só traz um subconjunto de colunas — reidrata o registro completo (attributes_json
+    // incluso) antes de gravar no localStorage, para a tela do jogador poder exibi-lo depois.
+    mutationFn: async (p: SofifaPlayerListItem) => {
+      const full = await api<{ player: SofifaPlayer }>(`/api/player/${version}/${p.player_id}`)
+      return addProspectStore(Number(id), full.player)
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['prospects', id] }),
   })
   const updateProspect = useMutation({
