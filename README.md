@@ -22,7 +22,10 @@ O app nunca inventa nem reduz atributos — o que não foi importado aparece com
   Em outro aparelho, cole o código e restaure. Quem tiver o código acessa os dados: trate-o como
   senha. Pode gerar uma chave nova (invalida a antiga), atualizar os dados na chave atual ou
   **remover** a chave do servidor a qualquer momento (os dados no dispositivo não são afetados).
-- **Backup em arquivo (⚙️ Configurações):** alternativa manual — exporta/importa um `.json`.
+  **As chaves de IA (BYOK) NÃO são incluídas** nem na chave de restauração nem no backup — por
+  segurança, você reconfigura a chave de IA em cada dispositivo/após restaurar.
+- **Backup em arquivo (⚙️ Configurações):** alternativa manual — exporta/importa um `.json` (também
+  sem as chaves de IA).
 - **No servidor (SQLite, compartilhado, somente leitura):** a database original do jogo
   (`sofifa_players` / `sofifa_teams`, importada uma vez por versão) e, opcionalmente, os blobs das
   chaves de restauração (tabela `sync_blobs` — texto opaco, sem leitura/indexação pelo app).

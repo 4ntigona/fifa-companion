@@ -395,8 +395,7 @@ export function aiModel(p: AiProvider): string {
 /* ---------------- export / import ---------------- */
 
 export function exportBackup() {
-  const db = load()
-  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' })
+  const blob = new Blob([JSON.stringify(stripSecrets(load()), null, 2)], { type: 'application/json' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = `career-companion-backup-${nowIso().slice(0, 10)}.json`
@@ -424,10 +423,15 @@ export function getSyncInfo(): SyncInfo {
   return load().sync
 }
 
-/** Serializa tudo, exceto o próprio ponteiro de sync (evita guardar código dentro do código). */
-function snapshotForSync(db: LocalDb): string {
+/** Remove segredos (chaves BYOK) de um db antes de exportá-lo/enviá-lo. Mantém provider/models. */
+function stripSecrets(db: LocalDb): Omit<LocalDb, 'sync'> {
   const { sync: _sync, ...rest } = db
-  return JSON.stringify(rest)
+  return { ...rest, ai: { ...rest.ai, keys: {} } }
+}
+
+/** Serializa tudo, exceto segredos e o próprio ponteiro de sync (evita guardar código dentro do código). */
+function snapshotForSync(db: LocalDb): string {
+  return JSON.stringify(stripSecrets(db))
 }
 
 /** Gera uma chave nova no servidor com o estado atual e passa a usá-la. */
