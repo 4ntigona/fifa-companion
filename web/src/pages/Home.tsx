@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api, versionLabel, type VersionInfo } from '../api/client'
 import { listCareers, getAiSettings, PROVIDER_LABELS, DEFAULT_MODELS } from '../store'
+import ServerErrorCard from '../components/ServerErrorCard'
 
 interface ImportStatus {
   running: boolean
@@ -102,11 +103,7 @@ export default function Home() {
       <section>
         <h2 className="mb-4 text-xl font-semibold tracking-tight text-ink">Databases do jogo</h2>
         {versionsError && (
-          <div className="card mb-3 bg-tint-rose p-5 text-sm text-charcoal">
-            <p className="font-semibold">Sem conexão com o servidor.</p>
-            <p className="mt-1">{(versionsErr as Error).message}</p>
-            <button onClick={() => refetchVersions()} className="btn-secondary mt-3">Tentar de novo</button>
-          </div>
+          <ServerErrorCard className="mb-3" message={(versionsErr as Error).message} onRetry={() => refetchVersions()} />
         )}
         {!anyImported && !importing && !versionsError && (
           <div className="mb-3  bg-tint-yellow-bold p-5 text-sm text-charcoal">

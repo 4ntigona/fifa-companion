@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom'
 import { api, fmtEur, versionLabel, type Prospect, type SofifaPlayer, type SofifaPlayerListItem } from '../api/client'
 import { getCareer, listProspects, addProspect as addProspectStore, updateProspect as updateProspectStore, removeProspect as removeProspectStore } from '../store'
 import { useDebouncedValue } from '../hooks'
+import ServerErrorCard from '../components/ServerErrorCard'
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'CF', 'ST']
 const STATUS_LABEL: Record<Prospect['status'], string> = {
@@ -155,11 +156,7 @@ export default function ProspectsPage() {
           </div>
 
           {searchError ? (
-            <div className="card bg-tint-rose p-5 text-sm text-charcoal">
-              <p className="font-semibold">Sem conexão com o servidor.</p>
-              <p className="mt-1">{(searchErr as Error).message}</p>
-              <button onClick={() => refetchSearch()} className="btn-secondary mt-3">Tentar de novo</button>
-            </div>
+            <ServerErrorCard message={(searchErr as Error).message} onRetry={() => refetchSearch()} />
           ) : (
           <>
           {isFetching && <p className="text-sm text-steel">Buscando…</p>}

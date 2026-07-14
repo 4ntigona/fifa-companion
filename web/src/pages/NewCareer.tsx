@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api, fmtEur, type SofifaTeam, type VersionInfo } from '../api/client'
 import { createCareer } from '../store'
+import ServerErrorCard from '../components/ServerErrorCard'
 import { useDebouncedValue } from '../hooks'
 
 interface CountryLeagues {
@@ -98,11 +99,7 @@ export default function NewCareer() {
       <section>
         <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-steel">Versão do jogo</h2>
         {versionsError ? (
-          <div className="card bg-tint-rose p-5 text-sm text-charcoal">
-            <p className="font-semibold">Sem conexão com o servidor.</p>
-            <p className="mt-1">{(versionsErr as Error).message}</p>
-            <button onClick={() => refetchVersions()} className="btn-secondary mt-3">Tentar de novo</button>
-          </div>
+          <ServerErrorCard message={(versionsErr as Error).message} onRetry={() => refetchVersions()} />
         ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           {versions.map((v) => (
