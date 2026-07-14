@@ -3,8 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { fmtEur, versionLabel, type CareerPlayer } from '../api/client'
 import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer, deleteCareer } from '../store'
-import { useEscapeClose } from '../hooks'
 import ConfirmDialog from '../components/ConfirmDialog'
+import Modal from '../components/Modal'
 
 export default function CareerPage() {
   const { id } = useParams()
@@ -216,7 +216,6 @@ function PlayerList({ players }: { players: CareerPlayer[] }) {
 
 function AddPlayerModal({ careerId, version, onClose }: { careerId: number; version: number; onClose: () => void }) {
   const qc = useQueryClient()
-  useEscapeClose(onClose)
   const [origin, setOrigin] = useState<'generated' | 'youth' | 'regen'>('youth')
   const [name, setName] = useState('')
   const [positions, setPositions] = useState('')
@@ -241,37 +240,35 @@ function AddPlayerModal({ careerId, version, onClose }: { careerId: number; vers
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy-deep/50 sm:items-center" onClick={onClose}>
-      <div role="dialog" aria-modal="true" className="w-full max-w-md space-y-2  bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)] sm:" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold text-ink">Adicionar jogador</h3>
-        <p className="text-[13px] text-steel">
-          Para jogadores reais da database do {versionLabel(version)}, use a Prospecção. Aqui entram os que só existem no seu save.
-        </p>
-        <div className="flex gap-2 text-sm">
-          {(['youth', 'regen', 'generated'] as const).map((o) => (
-            <button key={o} onClick={() => setOrigin(o)}
-              className={origin === o ? 'pill-tab-active' : 'pill-tab'}>
-              {o === 'youth' ? 'Base' : o === 'regen' ? 'Regen' : 'Gerado (clube criado)'}
-            </button>
-          ))}
-        </div>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome *" className="input" />
-        <div className="flex gap-2">
-          <input value={positions} onChange={(e) => setPositions(e.target.value)} placeholder="Posições (ST, CAM)" className="input w-1/2" />
-          <input value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade" inputMode="numeric" className="input w-1/2" />
-        </div>
-        <div className="flex gap-2">
-          <input value={overall} onChange={(e) => setOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall original" inputMode="numeric" className="input w-1/2" />
-          <input value={potential} onChange={(e) => setPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial original" inputMode="numeric" className="input w-1/2" />
-        </div>
-        <input value={strengths} onChange={(e) => setStrengths(e.target.value)} placeholder="Pontos fortes" className="input" />
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observações" rows={2} className="input h-auto" />
-        {create.isError && <p className="text-[13px] text-error">{(create.error as Error).message}</p>}
-        <div className="flex gap-2 pt-1">
-          <button onClick={() => create.mutate()} disabled={!name || create.isPending} className="btn-primary flex-1">Salvar</button>
-          <button onClick={onClose} className="btn-secondary">Cancelar</button>
-        </div>
+    <Modal onClose={onClose}>
+      <h3 className="text-lg font-semibold text-ink">Adicionar jogador</h3>
+      <p className="text-[13px] text-steel">
+        Para jogadores reais da database do {versionLabel(version)}, use a Prospecção. Aqui entram os que só existem no seu save.
+      </p>
+      <div className="flex gap-2 text-sm">
+        {(['youth', 'regen', 'generated'] as const).map((o) => (
+          <button key={o} onClick={() => setOrigin(o)}
+            className={origin === o ? 'pill-tab-active' : 'pill-tab'}>
+            {o === 'youth' ? 'Base' : o === 'regen' ? 'Regen' : 'Gerado (clube criado)'}
+          </button>
+        ))}
       </div>
-    </div>
+      <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome *" className="input" />
+      <div className="flex gap-2">
+        <input value={positions} onChange={(e) => setPositions(e.target.value)} placeholder="Posições (ST, CAM)" className="input w-1/2" />
+        <input value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade" inputMode="numeric" className="input w-1/2" />
+      </div>
+      <div className="flex gap-2">
+        <input value={overall} onChange={(e) => setOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall original" inputMode="numeric" className="input w-1/2" />
+        <input value={potential} onChange={(e) => setPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial original" inputMode="numeric" className="input w-1/2" />
+      </div>
+      <input value={strengths} onChange={(e) => setStrengths(e.target.value)} placeholder="Pontos fortes" className="input" />
+      <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observações" rows={2} className="input h-auto" />
+      {create.isError && <p className="text-[13px] text-error">{(create.error as Error).message}</p>}
+      <div className="flex gap-2 pt-1">
+        <button onClick={() => create.mutate()} disabled={!name || create.isPending} className="btn-primary flex-1">Salvar</button>
+        <button onClick={onClose} className="btn-secondary">Cancelar</button>
+      </div>
+    </Modal>
   )
 }

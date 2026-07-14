@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { useEscapeClose } from '../hooks'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { fmtEur, versionLabel } from '../api/client'
 import { getCareerPlayer, addSnapshot, updateCareerPlayer } from '../store'
+import Modal from '../components/Modal'
 
 const STATUS_OPTIONS = [
   ['titular', 'Titular'], ['reserva', 'Reserva'], ['emprestado', 'Emprestado'], ['vendido', 'Vendido'],
@@ -193,7 +193,6 @@ function SnapshotModal(props: {
   onClose: () => void
   onSaved: () => void
 }) {
-  useEscapeClose(props.onClose)
   const [season, setSeason] = useState(props.defaultSeason)
   const [date, setDate] = useState(props.defaultDate ?? '')
   const [overall, setOverall] = useState(props.lastOverall != null ? String(props.lastOverall) : '')
@@ -213,28 +212,26 @@ function SnapshotModal(props: {
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy-deep/50 sm:items-center" onClick={props.onClose}>
-      <div role="dialog" aria-modal="true" className="w-full max-w-md space-y-2  bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)] sm:" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold text-ink">Registrar evolução</h3>
-        <p className="text-[13px] text-steel">Sempre vinculada à temporada/data do jogo — é assim que o desenvolvimento é acompanhado.</p>
-        <div className="flex gap-2">
-          <input autoFocus value={season} onChange={(e) => setSeason(e.target.value)} placeholder="Temporada *" className="input w-1/2" />
-          <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="input w-1/2" />
-        </div>
-        <div className="flex gap-2">
-          <input value={overall} onChange={(e) => setOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall atual" inputMode="numeric" className="input w-1/2" />
-          <input value={potential} onChange={(e) => setPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial atual" inputMode="numeric" className="input w-1/2" />
-        </div>
-        <div className="flex gap-2">
-          <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Posição (se mudou)" className="input w-1/2" />
-          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Forma/observações" className="input w-1/2" />
-        </div>
-        {create.isError && <p className="text-[13px] text-error">{(create.error as Error).message}</p>}
-        <div className="flex gap-2 pt-1">
-          <button onClick={() => create.mutate()} disabled={!season || create.isPending} className="btn-primary flex-1">Salvar</button>
-          <button onClick={props.onClose} className="btn-secondary">Cancelar</button>
-        </div>
+    <Modal onClose={props.onClose}>
+      <h3 className="text-lg font-semibold text-ink">Registrar evolução</h3>
+      <p className="text-[13px] text-steel">Sempre vinculada à temporada/data do jogo — é assim que o desenvolvimento é acompanhado.</p>
+      <div className="flex gap-2">
+        <input autoFocus value={season} onChange={(e) => setSeason(e.target.value)} placeholder="Temporada *" className="input w-1/2" />
+        <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="input w-1/2" />
       </div>
-    </div>
+      <div className="flex gap-2">
+        <input value={overall} onChange={(e) => setOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall atual" inputMode="numeric" className="input w-1/2" />
+        <input value={potential} onChange={(e) => setPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial atual" inputMode="numeric" className="input w-1/2" />
+      </div>
+      <div className="flex gap-2">
+        <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Posição (se mudou)" className="input w-1/2" />
+        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Forma/observações" className="input w-1/2" />
+      </div>
+      {create.isError && <p className="text-[13px] text-error">{(create.error as Error).message}</p>}
+      <div className="flex gap-2 pt-1">
+        <button onClick={() => create.mutate()} disabled={!season || create.isPending} className="btn-primary flex-1">Salvar</button>
+        <button onClick={props.onClose} className="btn-secondary">Cancelar</button>
+      </div>
+    </Modal>
   )
 }
