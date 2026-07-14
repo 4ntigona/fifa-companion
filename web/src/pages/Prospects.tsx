@@ -10,6 +10,11 @@ const STATUS_LABEL: Record<Prospect['status'], string> = {
   observando: '👀 Observando', negociando: '🤝 Negociando', contratado: '✅ Contratado', descartado: '✖ Descartado',
 }
 
+interface CountryLeagues {
+  country: string
+  leagues: { id: number | null; name: string; level: number | null; teams: number }[]
+}
+
 export default function ProspectsPage() {
   const { id } = useParams()
   const qc = useQueryClient()
@@ -17,15 +22,19 @@ export default function ProspectsPage() {
   const [q, setQ] = useState('')
   const [position, setPosition] = useState('')
   const [maxAge, setMaxAge] = useState('')
+  const [minAge, setMinAge] = useState('')
   const [minPotential, setMinPotential] = useState('')
   const [minOverall, setMinOverall] = useState('')
   const [maxValue, setMaxValue] = useState('')
+  const [league, setLeague] = useState('')
+  const [nationality, setNationality] = useState('')
   const [sort, setSort] = useState('potential')
   const [limit, setLimit] = useState(50)
 
   // valores debounced — não busca a cada tecla
   const dq = useDebouncedValue(q)
   const dMaxAge = useDebouncedValue(maxAge)
+  const dMinAge = useDebouncedValue(minAge)
   const dMinOverall = useDebouncedValue(minOverall)
   const dMinPotential = useDebouncedValue(minPotential)
   const dMaxValue = useDebouncedValue(maxValue)
@@ -37,13 +46,25 @@ export default function ProspectsPage() {
   })
   const version = careerData?.career.fifa_version
 
+  const { data: leaguesData } = useQuery({
+    queryKey: ['leagues', version],
+    queryFn: () => api<{ countries: CountryLeagues[] }>(`/api/leagues/${version}`),
+    enabled: version != null,
+  })
+  const countries = leaguesData?.countries ?? []
+  const allLeagues = [...new Map(countries.flatMap((c) => c.leagues).map((l) => [l.name, l])).values()]
+    .sort((a, b) => a.name.localeCompare(b.name))
+
   // volta o limite ao mudar qualquer filtro
-  useEffect(() => { setLimit(50) }, [dq, position, dMaxAge, dMinOverall, dMinPotential, dMaxValue, sort])
+  useEffect(() => { setLimit(50) }, [dq, position, dMaxAge, dMinAge, dMinOverall, dMinPotential, dMaxValue, league, nationality, sort])
 
   const params = new URLSearchParams({
     ...(dq && { q: dq }), ...(position && { position }), ...(dMaxAge && { maxAge: dMaxAge }),
+    ...(dMinAge && { minAge: dMinAge }),
     ...(dMinPotential && { minPotential: dMinPotential }), ...(dMinOverall && { minOverall: dMinOverall }),
-    ...(dMaxValue && { maxValue: String(Number(dMaxValue) * 1_000_000) }), sort, limit: String(limit),
+    ...(dMaxValue && { maxValue: String(Number(dMaxValue) * 1_000_000) }),
+    ...(league && { league }), ...(nationality && { nationality }),
+    sort, limit: String(limit),
   })
   const { data: searchData, isFetching, isError: searchError, error: searchErr, refetch: refetchSearch } = useQuery({
     queryKey: ['player-search', version, params.toString()],
@@ -108,10 +129,19 @@ export default function ProspectsPage() {
               <option value="">Posição</option>
               {POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
+            <input value={minAge} onChange={(e) => setMinAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade mín." inputMode="numeric" className="input" />
             <input value={maxAge} onChange={(e) => setMaxAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade máx." inputMode="numeric" className="input" />
             <input value={minOverall} onChange={(e) => setMinOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall mín." inputMode="numeric" className="input" />
             <input value={minPotential} onChange={(e) => setMinPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial mín." inputMode="numeric" className="input" />
             <input value={maxValue} onChange={(e) => setMaxValue(e.target.value.replace(/\D/g, ''))} placeholder="Valor máx. (€M)" inputMode="numeric" className="input" />
+            <select value={league} onChange={(e) => setLeague(e.target.value)} className="input">
+              <option value="">Liga</option>
+              {allLeagues.map((l) => <option key={l.name} value={l.name}>{l.name}</option>)}
+            </select>
+            <select value={nationality} onChange={(e) => setNationality(e.target.value)} className="input">
+              <option value="">Nacionalidade</option>
+              {countries.map((c) => <option key={c.country} value={c.country}>{c.country}</option>)}
+            </select>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 text-sm">
             <span className="mr-1 text-[13px] text-steel">Ordenar:</span>
