@@ -15,7 +15,7 @@ conditions, rode as verificações, e atualize sua linha ao terminar.
 | 002 | Baseline de verificação — vitest, scripts agregados, CLAUDE.md | P1 | S | — | DONE (desvio: vitest ^2.1.8→^4.1.10 e happy-dom ^15→^20.10.6 — as versões do plano traziam advisory crítico de RCE em happy-dom e moderado em esbuild/vite via vitest; bump para as latest resolveu, `npm audit` limpo exceto o @fastify/static já coberto pelo plano 005) |
 | 003 | Segurança: não persistir chaves BYOK no servidor/backup | P1 | S | 002 (p/ teste) | DONE |
 | 004 | Segurança: hardening das rotas públicas (auth/rate-limit/quota/CORS/HOST/GC/headers) | P1 | M | 002 (p/ teste) | DONE (ecosystem.config.cjs já tinha HOST=127.0.0.1 corrigido de forma independente antes desta execução; import protegido por loopback+ADMIN_TOKEN em vez de "só token", verificado por teste unitário determinístico de `isAuthorizedForImport` — teste de rede real não é viável via curl na mesma máquina; quota de MAX_BLOBS não testada ao vivo contra a base real, só a lógica de leitura/escrita/PUT-404) |
-| 005 | Deps/segurança: bump @fastify/static (advisory) | P2 | S | — | TODO |
+| 005 | Deps/segurança: bump @fastify/static (advisory) | P2 | S | — | DONE (API do plugin sem mudanças de assinatura em v10 — `root`/`prefix`/`sendFile` idênticos; fumaça confirmou serving estático, fallback de SPA, 404 de /api/* e que um path com separador codificado não vaza arquivo fora de web/dist, apenas cai no fallback de SPA) |
 | 006 | Testes de caracterização de store.ts | P1 | M | 002 | TODO |
 | 007 | Correctness store/captura (quota/atômico/counters/retry/objectURL) | P2 | M | 002, 006 rec. | TODO |
 | 008 | Perf: code-splitting + lazy Recharts | P2 | S | — | TODO |
