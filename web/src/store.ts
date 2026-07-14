@@ -366,6 +366,17 @@ export function deleteCareerPlayer(id: number) {
   })
 }
 
+export function updateCareerPlayer(id: number, patch: { status?: string; inSquad?: boolean; jerseyNumber?: number }) {
+  return mutate((db) => {
+    const p = db.careerPlayers.find((x) => x.id === id)
+    if (!p) return { updated: 0 }
+    if (patch.status !== undefined) p.status = patch.status
+    if (patch.inSquad !== undefined) p.in_squad = patch.inSquad ? 1 : 0
+    if (patch.jerseyNumber !== undefined) p.jersey_number = patch.jerseyNumber
+    return { updated: 1 }
+  })
+}
+
 export function addSnapshot(playerId: number, snap: {
   season: string; dateIngame?: string; overall?: number; potential?: number
   position?: string; formNotes?: string

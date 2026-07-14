@@ -27,7 +27,9 @@ export default function CareerPage() {
 
   const career = data?.career
   const players = playersData?.players ?? []
-  const squad = players.filter((p) => p.in_squad && !['base'].includes(p.status))
+  // vendido sai do elenco ativo (e já tem in_squad=0 via updateCareerPlayer, mas o filtro é
+  // explícito por segurança); emprestado permanece visível no elenco, com a tag de aviso.
+  const squad = players.filter((p) => p.in_squad && !['base', 'vendido'].includes(p.status))
   const youth = players.filter((p) => p.origin === 'youth' || p.origin === 'regen' || p.status === 'base')
 
   const updateSeason = useMutation({

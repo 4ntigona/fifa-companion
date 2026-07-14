@@ -4,7 +4,7 @@ import {
   createCareer, getCareer, deleteCareer, listCareerPlayers,
   addProspect, updateProspect, listProspects,
   addSnapshot, getCareerPlayer, createCareerPlayer,
-  importBackup, listCareers, applyCapturedPlayers,
+  importBackup, listCareers, applyCapturedPlayers, updateCareerPlayer,
 } from './store'
 import type { SofifaPlayer } from './api/client'
 
@@ -168,6 +168,19 @@ describe('snapshots', () => {
     const { player } = getCareerPlayer(playerId)
     expect(player.snapshots).toHaveLength(2)
     expect(player.snapshots?.every((s) => s.career_player_id === playerId)).toBe(true)
+  })
+})
+
+describe('ciclo de vida do status do jogador', () => {
+  it('updateCareerPlayer altera status e in_squad', () => {
+    seedCareer(1)
+    const { id: playerId } = createCareerPlayer({ careerId: 1, origin: 'generated', name: 'Jogador', positions: 'ST', status: 'elenco', inSquad: true })
+
+    updateCareerPlayer(playerId, { status: 'vendido', inSquad: false })
+
+    const { player } = getCareerPlayer(playerId)
+    expect(player.status).toBe('vendido')
+    expect(player.in_squad).toBe(0)
   })
 })
 

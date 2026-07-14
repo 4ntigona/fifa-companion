@@ -4,7 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { fmtEur, versionLabel } from '../api/client'
-import { getCareerPlayer, addSnapshot } from '../store'
+import { getCareerPlayer, addSnapshot, updateCareerPlayer } from '../store'
+
+const STATUS_OPTIONS = [
+  ['titular', 'Titular'], ['reserva', 'Reserva'], ['emprestado', 'Emprestado'], ['vendido', 'Vendido'],
+] as const
+// vendido sai do elenco ativo; emprestado continua visível no elenco com a tag de aviso
+// (é como a importação já marca club_loaned_from — mantém consistência com o comportamento atual).
+const OUT_OF_SQUAD_STATUS = new Set(['vendido'])
 
 export default function PlayerPage() {
   const { id } = useParams()
@@ -23,6 +30,15 @@ export default function PlayerPage() {
       <Link to="/" className="btn-primary mt-3 inline-block">Voltar ao início</Link>
     </div>
   )
+  const updateStatus = useMutation({
+    mutationFn: async (status: string) =>
+      updateCareerPlayer(Number(id), { status, inSquad: !OUT_OF_SQUAD_STATUS.has(status) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['career-player', id] })
+      qc.invalidateQueries({ queryKey: ['career-players', data?.player.career_id] })
+    },
+  })
+
   if (!data) return <p className="pt-6 text-slate-ink">Carregando…</p>
   const { player: p, career } = data
   const snaps = p.snapshots ?? []
@@ -82,6 +98,15 @@ export default function PlayerPage() {
             Original no jogo: <b className="text-charcoal">{baseOvr ?? '—'}</b> OVR / <b className="text-charcoal">{basePot ?? '—'}</b> POT
           </div>
         )}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="text-[13px] text-steel">Status:</span>
+          {STATUS_OPTIONS.map(([s, label]) => (
+            <button key={s} onClick={() => updateStatus.mutate(s)}
+              className={`${p.status === s ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
+              {label}
+            </button>
+          ))}
+        </div>
         {p.strengths && <div className="mt-2 text-charcoal"><span className="text-steel">Pontos fortes:</span> {p.strengths}</div>}
         {p.notes && <div className="mt-1 text-charcoal"><span className="text-steel">Observações:</span> {p.notes}</div>}
         {p.regenOf && (
