@@ -13,3 +13,12 @@ export function kaggleCreds(): { username: string; key: string } | null {
   const key = process.env.KAGGLE_KEY
   return username && key ? { username, key } : null
 }
+
+/**
+ * Token opcional que autoriza disparar a importação da database (POST /api/import)
+ * a partir de fora do loopback. Sem ele, o import só é aceito de 127.0.0.1/::1 —
+ * ação de setup do dono do app, não de usuário final.
+ */
+export function adminToken(): string | null {
+  return process.env.ADMIN_TOKEN || null
+}

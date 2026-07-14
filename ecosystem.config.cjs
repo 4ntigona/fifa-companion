@@ -21,6 +21,9 @@ module.exports = {
       },
       // O .env do server (KAGGLE_*, PORT, etc.) é lido via node --env-file? Não em PM2:
       // defina aqui ou exporte no ambiente. As chaves de IA são BYOK (navegador).
+      // Recomendado em produção: CORS_ORIGINS: 'https://companion.seudominio.com'
+      // (sem isso, a API reflete qualquer origem). ADMIN_TOKEN só é necessário se
+      // quiser disparar a importação da database de fora do próprio servidor.
       max_memory_restart: '400M',
       autorestart: true,
     },
