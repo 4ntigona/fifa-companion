@@ -9,6 +9,7 @@ const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM
 const STATUS_LABEL: Record<Prospect['status'], string> = {
   observando: '👀 Observando', negociando: '🤝 Negociando', contratado: '✅ Contratado', descartado: '✖ Descartado',
 }
+const PRIORITY = [[1, '🔴 Alta'], [2, '🟡 Média'], [3, '⚪ Baixa']] as const
 
 interface CountryLeagues {
   country: string
@@ -79,6 +80,7 @@ export default function ProspectsPage() {
   })
   const prospects = prospectsData?.prospects ?? []
   const shortlistIds = new Set(prospects.map((p) => p.sofifa_player_id))
+  const sortedProspects = [...prospects].sort((a, b) => a.priority - b.priority)
 
   const addProspect = useMutation({
     // a busca só traz um subconjunto de colunas — reidrata o registro completo (attributes_json
@@ -207,7 +209,7 @@ export default function ProspectsPage() {
               Shortlist vazia — adicione jogadores pela busca.
             </p>
           )}
-          {prospects.map((pr) => (
+          {sortedProspects.map((pr) => (
             <li key={pr.id} className="card p-3 text-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -220,6 +222,14 @@ export default function ProspectsPage() {
                   <span className="font-semibold text-success">{pr.player?.overall}</span>
                   <span className="text-stone"> → {pr.player?.potential}</span>
                 </div>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {PRIORITY.map(([p, label]) => (
+                  <button key={p} onClick={() => updateProspect.mutate({ pid: pr.id, priority: p })}
+                    className={`${pr.priority === p ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
+                    {label}
+                  </button>
+                ))}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {(Object.keys(STATUS_LABEL) as Prospect['status'][]).map((s) => (
