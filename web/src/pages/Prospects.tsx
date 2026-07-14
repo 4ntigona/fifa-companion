@@ -33,6 +33,7 @@ export default function ProspectsPage() {
   const { data: careerData } = useQuery({
     queryKey: ['career', id],
     queryFn: async () => getCareer(Number(id)),
+    retry: false,
   })
   const version = careerData?.career.fifa_version
 

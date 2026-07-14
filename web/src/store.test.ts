@@ -4,7 +4,7 @@ import {
   createCareer, getCareer, deleteCareer, listCareerPlayers,
   addProspect, updateProspect, listProspects,
   addSnapshot, getCareerPlayer, createCareerPlayer,
-  importBackup, listCareers,
+  importBackup, listCareers, applyCapturedPlayers,
 } from './store'
 import type { SofifaPlayer } from './api/client'
 
@@ -29,6 +29,23 @@ function mockFetchOnce(body: unknown) {
     ok: true,
     json: async () => body,
   })) as unknown as typeof fetch
+}
+
+/** Escreve diretamente uma carreira mínima no blob (sem passar pelo mock de fetch de createCareer). */
+function seedCareer(id: number) {
+  localStorage.setItem('career-companion-v1', JSON.stringify({
+    version: 1,
+    counters: { career: id, player: 0, snapshot: 0, prospect: 0 },
+    careers: [{
+      id, name: 'Carreira de teste', fifa_version: 24, team_type: 'existing', sofifa_team_id: null,
+      created_team_name: null, created_team_budget_eur: null, created_team_league: null,
+      replaced_team_id: null, objectives: null, squad_quality: null, current_season: '2024/25',
+      current_date_ingame: null,
+    }],
+    careerPlayers: [], snapshots: [], prospects: [],
+    ai: { activeProvider: 'anthropic', keys: {}, models: {} },
+    sync: { code: null, lastSyncedAt: null },
+  }))
 }
 
 describe('segurança: chaves BYOK nunca saem do dispositivo', () => {
@@ -141,6 +158,7 @@ describe('prospecção: shortlist duplicada e contratação idempotente', () => 
 
 describe('snapshots', () => {
   it('addSnapshot anexa ao jogador certo e getCareerPlayer retorna os snapshots dele', () => {
+    seedCareer(1)
     const { id: playerId } = createCareerPlayer({ careerId: 1, origin: 'generated', name: 'Jogador', positions: 'GK' })
     const { id: otherPlayerId } = createCareerPlayer({ careerId: 1, origin: 'generated', name: 'Outro', positions: 'GK' })
     addSnapshot(playerId, { season: '2024/25', overall: 70 })
@@ -190,5 +208,56 @@ describe('export/import de backup', () => {
     localStorage.setItem('career-companion-v1', '{ isto não é json válido')
     expect(() => listCareers()).not.toThrow()
     expect(listCareers().careers).toEqual([])
+  })
+})
+
+describe('robustez: quota, atomicidade e reconciliação de counters', () => {
+  it('save() lança um erro de domínio claro quando o localStorage estoura a quota', () => {
+    // happy-dom não repassa spies de Storage.prototype para o localStorage global depois que ele
+    // já foi usado por outro teste — substitui o global inteiro para garantir a interceptação.
+    vi.stubGlobal('localStorage', {
+      getItem: () => null,
+      setItem: () => { throw new DOMException('quota estourada', 'QuotaExceededError') },
+      removeItem: () => {},
+      clear: () => {},
+    })
+    try {
+      expect(() => createCareerPlayer({ careerId: 1, origin: 'generated', name: 'X', positions: 'ST' }))
+        .toThrow('Armazenamento local cheio')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('applyCapturedPlayers grava jogador+snapshot num único mutate (tudo ou nada)', () => {
+    const { created } = applyCapturedPlayers(1, [
+      { origin: 'youth', name: 'Jovem A', positions: 'CB', status: 'base', inSquad: false, snapshot: { season: '2024/25', overall: 65, potential: 78 } },
+      { origin: 'generated', name: 'Gerado B', positions: 'ST', status: 'elenco', inSquad: true },
+    ])
+
+    expect(created).toBe(2)
+    const { players } = listCareerPlayers(1)
+    expect(players).toHaveLength(2)
+    const withSnapshot = players.find((p) => p.name === 'Jovem A')!
+    expect(withSnapshot.latestSnapshot?.overall).toBe(65)
+    const withoutSnapshot = players.find((p) => p.name === 'Gerado B')!
+    expect(withoutSnapshot.latestSnapshot).toBeNull()
+  })
+
+  it('importBackup reconcilia counters — um blob com ids altos e counters zerados não colide', async () => {
+    const backup = {
+      version: 1,
+      counters: { career: 0, player: 0, snapshot: 0, prospect: 0 },
+      careers: [{ id: 1, name: 'Importada', fifa_version: 24, team_type: 'existing', sofifa_team_id: null, created_team_name: null, created_team_budget_eur: null, created_team_league: null, replaced_team_id: null, objectives: null, squad_quality: null, current_season: '2024/25', current_date_ingame: null }],
+      careerPlayers: [{ id: 5, career_id: 1, origin: 'generated', sofifa_player_id: null, name: 'Existente', positions: 'GK', age: null, overall_original: null, potential_original: null, strengths: null, notes: null, jersey_number: null, status: 'base', in_squad: 1 }],
+      snapshots: [],
+      prospects: [],
+      ai: { activeProvider: 'anthropic', keys: {}, models: {} },
+    }
+    const file = { text: async () => JSON.stringify(backup) } as unknown as File
+    await importBackup(file)
+
+    const { id: newId } = createCareerPlayer({ careerId: 1, origin: 'generated', name: 'Novo', positions: 'ST' })
+    expect(newId).toBeGreaterThan(5)
   })
 })

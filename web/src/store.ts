@@ -61,20 +61,38 @@ function emptyDb(): LocalDb {
   }
 }
 
+/** Garante que os counters nunca fiquem atrás do maior id já presente nos arrays (protege contra
+ *  blobs importados/restaurados com counters ausentes ou desatualizados, que colidiriam ids novos
+ *  com ids existentes). */
+function reconcileCounters(db: LocalDb): LocalDb {
+  db.counters.career = Math.max(db.counters.career ?? 0, ...db.careers.map((c) => c.id), 0)
+  db.counters.player = Math.max(db.counters.player ?? 0, ...db.careerPlayers.map((p) => p.id), 0)
+  db.counters.snapshot = Math.max(db.counters.snapshot ?? 0, ...db.snapshots.map((s) => s.id), 0)
+  db.counters.prospect = Math.max(db.counters.prospect ?? 0, ...db.prospects.map((p) => p.id), 0)
+  return db
+}
+
 function load(): LocalDb {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return emptyDb()
     const db = JSON.parse(raw) as LocalDb
     if (db.version !== 1) throw new Error('versão desconhecida')
-    return { ...emptyDb(), ...db, ai: { ...emptyDb().ai, ...db.ai }, sync: { ...emptyDb().sync, ...db.sync } }
+    return reconcileCounters({ ...emptyDb(), ...db, ai: { ...emptyDb().ai, ...db.ai }, sync: { ...emptyDb().sync, ...db.sync } })
   } catch {
     return emptyDb()
   }
 }
 
 function save(db: LocalDb) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db))
+  } catch (e) {
+    if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+      throw new Error('Armazenamento local cheio. Exporte um backup e remova carreiras antigas para liberar espaço.')
+    }
+    throw e
+  }
 }
 
 function mutate<T>(fn: (db: LocalDb) => T): T {
@@ -249,6 +267,60 @@ export function createCareerPlayer(input: CreatePlayerInput): { id: number } {
   })
 }
 
+export interface CapturedPlayerRow {
+  origin: 'youth' | 'regen' | 'generated'
+  name: string
+  positions: string
+  age?: number
+  overallOriginal?: number
+  potentialOriginal?: number
+  notes?: string
+  jerseyNumber?: number
+  status: string
+  inSquad: boolean
+  snapshot?: { season: string; dateIngame?: string; overall?: number; potential?: number; position?: string; formNotes?: string }
+}
+
+/** Grava jogadores capturados por foto (e seus snapshots iniciais) num único `mutate` —
+ *  tudo ou nada, para que uma falha no meio (ex.: quota) não deixe metade gravada. */
+export function applyCapturedPlayers(careerId: number, rows: CapturedPlayerRow[]): { created: number } {
+  return mutate((db) => {
+    for (const row of rows) {
+      const id = ++db.counters.player
+      db.careerPlayers.push({
+        id,
+        career_id: careerId,
+        origin: row.origin,
+        sofifa_player_id: null,
+        name: row.name,
+        positions: row.positions,
+        age: row.age ?? null,
+        overall_original: row.overallOriginal ?? null,
+        potential_original: row.potentialOriginal ?? null,
+        strengths: null,
+        notes: row.notes ?? null,
+        jersey_number: row.jerseyNumber ?? null,
+        status: row.status,
+        in_squad: row.inSquad ? 1 : 0,
+      })
+      if (row.snapshot) {
+        db.snapshots.push({
+          id: ++db.counters.snapshot,
+          career_player_id: id,
+          season: row.snapshot.season,
+          date_ingame: row.snapshot.dateIngame ?? null,
+          overall: row.snapshot.overall ?? null,
+          potential: row.snapshot.potential ?? null,
+          position: row.snapshot.position ?? null,
+          attributes_json: null,
+          form_notes: row.snapshot.formNotes ?? null,
+        })
+      }
+    }
+    return { created: rows.length }
+  })
+}
+
 export function listCareerPlayers(careerId: number): { players: CareerPlayer[] } {
   const db = load()
   return {
@@ -265,7 +337,8 @@ export function getCareerPlayer(id: number): { player: CareerPlayer; career: Car
   const db = load()
   const p = db.careerPlayers.find((x) => x.id === id)
   if (!p) throw new Error('Jogador não encontrado')
-  const career = db.careers.find((c) => c.id === p.career_id)!
+  const career = db.careers.find((c) => c.id === p.career_id)
+  if (!career) throw new Error('Carreira não encontrada')
   return { player: { ...p, snapshots: db.snapshots.filter((s) => s.career_player_id === id) }, career }
 }
 
@@ -409,7 +482,7 @@ export async function importBackup(file: File): Promise<{ careers: number; playe
   if (data?.version !== 1 || !Array.isArray(data.careers) || !Array.isArray(data.careerPlayers)) {
     throw new Error('Arquivo de backup inválido (formato não reconhecido).')
   }
-  save({ ...emptyDb(), ...data, ai: { ...emptyDb().ai, ...data.ai }, sync: { ...emptyDb().sync, ...data.sync } })
+  save(reconcileCounters({ ...emptyDb(), ...data, ai: { ...emptyDb().ai, ...data.ai }, sync: { ...emptyDb().sync, ...data.sync } }))
   return { careers: data.careers.length, players: data.careerPlayers.length }
 }
 
@@ -465,10 +538,10 @@ export async function restoreFromKey(rawCode: string): Promise<{ careers: number
   if (data?.version !== 1 || !Array.isArray(data.careers) || !Array.isArray(data.careerPlayers)) {
     throw new Error('Chave inválida — dados corrompidos ou em formato desconhecido.')
   }
-  save({
+  save(reconcileCounters({
     ...emptyDb(), ...data, ai: { ...emptyDb().ai, ...data.ai },
     sync: { code, lastSyncedAt: nowIso() },
-  })
+  }))
   return { careers: data.careers.length, players: data.careerPlayers.length }
 }
 

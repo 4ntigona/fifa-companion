@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { analyzePhoto, type Career, type ExtractedPlayer, type VisionResult } from '../api/client'
-import { getCareer, getAiSettings, DEFAULT_MODELS, PROVIDER_LABELS, createCareerPlayer, addSnapshot } from '../store'
+import { getCareer, getAiSettings, DEFAULT_MODELS, PROVIDER_LABELS, applyCapturedPlayers, type CapturedPlayerRow } from '../store'
 
 const SCREEN_LABEL: Record<string, string> = {
   elenco: 'Elenco', perfil_jogador: 'Perfil de jogador', base_olheiros: 'Base/Olheiros',
@@ -30,13 +30,25 @@ export default function CapturePage() {
   const qc = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
   const lastFileRef = useRef<File | null>(null)
+  const previewUrlRef = useRef<string | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [result, setResult] = useState<{ extracted: VisionResult } | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
 
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+  }, [])
+
+  function setPreviewUrl(url: string | null) {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+    previewUrlRef.current = url
+    setPreview(url)
+  }
+
   const { data: careerData } = useQuery({
     queryKey: ['career', id],
     queryFn: async () => getCareer(Number(id)),
+    retry: false,
   })
   const career = careerData?.career
 
@@ -66,7 +78,7 @@ export default function CapturePage() {
     lastFileRef.current = file
     setResult(null)
     setAnalysisError(null)
-    setPreview(URL.createObjectURL(file))
+    setPreviewUrl(URL.createObjectURL(file))
     upload.mutate(file)
   }
 
@@ -112,7 +124,7 @@ export default function CapturePage() {
           career={career}
           onApplied={() => {
             qc.invalidateQueries({ queryKey: ['career-players', id] })
-            setResult(null); setPreview(null)
+            setResult(null); setPreviewUrl(null)
           }}
         />
       )}
@@ -144,29 +156,23 @@ function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied
     setSaving(true)
     setError(null)
     try {
-      for (const row of rows.filter((r) => r.include)) {
-        const created = createCareerPlayer({
-          careerId: career.id,
-          origin: row.destination === 'snapshot' ? 'youth' : row.destination,
-          name: row.name,
-          positions: row.positions || '—',
-          age: row.age,
-          overallOriginal: row.overall,
-          potentialOriginal: row.potential,
-          notes: [row.notes, row.value ? `Valor visto: ${row.value}` : null].filter(Boolean).join(' · ') || undefined,
-          jerseyNumber: row.jerseyNumber,
-          status: row.destination === 'generated' ? 'elenco' : 'base',
-          inSquad: row.destination === 'generated',
-        })
+      const capturedRows: CapturedPlayerRow[] = rows.filter((r) => r.include).map((row) => ({
+        origin: row.destination === 'snapshot' ? 'youth' : row.destination,
+        name: row.name,
+        positions: row.positions || '—',
+        age: row.age,
+        overallOriginal: row.overall,
+        potentialOriginal: row.potential,
+        notes: [row.notes, row.value ? `Valor visto: ${row.value}` : null].filter(Boolean).join(' · ') || undefined,
+        jerseyNumber: row.jerseyNumber,
+        status: row.destination === 'generated' ? 'elenco' : 'base',
+        inSquad: row.destination === 'generated',
         // Snapshot inicial datado — registra o estado visto na foto na temporada atual.
-        if (row.overall != null || row.potential != null) {
-          addSnapshot(created.id, {
-            season, dateIngame: date || undefined,
-            overall: row.overall, potential: row.potential,
-            position: row.positions, formNotes: 'Registrado por foto',
-          })
-        }
-      }
+        snapshot: row.overall != null || row.potential != null
+          ? { season, dateIngame: date || undefined, overall: row.overall, potential: row.potential, position: row.positions, formNotes: 'Registrado por foto' }
+          : undefined,
+      }))
+      applyCapturedPlayers(career.id, capturedRows)
       props.onApplied()
     } catch (e) {
       setError((e as Error).message)
