@@ -12,6 +12,10 @@ npm run verify   # typecheck (server+web) + testes (vitest) + build completo
 
 Comandos individuais: `npm run typecheck`, `npm test`, `npm run build`. Não há lint configurado.
 
+> **Não rebaixe o vitest**: o projeto usa vitest 4.x de propósito (o dist-tag `latest` do npm
+> ainda aponta para 3.x). O pin escapa de um advisory crítico de RCE no happy-dom que as versões
+> antigas puxavam. `npm i vitest@latest` seria um DOWNGRADE — não faça.
+
 ## Modelo de dados (contraintuitivo — leia antes de mexer)
 
 Os dados do usuário (carreiras, elencos, jogadores da base/regens, snapshots de evolução,

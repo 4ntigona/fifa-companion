@@ -10,6 +10,8 @@ import { api, type Career, type CareerPlayer, type Prospect, type Snapshot, type
 
 const STORAGE_KEY = 'career-companion-v1'
 
+// Mantido em sincronia manualmente com AI_PROVIDERS em server/src/vision/analyze.ts —
+// ao adicionar/remover um provedor, mude LÁ também (o zod do /api/analyze valida contra ele).
 export type AiProvider = 'anthropic' | 'openai' | 'gemini' | 'openrouter'
 
 export const PROVIDER_LABELS: Record<AiProvider, string> = {

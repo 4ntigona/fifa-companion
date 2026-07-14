@@ -87,7 +87,10 @@ git checkout claude   # branch com estas mudanças
 npm install          # instala workspaces (server + web)
 npm run build        # builda o web (web/dist) e compila o server (server/dist)
 
-cp server/.env.example server/.env   # ajuste PORT/HOST se precisar (padrão já serve)
+cp server/.env.example server/.env
+# Em produção, configure no .env (detalhes no próprio .env.example):
+#   CORS_ORIGINS=https://companion.seudominio.com   ← sem isso a API reflete qualquer origem
+#   ADMIN_TOKEN=<um segredo>                        ← só se quiser disparar o import de fora do servidor
 ```
 
 > `better-sqlite3` é nativo; se `npm install` reclamar de compilação, instale as ferramentas de
@@ -140,11 +143,15 @@ deploy. Guarde `server/data/` num backup se quiser preservar a importação.
   do site (ex.: `client_max_body_size 30M;`).
 - **Sem chaves no servidor:** não há `ANTHROPIC_API_KEY` no `.env`. Cada usuário traz a sua (BYOK),
   salva no próprio navegador.
+- **Hardening:** `CORS_ORIGINS` restringe quais origens falam com a API e `ADMIN_TOKEN` protege
+  `POST /api/import` fora do loopback. Ambos documentados em `server/.env.example`, junto com
+  `SYNC_MAX_BLOBS`/`SYNC_TTL_DAYS` (quota e expiração das chaves de restauração).
 
 ## Estrutura
 
 - `server/` — Fastify + SQLite (better-sqlite3). Database do jogo (somente leitura) + rotas
-  `/api/versions`, `/api/teams`, `/api/players`, `/api/team/...` (leitura), `/api/import/*`
+  `/api/versions`, `/api/leagues/:v`, `/api/teams/:v`, `/api/team/:v/:id`, `/api/players/:v`,
+  `/api/player/:v/:id` (leitura), `/api/import/*`
   (importação), `/api/analyze` + `/api/test-ai` (proxy de IA stateless) e `/api/sync/*`
   (blob opaco da chave de restauração — criar/ler/atualizar/apagar por código). Em produção,
   também serve `web/dist` com fallback de SPA.

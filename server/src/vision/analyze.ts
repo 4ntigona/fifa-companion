@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 
+// Mantido em sincronia manualmente com o tipo AiProvider em web/src/store.ts —
+// ao adicionar/remover um provedor, mude LÁ também (PROVIDER_LABELS/DEFAULT_MODELS ficam no web).
 export const AI_PROVIDERS = ['anthropic', 'openai', 'gemini', 'openrouter'] as const
 export type AiProvider = (typeof AI_PROVIDERS)[number]
 
