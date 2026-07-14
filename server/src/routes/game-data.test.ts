@@ -3,8 +3,8 @@ import Fastify from 'fastify'
 import { gameDataRoutes } from './game-data.js'
 import { db } from '../db/index.js'
 
-// fifa_version fictício, fora do range real (KNOWN_VERSIONS), para não colidir com os
-// ~36k jogadores reais importados na base de desenvolvimento. Limpo em afterEach.
+// A suíte roda numa base efêmera via DATA_DIR (ver server/vitest.config.ts) — o fifa_version
+// fictício só evita colisão com outros testes na mesma suíte (ex.: isolation.test.ts).
 const V = 9999
 
 function buildApp() {

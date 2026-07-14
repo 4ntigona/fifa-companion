@@ -3,9 +3,8 @@ import Fastify from 'fastify'
 import { syncRoutes } from './sync.js'
 import { db } from '../db/index.js'
 
-// Usa o mesmo singleton `db` das rotas (não há injeção de :memory: no db/index.ts —
-// fora de escopo deste plano). Por isso, todo código criado aqui é registrado e
-// removido ao final, para não deixar lixo na base real de desenvolvimento.
+// A suíte roda numa base efêmera via DATA_DIR (ver server/vitest.config.ts) — o cleanup abaixo
+// é redundante para a base real, mas mantido para não acumular lixo dentro da própria suíte.
 function buildApp() {
   const app = Fastify()
   syncRoutes(app)

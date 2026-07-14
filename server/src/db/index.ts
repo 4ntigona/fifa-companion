@@ -5,7 +5,9 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
-export const DATA_DIR = join(here, '..', '..', 'data')
+// Testes apontam DATA_DIR para um diretório temporário (ver server/vitest.config.ts);
+// em produção/dev a env não existe e o default (server/data) permanece.
+export const DATA_DIR = process.env.DATA_DIR ?? join(here, '..', '..', 'data')
 mkdirSync(DATA_DIR, { recursive: true })
 mkdirSync(join(DATA_DIR, 'captures'), { recursive: true })
 
