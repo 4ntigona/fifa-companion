@@ -16,7 +16,7 @@ conditions, rode as verificações, e atualize sua linha ao terminar.
 | 003 | Segurança: não persistir chaves BYOK no servidor/backup | P1 | S | 002 (p/ teste) | DONE |
 | 004 | Segurança: hardening das rotas públicas (auth/rate-limit/quota/CORS/HOST/GC/headers) | P1 | M | 002 (p/ teste) | DONE (ecosystem.config.cjs já tinha HOST=127.0.0.1 corrigido de forma independente antes desta execução; import protegido por loopback+ADMIN_TOKEN em vez de "só token", verificado por teste unitário determinístico de `isAuthorizedForImport` — teste de rede real não é viável via curl na mesma máquina; quota de MAX_BLOBS não testada ao vivo contra a base real, só a lógica de leitura/escrita/PUT-404) |
 | 005 | Deps/segurança: bump @fastify/static (advisory) | P2 | S | — | DONE (API do plugin sem mudanças de assinatura em v10 — `root`/`prefix`/`sendFile` idênticos; fumaça confirmou serving estático, fallback de SPA, 404 de /api/* e que um path com separador codificado não vaza arquivo fora de web/dist, apenas cai no fallback de SPA) |
-| 006 | Testes de caracterização de store.ts | P1 | M | 002 | TODO |
+| 006 | Testes de caracterização de store.ts | P1 | M | 002 | DONE (estendeu o `store.test.ts` do plano 003; 10 novos casos: CRUD+cascata de carreira, shortlist duplicada, contratação idempotente, snapshots por jogador, import válido/inválido, e `load()` de blob corrompido devolvendo estado vazio silenciosamente — documentado como comportamento atual, não corrigido aqui) |
 | 007 | Correctness store/captura (quota/atômico/counters/retry/objectURL) | P2 | M | 002, 006 rec. | TODO |
 | 008 | Perf: code-splitting + lazy Recharts | P2 | S | — | TODO |
 | 009 | Perf: projeção de colunas + dedup COUNT em /api/players | P2 | M | 002/006 rec. | TODO |
