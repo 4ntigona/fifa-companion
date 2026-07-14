@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import Home from './pages/Home'
-import NewCareer from './pages/NewCareer'
-import CareerPage from './pages/Career'
-import ProspectsPage from './pages/Prospects'
-import PlayerPage from './pages/Player'
-import CapturePage from './pages/Capture'
-import SettingsPage from './pages/Settings'
+const Home = lazy(() => import('./pages/Home'))
+const NewCareer = lazy(() => import('./pages/NewCareer'))
+const CareerPage = lazy(() => import('./pages/Career'))
+const ProspectsPage = lazy(() => import('./pages/Prospects'))
+const PlayerPage = lazy(() => import('./pages/Player'))
+const CapturePage = lazy(() => import('./pages/Capture'))
+const SettingsPage = lazy(() => import('./pages/Settings'))
 
 type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -68,15 +68,17 @@ export default function App() {
           </button>
         </nav>
       </header>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/nova-carreira" element={<NewCareer />} />
-        <Route path="/carreira/:id" element={<CareerPage />} />
-        <Route path="/carreira/:id/prospeccao" element={<ProspectsPage />} />
-        <Route path="/carreira/:id/captura" element={<CapturePage />} />
-        <Route path="/jogador/:id" element={<PlayerPage />} />
-        <Route path="/config" element={<SettingsPage />} />
-      </Routes>
+      <Suspense fallback={<p className="pt-6 text-slate-ink">Carregando…</p>}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/nova-carreira" element={<NewCareer />} />
+          <Route path="/carreira/:id" element={<CareerPage />} />
+          <Route path="/carreira/:id/prospeccao" element={<ProspectsPage />} />
+          <Route path="/carreira/:id/captura" element={<CapturePage />} />
+          <Route path="/jogador/:id" element={<PlayerPage />} />
+          <Route path="/config" element={<SettingsPage />} />
+        </Routes>
+      </Suspense>
       <footer className="mt-12 border-t border-hairline pt-4 text-center text-[13px] text-steel">
         Dados originais do jogo via <a className="text-link underline" href="https://sofifa.com" target="_blank" rel="noreferrer">SoFIFA</a> (dumps públicos). Projeto pessoal, não comercial.
       </footer>
