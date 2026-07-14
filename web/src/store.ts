@@ -267,46 +267,62 @@ export function createCareerPlayer(input: CreatePlayerInput): { id: number } {
   })
 }
 
-export interface CapturedPlayerRow {
-  origin: 'youth' | 'regen' | 'generated'
-  name: string
-  positions: string
-  age?: number
-  overallOriginal?: number
-  potentialOriginal?: number
-  notes?: string
-  jerseyNumber?: number
-  status: string
-  inSquad: boolean
-  snapshot?: { season: string; dateIngame?: string; overall?: number; potential?: number; position?: string; formNotes?: string }
+interface CapturedSnapshot {
+  season: string; dateIngame?: string; overall?: number; potential?: number
+  position?: string; formNotes?: string
 }
 
-/** Grava jogadores capturados por foto (e seus snapshots iniciais) num único `mutate` —
- *  tudo ou nada, para que uma falha no meio (ex.: quota) não deixe metade gravada. */
+export type CapturedPlayerRow =
+  | {
+      target: 'new'
+      origin: 'youth' | 'regen' | 'generated'
+      name: string
+      positions: string
+      age?: number
+      overallOriginal?: number
+      potentialOriginal?: number
+      notes?: string
+      jerseyNumber?: number
+      status: string
+      inSquad: boolean
+      snapshot?: CapturedSnapshot
+    }
+  | {
+      // Tela de perfil de um jogador já existente no elenco: registra evolução (snapshot)
+      // no jogador casado pelo usuário, sem criar um duplicado.
+      target: 'existing'
+      targetPlayerId: number
+      snapshot: CapturedSnapshot
+    }
+
+/** Grava jogadores capturados por foto (e seus snapshots) num único `mutate` — tudo ou nada,
+ *  para que uma falha no meio (ex.: quota) não deixe metade gravada. */
 export function applyCapturedPlayers(careerId: number, rows: CapturedPlayerRow[]): { created: number } {
   return mutate((db) => {
     for (const row of rows) {
-      const id = ++db.counters.player
-      db.careerPlayers.push({
-        id,
-        career_id: careerId,
-        origin: row.origin,
-        sofifa_player_id: null,
-        name: row.name,
-        positions: row.positions,
-        age: row.age ?? null,
-        overall_original: row.overallOriginal ?? null,
-        potential_original: row.potentialOriginal ?? null,
-        strengths: null,
-        notes: row.notes ?? null,
-        jersey_number: row.jerseyNumber ?? null,
-        status: row.status,
-        in_squad: row.inSquad ? 1 : 0,
-      })
+      const playerId = row.target === 'existing' ? row.targetPlayerId : ++db.counters.player
+      if (row.target === 'new') {
+        db.careerPlayers.push({
+          id: playerId,
+          career_id: careerId,
+          origin: row.origin,
+          sofifa_player_id: null,
+          name: row.name,
+          positions: row.positions,
+          age: row.age ?? null,
+          overall_original: row.overallOriginal ?? null,
+          potential_original: row.potentialOriginal ?? null,
+          strengths: null,
+          notes: row.notes ?? null,
+          jersey_number: row.jerseyNumber ?? null,
+          status: row.status,
+          in_squad: row.inSquad ? 1 : 0,
+        })
+      }
       if (row.snapshot) {
         db.snapshots.push({
           id: ++db.counters.snapshot,
-          career_player_id: id,
+          career_player_id: playerId,
           season: row.snapshot.season,
           date_ingame: row.snapshot.dateIngame ?? null,
           overall: row.snapshot.overall ?? null,

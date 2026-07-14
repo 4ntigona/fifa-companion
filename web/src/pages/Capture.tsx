@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { analyzePhoto, type Career, type ExtractedPlayer, type VisionResult } from '../api/client'
-import { getCareer, getAiSettings, DEFAULT_MODELS, PROVIDER_LABELS, applyCapturedPlayers, type CapturedPlayerRow } from '../store'
+import { getCareer, getAiSettings, DEFAULT_MODELS, PROVIDER_LABELS, applyCapturedPlayers, listCareerPlayers, type CapturedPlayerRow } from '../store'
+import type { CareerPlayer } from '../api/client'
 
 const SCREEN_LABEL: Record<string, string> = {
   elenco: 'Elenco', perfil_jogador: 'Perfil de jogador', base_olheiros: 'Base/Olheiros',
@@ -135,18 +136,33 @@ export default function CapturePage() {
 interface ReviewRow extends ExtractedPlayer {
   include: boolean
   destination: 'generated' | 'youth' | 'regen' | 'snapshot'
+  targetPlayerId?: number
+}
+
+/** Normaliza para comparação de nome (minúsculas, sem acento) — só para sugerir, nunca decide sozinho. */
+function normalizeName(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+}
+
+function suggestMatch(name: string, squad: CareerPlayer[]): number | undefined {
+  const n = normalizeName(name)
+  return squad.find((p) => normalizeName(p.name) === n || normalizeName(p.name).includes(n) || n.includes(normalizeName(p.name)))?.id
 }
 
 function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied: () => void }) {
   const { extracted, career } = props
   const isSquadScreen = extracted.screenType === 'elenco'
+  const isProfileScreen = extracted.screenType === 'perfil_jogador'
+  const squad = listCareerPlayers(career.id).players
   const [season, setSeason] = useState(career.current_season)
   const [date, setDate] = useState(career.current_date_ingame ?? '')
   const [rows, setRows] = useState<ReviewRow[]>(
     extracted.players.map((p) => ({
       ...p, include: true,
-      destination: isSquadScreen && career.team_type === 'created' ? 'generated'
-        : extracted.screenType === 'base_olheiros' ? 'youth' : 'youth',
+      destination: isProfileScreen ? 'snapshot'
+        : isSquadScreen && career.team_type === 'created' ? 'generated'
+        : 'youth',
+      targetPlayerId: isProfileScreen ? suggestMatch(p.name, squad) : undefined,
     })),
   )
   const [saving, setSaving] = useState(false)
@@ -156,22 +172,37 @@ function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied
     setSaving(true)
     setError(null)
     try {
-      const capturedRows: CapturedPlayerRow[] = rows.filter((r) => r.include).map((row) => ({
-        origin: row.destination === 'snapshot' ? 'youth' : row.destination,
-        name: row.name,
-        positions: row.positions || '—',
-        age: row.age,
-        overallOriginal: row.overall,
-        potentialOriginal: row.potential,
-        notes: [row.notes, row.value ? `Valor visto: ${row.value}` : null].filter(Boolean).join(' · ') || undefined,
-        jerseyNumber: row.jerseyNumber,
-        status: row.destination === 'generated' ? 'elenco' : 'base',
-        inSquad: row.destination === 'generated',
-        // Snapshot inicial datado — registra o estado visto na foto na temporada atual.
-        snapshot: row.overall != null || row.potential != null
+      const included = rows.filter((r) => r.include)
+      const missingTarget = included.filter((r) => r.destination === 'snapshot' && !r.targetPlayerId)
+      if (missingTarget.length) {
+        throw new Error(`Escolha o jogador do elenco para "${missingTarget[0].name}" (destino Evolução exige o jogador-alvo) ou mude o destino.`)
+      }
+      const missingStats = included.filter((r) => r.destination === 'snapshot' && r.overall == null && r.potential == null)
+      if (missingStats.length) {
+        throw new Error(`"${missingStats[0].name}" não tem overall/potencial lidos — não há o que registrar como evolução.`)
+      }
+      const capturedRows: CapturedPlayerRow[] = included.map((row): CapturedPlayerRow => {
+        const snapshot = row.overall != null || row.potential != null
           ? { season, dateIngame: date || undefined, overall: row.overall, potential: row.potential, position: row.positions, formNotes: 'Registrado por foto' }
-          : undefined,
-      }))
+          : undefined
+        if (row.destination === 'snapshot') {
+          return { target: 'existing', targetPlayerId: row.targetPlayerId!, snapshot: snapshot! }
+        }
+        return {
+          target: 'new',
+          origin: row.destination,
+          name: row.name,
+          positions: row.positions || '—',
+          age: row.age,
+          overallOriginal: row.overall,
+          potentialOriginal: row.potential,
+          notes: [row.notes, row.value ? `Valor visto: ${row.value}` : null].filter(Boolean).join(' · ') || undefined,
+          jerseyNumber: row.jerseyNumber,
+          status: row.destination === 'generated' ? 'elenco' : 'base',
+          inSquad: row.destination === 'generated',
+          snapshot,
+        }
+      })
       applyCapturedPlayers(career.id, capturedRows)
       props.onApplied()
     } catch (e) {
@@ -220,13 +251,31 @@ function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied
                 onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, potential: e.target.value ? Number(e.target.value.replace(/\D/g, '')) : undefined } : r)))}
                 className="input w-12 px-1 py-1 text-center text-sm" /></label>
               <select value={row.destination}
-                onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, destination: e.target.value as ReviewRow['destination'] } : r)))}
+                onChange={(e) => {
+                  const destination = e.target.value as ReviewRow['destination']
+                  setRows((rs) => rs.map((r, j) => (j === i ? {
+                    ...r, destination,
+                    targetPlayerId: destination === 'snapshot' ? (r.targetPlayerId ?? suggestMatch(r.name, squad)) : undefined,
+                  } : r)))
+                }}
                 className="input ml-auto w-auto px-2 py-1 text-sm">
+                {squad.length > 0 && <option value="snapshot">Evolução (jogador existente)</option>}
                 <option value="youth">Base</option>
                 <option value="regen">Regen</option>
                 <option value="generated">Elenco (gerado)</option>
               </select>
             </div>
+            {row.destination === 'snapshot' && (
+              <div className="mt-2 flex items-center gap-2 text-[13px] text-steel">
+                <span>Jogador do elenco:</span>
+                <select value={row.targetPlayerId ?? ''}
+                  onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, targetPlayerId: e.target.value ? Number(e.target.value) : undefined } : r)))}
+                  className="input flex-1 px-2 py-1 text-sm">
+                  <option value="">Escolha o jogador…</option>
+                  {squad.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            )}
             {row.notes && <p className="mt-1 text-[13px] text-steel">{row.notes}</p>}
           </li>
         ))}

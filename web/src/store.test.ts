@@ -231,8 +231,8 @@ describe('robustez: quota, atomicidade e reconciliação de counters', () => {
 
   it('applyCapturedPlayers grava jogador+snapshot num único mutate (tudo ou nada)', () => {
     const { created } = applyCapturedPlayers(1, [
-      { origin: 'youth', name: 'Jovem A', positions: 'CB', status: 'base', inSquad: false, snapshot: { season: '2024/25', overall: 65, potential: 78 } },
-      { origin: 'generated', name: 'Gerado B', positions: 'ST', status: 'elenco', inSquad: true },
+      { target: 'new', origin: 'youth', name: 'Jovem A', positions: 'CB', status: 'base', inSquad: false, snapshot: { season: '2024/25', overall: 65, potential: 78 } },
+      { target: 'new', origin: 'generated', name: 'Gerado B', positions: 'ST', status: 'elenco', inSquad: true },
     ])
 
     expect(created).toBe(2)
@@ -242,6 +242,20 @@ describe('robustez: quota, atomicidade e reconciliação de counters', () => {
     expect(withSnapshot.latestSnapshot?.overall).toBe(65)
     const withoutSnapshot = players.find((p) => p.name === 'Gerado B')!
     expect(withoutSnapshot.latestSnapshot).toBeNull()
+  })
+
+  it('applyCapturedPlayers com target existing grava snapshot no jogador alvo sem duplicar', () => {
+    const { id: existingId } = createCareerPlayer({ careerId: 1, origin: 'generated', name: 'Titular', positions: 'CB' })
+
+    const { created } = applyCapturedPlayers(1, [
+      { target: 'existing', targetPlayerId: existingId, snapshot: { season: '2025/26', overall: 84, potential: 84 } },
+    ])
+
+    expect(created).toBe(1)
+    const { players } = listCareerPlayers(1)
+    expect(players).toHaveLength(1)
+    expect(players[0].id).toBe(existingId)
+    expect(players[0].latestSnapshot?.overall).toBe(84)
   })
 
   it('importBackup reconcilia counters — um blob com ids altos e counters zerados não colide', async () => {
