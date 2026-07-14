@@ -31,7 +31,7 @@ conditions, rode as verificações, e atualize sua linha ao terminar.
 | 014 | Docs sweep — README de produção (CORS_ORIGINS/ADMIN_TOKEN), rotas, DESIGN.md stale, nota vitest 4.x, comentário cruzado AiProvider | P2 | S | — | DONE |
 | 015 | Dedup UI: extrair ServerErrorCard (3 cópias) e Modal shell (3 modais) | P2 | M | — | DONE (padronizei `space-y-2` no Modal — o ConfirmDialog usava `space-y-3`; diferença visual de 4px, imperceptível. Verificado manualmente: AddPlayerModal abre/Escape fecha, ConfirmDialog abre/Cancelar fecha, SnapshotModal abre e salva corretamente) |
 | 016 | Seam de DB p/ testes: DATA_DIR via env, suíte roda em base efêmera | P2 | M | — | DONE (env propagou aos workers do vitest sem precisar de `test.env` — mantive ambos por robustez; verificado: server sem a env continua lendo a base real (35945 jogadores) e rodar a suíte 2x seguidas não altera esse número nem cria sync_blobs na base real) |
-| 017 | Deps: bump @anthropic-ai/sdk 0.39 → latest (único consumidor: vision/analyze.ts) | P3 | S | 016 rec. | TODO |
+| 017 | Deps: bump @anthropic-ai/sdk 0.39 → latest (único consumidor: vision/analyze.ts) | P3 | S | 016 rec. | DONE (0.39.0→0.111.0; zero ajuste de código — `messages.create`/`models.list` estáveis através do salto de major; smoke manual do /api/test-ai NÃO executado — sem chave de teste disponível nesta sessão; typecheck/build/audit são o portão) |
 | 018 | Direção: comparação lado a lado de 2 prospectos da shortlist | P2 | M | 015 rec. | TODO |
 | 019 | Direção: auto-sync da chave de restauração (debounce + indicador) | P2 | M | — | TODO |
 
