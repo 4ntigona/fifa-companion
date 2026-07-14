@@ -6,6 +6,10 @@ conditions, rode as verificações, e atualize sua linha ao terminar.
 
 - **001** (`plan` — UX): gerado contra `bdd5c7e`, já **DONE**.
 - **002–013**: auditoria `deep` gerada contra `feba0bf` (2026-07-08).
+- **014–019**: auditoria `deep` focada (tech-debt/deps/docs + 2 decisões de UX) gerada contra
+  `fe420d4` (2026-07-14). Decisões de UX tomadas pelo dono nesta rodada: DIRECTION-06 =
+  comparação de 2 prospectos da shortlist (plano 018); DIRECTION-04 = auto-push com debounce +
+  indicador (plano 019).
 
 ## Execution order & status
 
@@ -24,6 +28,12 @@ conditions, rode as verificações, e atualize sua linha ao terminar.
 | 011 | Direção: prioridade da shortlist | P3 | S | — | DONE (pílulas 🔴 Alta/🟡 Média/⚪ Baixa por item, reusando `updateProspect` já existente; lista ordenada por prioridade via `sort` estável. Testado manualmente: marcar Cristiano Ronaldo como Alta o move acima de Messi (Média) e a ordem persiste após reload) |
 | 012 | Direção: captura → evolução em jogador existente | P2 | M | 007 rec. | DONE (`CapturedPlayerRow` virou union `target: 'new' \| 'existing'` — o ramo `existing` só grava snapshot no `targetPlayerId`, nunca cria jogador; sugestão de casamento por nome normalizado é só um pré-preenchimento, sempre editável, nunca grava sem seleção explícita do alvo. Desvio: não foi possível exercitar o fluxo completo foto→IA→aplicar manualmente nesta sessão por exigir uma chave BYOK real de um provedor — verificado em vez disso via teste unitário novo em `store.test.ts` cobrindo o ramo `target:'existing'` do `applyCapturedPlayers`, typecheck/build limpos, e leitura de código confirmando a fiação do ReviewPanel) |
 | 013 | Direção: ciclo de vida do status do jogador | P3 | M | — | DONE (desvio da regra do Step 2: mantive `emprestado` com `in_squad:1` — só `vendido` zera `in_squad` — porque a importação já marca `club_loaned_from` como `emprestado` com `in_squad:1` e exibe a tag dentro do elenco; zerar `in_squad` para emprestado também o sumiria da aba Elenco, contradizendo a "opção mais simples" do próprio Step 3 do plano, que pressupõe emprestados visíveis com a tag. Testado manualmente: marcar L. Messi como Vendido tira ele do elenco (30→29) e persiste após reload) |
+| 014 | Docs sweep — README de produção (CORS_ORIGINS/ADMIN_TOKEN), rotas, DESIGN.md stale, nota vitest 4.x, comentário cruzado AiProvider | P2 | S | — | TODO |
+| 015 | Dedup UI: extrair ServerErrorCard (3 cópias) e Modal shell (3 modais) | P2 | M | — | TODO |
+| 016 | Seam de DB p/ testes: DATA_DIR via env, suíte roda em base efêmera | P2 | M | — | TODO |
+| 017 | Deps: bump @anthropic-ai/sdk 0.39 → latest (único consumidor: vision/analyze.ts) | P3 | S | 016 rec. | TODO |
+| 018 | Direção: comparação lado a lado de 2 prospectos da shortlist | P2 | M | 015 rec. | TODO |
+| 019 | Direção: auto-sync da chave de restauração (debounce + indicador) | P2 | M | — | TODO |
 
 Status: TODO | IN PROGRESS | DONE | BLOCKED (com motivo) | REJECTED (com justificativa)
 
@@ -36,6 +46,16 @@ Status: TODO | IN PROGRESS | DONE | BLOCKED (com motivo) | REJECTED (com justifi
    o fluxo de reidratação do store).
 4. Perf (008, 009) e Direção (010–013) em paralelo depois, conforme apetite. 008/010/011 são S e
    independentes — bons "quick wins".
+
+**Lote 014–019** (todos independentes entre si, salvo as recomendações abaixo):
+
+1. **014** (docs) — trivial e relevante para produção; qualquer hora.
+2. **015** (dedup UI) antes de **018** (comparação) — o 018 usa o `Modal` compartilhado que o 015
+   cria (tem fallback, mas a ordem evita retrabalho).
+3. **016** (seam de DB) antes de **017** (bump SDK) por prudência — e antes de qualquer teste novo
+   de escrita no server.
+4. **019** (auto-sync) independente; é o que mais toca `store.ts` — não rodar em paralelo com
+   outro plano que edite `store.ts`.
 
 ## Dependency notes
 
@@ -68,18 +88,31 @@ Status: TODO | IN PROGRESS | DONE | BLOCKED (com motivo) | REJECTED (com justifi
   volume atual. Reabrir se `storageUsage()` crescer.
 - **Auto-hospedar fonte IBM Plex Mono (PERF/PWA offline)** → NÃO planejado agora (S, MED): bom
   follow-up, mas abaixo do corte deste lote.
-- **Comparação de jogadores lado a lado (DIRECTION-06)** → NÃO planejado agora: boa ideia, mas a
-  forma (prospecto×prospecto vs elenco×elenco) é decisão de design em aberto; reabrir como spike.
-- **Auto-sync da chave de restauração (DIRECTION-04)** → NÃO planejado agora: interage com o 004
-  (rate-limit) e o 003 (o que vai no blob); reavaliar depois desses.
+- **Comparação de jogadores lado a lado (DIRECTION-06)** → RESOLVIDO em 2026-07-14: dono escolheu
+  a forma "2 prospectos da shortlist" → virou o **plano 018**. Extensões (× elenco, × busca)
+  anotadas nas Maintenance notes do plano.
+- **Auto-sync da chave de restauração (DIRECTION-04)** → RESOLVIDO em 2026-07-14: dono escolheu
+  "debounce + indicador + flush no visibilitychange" → virou o **plano 019**.
+- **`mask()` duplicado** → REJEITADO (auditoria 2026-07-14): existe num único lugar
+  (`web/src/pages/Settings.tsx:20`); o lead da auditoria anterior estava stale.
+- **Workspace `shared/` para o `AiProvider`** → REJEITADO: 4 literais em sincronia, sem drift
+  ativo; o comentário cruzado (plano 014) basta. Reavaliar se a lista crescer ou drifar.
+- **Majors de framework (React 19, zod 4, recharts 3, vite 8, TS 7, better-sqlite3 12, csv-parse 7,
+  @fastify/cors 11, vite-plugin-pwa 1)** → NÃO planejados (auditoria 2026-07-14): `npm audit`
+  limpo, nenhum driver de segurança/EOL, blast radius alto. Única exceção: @anthropic-ai/sdk →
+  plano 017.
+- **Lockfile drift trivial (`@types/node`, `tsx` — patch dentro do range)** → NÃO planejado: um
+  `npm update @types/node tsx` oportunista em qualquer plano resolve; não merece plano.
 - **ESLint/Prettier/CI (DX)** → NÃO planejado neste lote: legítimo, mas depende do 002; vira plano
   próprio se desejado.
 
 ## Cobertura da auditoria (o que NÃO foi auditado a fundo)
 
-`deep`, 5 de 6 subagentes concluíram (correctness, segurança, performance, testes+DX, direção). O
-agente de **tech-debt/deps/docs** interrompeu por limite de sessão; o essencial foi complementado à
-mão (deps via `npm outdated` — tudo dentro dos ranges, só `@fastify/static` força bump → plano 005;
-duplicação de constantes `AiProvider`/modelos entre web e server observada, baixa alavancagem, não
-planejada). Não coberto a fundo: duplicação/arquitetura fina (ex.: card de erro repetido em 3
-páginas, `mask()` duplicado) e docs além do já apontado.
+Rodada 1 (2026-07-08, `deep`): 5 de 6 subagentes concluíram (correctness, segurança, performance,
+testes+DX, direção). O agente de **tech-debt/deps/docs** interrompeu por limite de sessão.
+
+Rodada 2 (2026-07-14, `deep` focada, contra `fe420d4`): **fechou a lacuna** — tech-debt/deps/docs
+auditado a fundo (achados → planos 014–017; rejeitados registrados acima) e as 2 decisões de UX
+em aberto resolvidas com o dono (→ planos 018–019). `npm audit` = 0 vulnerabilidades. Não coberto
+nesta rodada (por escopo, não por falha): re-auditoria de correctness/segurança/perf do código novo
+dos planos 002–013 — razoável rodar um `branch`/`deep` novo depois que o lote 014–019 landar.
