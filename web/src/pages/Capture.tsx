@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { analyzePhoto, type Career, type ExtractedPlayer, type VisionResult } from '../api/client'
 import { getCareer, getAiSettings, DEFAULT_MODELS, PROVIDER_LABELS, applyCapturedPlayers, listCareerPlayers, type CapturedPlayerRow } from '../store'
 import type { CareerPlayer } from '../api/client'
+import { sanitizeStat } from '../hooks'
 
 const SCREEN_LABEL: Record<string, string> = {
   elenco: 'Elenco', perfil_jogador: 'Perfil de jogador', base_olheiros: 'Base/Olheiros',
@@ -245,10 +246,10 @@ function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied
                 onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, age: e.target.value ? Number(e.target.value.replace(/\D/g, '')) : undefined } : r)))}
                 className="input w-12 px-1 py-1 text-center text-sm" /></label>
               <label>OVR <input value={row.overall ?? ''} inputMode="numeric"
-                onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, overall: e.target.value ? Number(e.target.value.replace(/\D/g, '')) : undefined } : r)))}
+                onChange={(e) => { const v = sanitizeStat(e.target.value); setRows((rs) => rs.map((r, j) => (j === i ? { ...r, overall: v ? Number(v) : undefined } : r))) }}
                 className="input w-12 px-1 py-1 text-center text-sm" /></label>
               <label>POT <input value={row.potential ?? ''} inputMode="numeric"
-                onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, potential: e.target.value ? Number(e.target.value.replace(/\D/g, '')) : undefined } : r)))}
+                onChange={(e) => { const v = sanitizeStat(e.target.value); setRows((rs) => rs.map((r, j) => (j === i ? { ...r, potential: v ? Number(v) : undefined } : r))) }}
                 className="input w-12 px-1 py-1 text-center text-sm" /></label>
               <select value={row.destination}
                 onChange={(e) => {

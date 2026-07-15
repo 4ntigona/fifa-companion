@@ -18,3 +18,12 @@ export function useEscapeClose(onClose: () => void) {
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 }
+
+/** Normaliza texto digitado em campos de overall/potencial: só dígitos, no máximo 99 (o teto real
+ *  de um stat do FIFA). Sem isso um input controlado pré-preenchido (ex.: "90") deixa o usuário
+ *  digitar em cima sem selecionar tudo antes, concatenando em vez de substituir (ex.: "9091"). */
+export function sanitizeStat(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return ''
+  return String(Math.min(99, parseInt(digits, 10)))
+}

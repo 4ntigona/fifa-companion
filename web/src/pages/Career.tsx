@@ -5,6 +5,7 @@ import { fmtEur, versionLabel, type CareerPlayer } from '../api/client'
 import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer, deleteCareer } from '../store'
 import ConfirmDialog from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
+import { sanitizeStat } from '../hooks'
 
 export default function CareerPage() {
   const { id } = useParams()
@@ -259,8 +260,8 @@ function AddPlayerModal({ careerId, version, onClose }: { careerId: number; vers
         <input value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade" inputMode="numeric" className="input w-1/2" />
       </div>
       <div className="flex gap-2">
-        <input value={overall} onChange={(e) => setOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall original" inputMode="numeric" className="input w-1/2" />
-        <input value={potential} onChange={(e) => setPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial original" inputMode="numeric" className="input w-1/2" />
+        <input value={overall} onChange={(e) => setOverall(sanitizeStat(e.target.value))} placeholder="Overall original" inputMode="numeric" className="input w-1/2" />
+        <input value={potential} onChange={(e) => setPotential(sanitizeStat(e.target.value))} placeholder="Potencial original" inputMode="numeric" className="input w-1/2" />
       </div>
       <input value={strengths} onChange={(e) => setStrengths(e.target.value)} placeholder="Pontos fortes" className="input" />
       <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observações" rows={2} className="input h-auto" />

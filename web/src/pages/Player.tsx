@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } f
 import { fmtEur, versionLabel } from '../api/client'
 import { getCareerPlayer, addSnapshot, updateCareerPlayer } from '../store'
 import Modal from '../components/Modal'
+import { sanitizeStat } from '../hooks'
 
 const STATUS_OPTIONS = [
   ['titular', 'Titular'], ['reserva', 'Reserva'], ['emprestado', 'Emprestado'], ['vendido', 'Vendido'],
@@ -220,8 +221,8 @@ function SnapshotModal(props: {
         <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="input w-1/2" />
       </div>
       <div className="flex gap-2">
-        <input value={overall} onChange={(e) => setOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall atual" inputMode="numeric" className="input w-1/2" />
-        <input value={potential} onChange={(e) => setPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial atual" inputMode="numeric" className="input w-1/2" />
+        <input value={overall} onChange={(e) => setOverall(sanitizeStat(e.target.value))} placeholder="Overall atual" inputMode="numeric" className="input w-1/2" />
+        <input value={potential} onChange={(e) => setPotential(sanitizeStat(e.target.value))} placeholder="Potencial atual" inputMode="numeric" className="input w-1/2" />
       </div>
       <div className="flex gap-2">
         <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Posição (se mudou)" className="input w-1/2" />
