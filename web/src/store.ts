@@ -37,6 +37,7 @@ export interface AiSettings {
 export interface SyncInfo {
   code: string | null
   lastSyncedAt: string | null
+  lastMutatedAt: string | null   // última mutação de dados — para o indicador de staleness
 }
 
 interface LocalDb {
@@ -59,7 +60,7 @@ function emptyDb(): LocalDb {
     snapshots: [],
     prospects: [],
     ai: { activeProvider: 'anthropic', keys: {}, models: {} },
-    sync: { code: null, lastSyncedAt: null },
+    sync: { code: null, lastSyncedAt: null, lastMutatedAt: null },
   }
 }
 
@@ -100,7 +101,9 @@ function save(db: LocalDb) {
 function mutate<T>(fn: (db: LocalDb) => T): T {
   const db = load()
   const result = fn(db)
+  db.sync.lastMutatedAt = nowIso()
   save(db)
+  scheduleAutoPush()
   return result
 }
 
@@ -542,7 +545,7 @@ export async function generateRestoreKey(): Promise<string> {
   const { code } = await api<{ code: string }>('/api/sync', {
     method: 'POST', body: JSON.stringify({ data: snapshotForSync(db) }),
   })
-  db.sync = { code, lastSyncedAt: nowIso() }
+  db.sync = { code, lastSyncedAt: nowIso(), lastMutatedAt: db.sync.lastMutatedAt }
   save(db)
   return code
 }
@@ -569,7 +572,7 @@ export async function restoreFromKey(rawCode: string): Promise<{ careers: number
   }
   save(reconcileCounters({
     ...emptyDb(), ...data, ai: { ...emptyDb().ai, ...data.ai },
-    sync: { code, lastSyncedAt: nowIso() },
+    sync: { code, lastSyncedAt: nowIso(), lastMutatedAt: null },
   }))
   return { careers: data.careers.length, players: data.careerPlayers.length }
 }
@@ -584,6 +587,48 @@ export async function removeRestoreKey(): Promise<void> {
       // melhor esforço — mesmo se o servidor estiver fora, esquecemos a chave localmente
     }
   }
-  db.sync = { code: null, lastSyncedAt: null }
+  db.sync = { code: null, lastSyncedAt: null, lastMutatedAt: null }
   save(db)
+}
+
+/* ---------------- auto-sync (push automático com debounce) ---------------- */
+
+const AUTO_PUSH_DELAY_MS = 10_000  // folga ampla p/ o rate limit do servidor (PUT 20/min)
+let autoPushTimer: ReturnType<typeof setTimeout> | null = null
+let autoPushInFlight = false
+
+/** Agenda um push debounced. Chamado por mutate() a cada mutação de dados. */
+function scheduleAutoPush() {
+  const { code } = load().sync
+  if (!code) return
+  if (autoPushTimer) clearTimeout(autoPushTimer)
+  autoPushTimer = setTimeout(() => { void runAutoPush() }, AUTO_PUSH_DELAY_MS)
+}
+
+async function runAutoPush() {
+  autoPushTimer = null
+  if (autoPushInFlight) { scheduleAutoPush(); return }
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return // volta no próximo trigger
+  autoPushInFlight = true
+  try {
+    await pushToRestoreKey()
+  } catch {
+    // melhor esforço: a falha mantém lastMutatedAt > lastSyncedAt, e o indicador
+    // em Configurações mostra o estado; o próximo mutate/visibilitychange tenta de novo.
+  } finally {
+    autoPushInFlight = false
+  }
+}
+
+/** Registra o flush ao esconder a aba. Chamar UMA vez no boot do app (main.tsx). */
+export function initAutoSync() {
+  if (typeof document === 'undefined') return
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden') return
+    const { code, lastSyncedAt, lastMutatedAt } = load().sync
+    if (!code || !lastMutatedAt) return
+    if (lastSyncedAt && lastSyncedAt >= lastMutatedAt) return // nada pendente
+    if (autoPushTimer) clearTimeout(autoPushTimer)
+    void runAutoPush()
+  })
 }

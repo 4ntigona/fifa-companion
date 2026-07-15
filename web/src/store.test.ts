@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   setAiSettings, generateRestoreKey, exportBackup,
   createCareer, getCareer, deleteCareer, listCareerPlayers,
   addProspect, updateProspect, listProspects,
   addSnapshot, getCareerPlayer, createCareerPlayer,
   importBackup, listCareers, applyCapturedPlayers, updateCareerPlayer,
+  getSyncInfo,
 } from './store'
 import type { SofifaPlayer } from './api/client'
 
@@ -44,7 +45,24 @@ function seedCareer(id: number) {
     }],
     careerPlayers: [], snapshots: [], prospects: [],
     ai: { activeProvider: 'anthropic', keys: {}, models: {} },
-    sync: { code: null, lastSyncedAt: null },
+    sync: { code: null, lastSyncedAt: null, lastMutatedAt: null },
+  }))
+}
+
+/** Escreve um blob com uma chave de sync já configurada (para os testes de auto-sync). */
+function seedSyncedCareer(id: number, code: string) {
+  localStorage.setItem('career-companion-v1', JSON.stringify({
+    version: 1,
+    counters: { career: id, player: 0, snapshot: 0, prospect: 0 },
+    careers: [{
+      id, name: 'Carreira sincronizada', fifa_version: 24, team_type: 'existing', sofifa_team_id: null,
+      created_team_name: null, created_team_budget_eur: null, created_team_league: null,
+      replaced_team_id: null, objectives: null, squad_quality: null, current_season: '2024/25',
+      current_date_ingame: null,
+    }],
+    careerPlayers: [], snapshots: [], prospects: [],
+    ai: { activeProvider: 'anthropic', keys: {}, models: {} },
+    sync: { code, lastSyncedAt: new Date(0).toISOString(), lastMutatedAt: null },
   }))
 }
 
@@ -286,5 +304,81 @@ describe('robustez: quota, atomicidade e reconciliação de counters', () => {
 
     const { id: newId } = createCareerPlayer({ careerId: 1, origin: 'generated', name: 'Novo', positions: 'ST' })
     expect(newId).toBeGreaterThan(5)
+  })
+})
+
+describe('auto-sync: push automático com debounce', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function mockPut(): { calls: number } {
+    const state = { calls: 0 }
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') state.calls++
+      return { ok: true, json: async () => ({ updated: 1 }) } as Response
+    }) as typeof fetch
+    return state
+  }
+
+  it('agenda um push após mutação quando há chave de sync', async () => {
+    seedSyncedCareer(1, 'AAAA-BBBB-CCCC')
+    const state = mockPut()
+
+    createCareerPlayer({ careerId: 1, origin: 'generated', name: 'X', positions: 'ST' })
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    expect(state.calls).toBe(1)
+  })
+
+  it('não agenda push sem chave de sync', async () => {
+    seedCareer(1)
+    const state = mockPut()
+
+    createCareerPlayer({ careerId: 1, origin: 'generated', name: 'X', positions: 'ST' })
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    expect(state.calls).toBe(0)
+  })
+
+  it('debounce colapsa mutações em sequência num único PUT', async () => {
+    seedSyncedCareer(1, 'AAAA-BBBB-CCCC')
+    const state = mockPut()
+
+    createCareerPlayer({ careerId: 1, origin: 'generated', name: 'X', positions: 'ST' })
+    createCareerPlayer({ careerId: 1, origin: 'generated', name: 'Y', positions: 'ST' })
+    createCareerPlayer({ careerId: 1, origin: 'generated', name: 'Z', positions: 'ST' })
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    expect(state.calls).toBe(1)
+  })
+
+  it('o push automático não reagenda a si mesmo (anti-loop)', async () => {
+    seedSyncedCareer(1, 'AAAA-BBBB-CCCC')
+    const state = mockPut()
+
+    createCareerPlayer({ careerId: 1, origin: 'generated', name: 'X', positions: 'ST' })
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(state.calls).toBe(1)
+
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(state.calls).toBe(1)
+  })
+
+  it('lastMutatedAt avança em mutate() e o dirty se resolve após o push', async () => {
+    seedSyncedCareer(1, 'AAAA-BBBB-CCCC')
+    mockPut()
+
+    createCareerPlayer({ careerId: 1, origin: 'generated', name: 'X', positions: 'ST' })
+    const afterMutate = getSyncInfo()
+    expect(afterMutate.lastMutatedAt).not.toBeNull()
+    expect(afterMutate.lastSyncedAt! < afterMutate.lastMutatedAt!).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(10_000)
+    const afterPush = getSyncInfo()
+    expect(afterPush.lastSyncedAt! >= afterPush.lastMutatedAt!).toBe(true)
   })
 })

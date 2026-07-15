@@ -217,7 +217,10 @@ function SyncSection() {
       {info.code ? (
         <div className="space-y-2 border border-hairline bg-surface-soft p-4">
           <p className="text-[13px] text-steel">
-            {info.lastSyncedAt && <>Última atualização: {new Date(info.lastSyncedAt).toLocaleString('pt-BR')}</>}
+            {info.lastSyncedAt && <>Última atualização: {new Date(info.lastSyncedAt).toLocaleString('pt-BR')} · </>}
+            {info.lastMutatedAt && (!info.lastSyncedAt || info.lastSyncedAt < info.lastMutatedAt)
+              ? <span className="font-medium text-error">alterações ainda não sincronizadas — sincronização automática em instantes</span>
+              : <span className="text-success">sincronizado</span>}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <code className={`bg-canvas px-3 py-2 text-lg font-semibold tracking-wider text-ink ${revealed ? '' : 'blur-sm select-none'}`}>
