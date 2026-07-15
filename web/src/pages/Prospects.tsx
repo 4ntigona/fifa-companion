@@ -5,6 +5,7 @@ import { api, fmtEur, versionLabel, type Prospect, type SofifaPlayer, type Sofif
 import { getCareer, listProspects, addProspect as addProspectStore, updateProspect as updateProspectStore, removeProspect as removeProspectStore } from '../store'
 import { useDebouncedValue } from '../hooks'
 import ServerErrorCard from '../components/ServerErrorCard'
+import CompareProspects from '../components/CompareProspects'
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'CF', 'ST']
 const STATUS_LABEL: Record<Prospect['status'], string> = {
@@ -82,6 +83,8 @@ export default function ProspectsPage() {
   const prospects = prospectsData?.prospects ?? []
   const shortlistIds = new Set(prospects.map((p) => p.sofifa_player_id))
   const sortedProspects = [...prospects].sort((a, b) => a.priority - b.priority)
+  const [compareIds, setCompareIds] = useState<number[]>([])   // ids de Prospect, máx. 2
+  const [showCompare, setShowCompare] = useState(false)
 
   const addProspect = useMutation({
     // a busca só traz um subconjunto de colunas — reidrata o registro completo (attributes_json
@@ -200,6 +203,18 @@ export default function ProspectsPage() {
       )}
 
       {tab === 'shortlist' && (
+        <>
+        {prospects.length >= 2 && (
+          <div className="flex items-center gap-2 text-[13px] text-steel">
+            <span>Comparar:</span>
+            {compareIds.length === 2
+              ? <button onClick={() => setShowCompare(true)} className="btn-primary px-3 py-1.5 text-[13px]">Comparar selecionados</button>
+              : <span>selecione {2 - compareIds.length} jogador(es) abaixo</span>}
+            {compareIds.length > 0 && (
+              <button onClick={() => setCompareIds([])} className="btn-secondary px-3 py-1.5 text-[13px]">Limpar</button>
+            )}
+          </div>
+        )}
         <ul className="space-y-2">
           {prospects.length === 0 && (
             <p className="card bg-surface-soft p-4 text-sm text-slate-ink">
@@ -221,6 +236,14 @@ export default function ProspectsPage() {
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <button
+                  onClick={() => setCompareIds((ids) =>
+                    ids.includes(pr.id) ? ids.filter((i) => i !== pr.id)
+                    : ids.length < 2 ? [...ids, pr.id] : ids)}
+                  disabled={!pr.player}
+                  className={`${compareIds.includes(pr.id) ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
+                  {compareIds.includes(pr.id) ? '✓ Comparando' : '⚖ Comparar'}
+                </button>
                 {PRIORITY.map(([p, label]) => (
                   <button key={p} onClick={() => updateProspect.mutate({ pid: pr.id, priority: p })}
                     className={`${pr.priority === p ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
@@ -244,7 +267,12 @@ export default function ProspectsPage() {
             </li>
           ))}
         </ul>
+        </>
       )}
+      {showCompare && compareIds.length === 2 && (() => {
+        const [pa, pb] = compareIds.map((cid) => prospects.find((p) => p.id === cid)?.player)
+        return pa && pb ? <CompareProspects a={pa} b={pb} onClose={() => setShowCompare(false)} /> : null
+      })()}
     </div>
   )
 }
