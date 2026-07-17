@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
-import { adminToken, kaggleCreds } from '../settings.js'
+import { kaggleCreds } from '../settings.js'
 import { csvFilesPresent, importFromCsv, PLAYERS_CSV, TEAMS_CSV } from '../sofifa/kaggle-csv.js'
 import { downloadDatasetFile } from '../sofifa/kaggle-download.js'
 import { KNOWN_VERSIONS } from '../sofifa/source.js'
@@ -8,14 +8,13 @@ import { KNOWN_VERSIONS } from '../sofifa/source.js'
 const LOOPBACK_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
 
 /**
- * Import baixa centenas de MB e faz parsing pesado — é ação de setup do dono do app,
- * não de usuário final. Só aceita de loopback, ou de qualquer origem se o request
- * trouxer o header x-admin-token igual a ADMIN_TOKEN (quando configurado).
+ * Import baixa centenas de MB e faz parsing pesado — é ação de administração,
+ * não de usuário final. Aceita de loopback (CLI import:data / curl na VPS) ou
+ * de uma sessão de admin logada (área /admin do app).
  */
 export function isAuthorizedForImport(req: FastifyRequest): boolean {
   if (LOOPBACK_IPS.has(req.ip)) return true
-  const token = adminToken()
-  return Boolean(token) && req.headers['x-admin-token'] === token
+  return req.user?.role === 'admin'
 }
 
 /** Job de importação em memória — um por vez; progresso consultado por polling. */
@@ -83,7 +82,7 @@ export function importRoutes(app: FastifyInstance) {
     { config: { rateLimit: { max: 3, timeWindow: '1 hour' } } },
     (req, reply) => {
       if (!isAuthorizedForImport(req)) {
-        return reply.code(403).send({ error: 'Importação só é permitida a partir do próprio servidor (ou com token de administrador).' })
+        return reply.code(403).send({ error: 'Importação só é permitida a partir do próprio servidor (ou por um administrador logado).' })
       }
       if (state.running) return reply.code(409).send({ error: 'Já existe uma importação em andamento.' })
       const { versions } = z.object({ versions: z.array(z.number().int()).min(1) }).parse(req.body ?? {})

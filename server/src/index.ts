@@ -12,6 +12,10 @@ import { importRoutes } from './routes/import.js'
 import { analyzeRoutes } from './routes/analyze.js'
 import { syncRoutes, pruneExpiredSyncBlobs } from './routes/sync.js'
 import { authRoutes } from './routes/auth.js'
+import { careerRoutes } from './routes/careers.js'
+import { careerPlayerRoutes } from './routes/career-players.js'
+import { prospectRoutes } from './routes/prospects.js'
+import { importLocalRoutes } from './routes/import-local.js'
 import { authPlugin } from './auth/plugin.js'
 import { seedAdminIfEmpty } from './auth/seed-admin.js'
 import { pruneExpiredSessions } from './auth/sessions.js'
@@ -49,6 +53,12 @@ await app.register(cors, { origin: origins && origins.length ? origins : true })
 await app.register(cookie)
 authPlugin(app)
 authRoutes(app)
+
+// Dados per-user (carreiras/jogadores/prospecção) — exigem sessão
+careerRoutes(app)
+careerPlayerRoutes(app)
+prospectRoutes(app)
+importLocalRoutes(app)
 
 // API (recurso compartilhado): database do jogo + análise de fotos stateless
 gameDataRoutes(app)

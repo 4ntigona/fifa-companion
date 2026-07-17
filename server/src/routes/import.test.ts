@@ -1,17 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import type { FastifyRequest } from 'fastify'
 import { isAuthorizedForImport } from './import.js'
+import type { SessionUser } from '../auth/sessions.js'
 
-function fakeReq(ip: string, headers: Record<string, string> = {}): FastifyRequest {
-  return { ip, headers } as unknown as FastifyRequest
+function fakeReq(ip: string, user: SessionUser | null = null): FastifyRequest {
+  return { ip, user } as unknown as FastifyRequest
 }
 
+const admin: SessionUser = { id: 1, email: 'a@x.com', displayName: null, role: 'admin', mustChangePassword: false }
+const regular: SessionUser = { ...admin, id: 2, role: 'user' }
+
 describe('isAuthorizedForImport', () => {
-  const originalToken = process.env.ADMIN_TOKEN
-
-  beforeEach(() => { delete process.env.ADMIN_TOKEN })
-  afterEach(() => { process.env.ADMIN_TOKEN = originalToken })
-
   it('autoriza loopback IPv4', () => {
     expect(isAuthorizedForImport(fakeReq('127.0.0.1'))).toBe(true)
   })
@@ -20,17 +19,15 @@ describe('isAuthorizedForImport', () => {
     expect(isAuthorizedForImport(fakeReq('::1'))).toBe(true)
   })
 
-  it('rejeita origem remota sem ADMIN_TOKEN configurado', () => {
+  it('rejeita origem remota sem sessão', () => {
     expect(isAuthorizedForImport(fakeReq('203.0.113.7'))).toBe(false)
   })
 
-  it('rejeita origem remota com token errado', () => {
-    process.env.ADMIN_TOKEN = 'segredo-correto'
-    expect(isAuthorizedForImport(fakeReq('203.0.113.7', { 'x-admin-token': 'chute' }))).toBe(false)
+  it('rejeita origem remota com sessão de usuário comum', () => {
+    expect(isAuthorizedForImport(fakeReq('203.0.113.7', regular))).toBe(false)
   })
 
-  it('autoriza origem remota com o token correto', () => {
-    process.env.ADMIN_TOKEN = 'segredo-correto'
-    expect(isAuthorizedForImport(fakeReq('203.0.113.7', { 'x-admin-token': 'segredo-correto' }))).toBe(true)
+  it('autoriza origem remota com sessão de admin', () => {
+    expect(isAuthorizedForImport(fakeReq('203.0.113.7', admin))).toBe(true)
   })
 })
