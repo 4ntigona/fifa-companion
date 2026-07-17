@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api, fmtEur, type SofifaTeam, type VersionInfo } from '../api/client'
-import { createCareer } from '../store'
+import { createCareer } from '../api/user-data'
 import ServerErrorCard from '../components/ServerErrorCard'
 import { useDebouncedValue } from '../hooks'
 

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { fmtEur, versionLabel } from '../api/client'
-import { getCareerPlayer, addSnapshot, updateCareerPlayer } from '../store'
+import { getCareerPlayer, addSnapshot, updateCareerPlayer } from '../api/user-data'
 import Modal from '../components/Modal'
 import { sanitizeStat } from '../hooks'
 

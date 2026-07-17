@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api, versionLabel, type VersionInfo } from '../api/client'
-import { listCareers, getAiSettings, PROVIDER_LABELS, DEFAULT_MODELS } from '../store'
+import { getAiSettings, PROVIDER_LABELS, DEFAULT_MODELS } from '../store'
+import { listCareers } from '../api/user-data'
 import ServerErrorCard from '../components/ServerErrorCard'
+import MigrateLocalBanner from '../components/MigrateLocalBanner'
 
 interface ImportStatus {
   running: boolean
@@ -68,6 +70,7 @@ export default function Home() {
 
   return (
     <div className="space-y-10 pt-6">
+      <MigrateLocalBanner />
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-2xl font-semibold tracking-tight text-ink">Minhas carreiras</h1>

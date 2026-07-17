@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { analyzePhoto, type Career, type ExtractedPlayer, type VisionResult } from '../api/client'
-import { getCareer, getAiSettings, DEFAULT_MODELS, PROVIDER_LABELS, applyCapturedPlayers, listCareerPlayers, type CapturedPlayerRow } from '../store'
+import { getAiSettings, DEFAULT_MODELS, PROVIDER_LABELS } from '../store'
+import { getCareer, applyCapturedPlayers, listCareerPlayers, type CapturedPlayerRow } from '../api/user-data'
 import type { CareerPlayer } from '../api/client'
 import { sanitizeStat } from '../hooks'
 
@@ -154,7 +155,11 @@ function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied
   const { extracted, career } = props
   const isSquadScreen = extracted.screenType === 'elenco'
   const isProfileScreen = extracted.screenType === 'perfil_jogador'
-  const squad = listCareerPlayers(career.id).players
+  const { data: squadData } = useQuery({
+    queryKey: ['career-players', String(career.id)],
+    queryFn: () => listCareerPlayers(career.id),
+  })
+  const squad = squadData?.players ?? []
   const [season, setSeason] = useState(career.current_season)
   const [date, setDate] = useState(career.current_date_ingame ?? '')
   const [rows, setRows] = useState<ReviewRow[]>(
@@ -163,11 +168,22 @@ function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied
       destination: isProfileScreen ? 'snapshot'
         : isSquadScreen && career.team_type === 'created' ? 'generated'
         : 'youth',
-      targetPlayerId: isProfileScreen ? suggestMatch(p.name, squad) : undefined,
+      targetPlayerId: undefined,
     })),
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // O elenco chega async do servidor — sugere o casamento por nome quando carregar.
+  useEffect(() => {
+    if (!squad.length) return
+    setRows((rs) => rs.map((r) =>
+      r.destination === 'snapshot' && r.targetPlayerId == null
+        ? { ...r, targetPlayerId: suggestMatch(r.name, squad) }
+        : r,
+    ))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [squadData])
 
   async function apply() {
     setSaving(true)
@@ -204,7 +220,7 @@ function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied
           snapshot,
         }
       })
-      applyCapturedPlayers(career.id, capturedRows)
+      await applyCapturedPlayers(career.id, capturedRows)
       props.onApplied()
     } catch (e) {
       setError((e as Error).message)

@@ -1,12 +1,8 @@
-import { useRef, useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api } from '../api/client'
-import ConfirmDialog from '../components/ConfirmDialog'
-import {
-  getAiSettings, setAiSettings, PROVIDER_LABELS, DEFAULT_MODELS,
-  exportBackup, importBackup, storageUsage, type AiProvider,
-  getSyncInfo, generateRestoreKey, pushToRestoreKey, restoreFromKey, removeRestoreKey,
-} from '../store'
+import { useAuth } from '../auth'
+import { getAiSettings, setAiSettings, PROVIDER_LABELS, DEFAULT_MODELS, type AiProvider } from '../store'
 
 const PROVIDERS: AiProvider[] = ['anthropic', 'openai', 'gemini', 'openrouter']
 
@@ -27,13 +23,12 @@ export default function SettingsPage() {
     <div className="space-y-6 pt-6">
       <h1 className="text-2xl font-semibold tracking-tight text-ink">Configurações</h1>
       <p className="text-sm text-slate-ink">
-        Suas carreiras e chaves de IA ficam salvas apenas neste dispositivo (no navegador).
-        Use a chave de restauração ou o backup em arquivo para levar os dados para outro aparelho.
+        Suas carreiras ficam na sua conta (acessíveis de qualquer aparelho). As chaves de IA
+        ficam salvas apenas neste dispositivo — nunca vão para o servidor.
       </p>
 
       <AiSection ai={ai} onChange={refresh} />
-      <SyncSection />
-      <BackupSection />
+      <AccountSection />
     </div>
   )
 }
@@ -144,178 +139,53 @@ function AiSection({ ai, onChange }: { ai: ReturnType<typeof getAiSettings>; onC
   )
 }
 
-function SyncSection() {
-  const [info, setInfo] = useState(getSyncInfo())
-  const [revealed, setRevealed] = useState(false)
-  const [restoreCode, setRestoreCode] = useState('')
+function AccountSection() {
+  const { user } = useAuth()
+  const [current, setCurrent] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
-  const [pending, setPending] = useState<null | 'regenerate' | 'removeKey' | 'restore'>(null)
-  const refresh = () => setInfo(getSyncInfo())
+  const [pending, setPending] = useState(false)
 
-  const generate = useMutation({
-    mutationFn: () => generateRestoreKey(),
-    onSuccess: () => { refresh(); setRevealed(true); setMsg({ ok: true, text: 'Chave gerada — guarde-a em local seguro, ela dá acesso total aos seus dados.' }) },
-    onError: (e) => setMsg({ ok: false, text: (e as Error).message }),
-  })
-  const push = useMutation({
-    mutationFn: () => pushToRestoreKey(),
-    onSuccess: () => { refresh(); setMsg({ ok: true, text: 'Dados atualizados na chave.' }) },
-    onError: (e) => setMsg({ ok: false, text: (e as Error).message }),
-  })
-  const remove = useMutation({
-    mutationFn: () => removeRestoreKey(),
-    onSuccess: () => { refresh(); setMsg({ ok: true, text: 'Chave removida do servidor. Seus dados aqui neste dispositivo continuam intactos.' }) },
-    onError: (e) => setMsg({ ok: false, text: (e as Error).message }),
-  })
-  const restore = useMutation({
-    mutationFn: () => restoreFromKey(restoreCode),
-    onSuccess: (r) => {
-      setMsg({ ok: true, text: `Restaurado: ${r.careers} carreira(s), ${r.players} jogador(es). Recarregando…` })
-      setTimeout(() => location.reload(), 1200)
-    },
-    onError: (e) => setMsg({ ok: false, text: (e as Error).message }),
-  })
-
-  function onGenerate() {
+  async function submit(e: FormEvent) {
+    e.preventDefault()
     setMsg(null)
-    if (info.code) { setPending('regenerate'); return } // já existe: confirmar substituição
-    generate.mutate()
-  }
-  function onRemove() { setMsg(null); setPending('removeKey') }
-  function onRestore() { setMsg(null); setPending('restore') }
-  function copyCode() {
-    if (info.code) navigator.clipboard?.writeText(info.code)
-  }
-
-  const CONFIRM = {
-    regenerate: {
-      title: 'Gerar nova chave',
-      message: 'Já existe uma chave. Gerar uma nova substitui a anterior (a antiga deixa de funcionar). Continuar?',
-      label: 'Gerar nova', run: () => generate.mutate(),
-    },
-    removeKey: {
-      title: 'Remover chave',
-      message: 'Remover a chave do servidor? Ela deixa de poder restaurar seus dados em outro aparelho. Os dados deste dispositivo não são apagados.',
-      label: 'Remover', run: () => remove.mutate(),
-    },
-    restore: {
-      title: 'Restaurar dados',
-      message: 'Restaurar substitui TODOS os dados atuais deste dispositivo pelos dados da chave. Continuar?',
-      label: 'Restaurar', run: () => restore.mutate(),
-    },
-  } as const
-
-  return (
-    <section className="card space-y-3 p-6">
-      <h2 className="text-lg font-semibold text-ink">Chave de restauração</h2>
-      <p className="text-sm text-slate-ink">
-        Gere uma chave única para guardar seus dados no servidor sem precisar exportar arquivo toda
-        hora — basta a chave para restaurar em qualquer aparelho. Quem tiver a chave acessa seus
-        dados: trate-a como uma senha.
-      </p>
-
-      {info.code ? (
-        <div className="space-y-2 border border-hairline bg-surface-soft p-4">
-          <p className="text-[13px] text-steel">
-            {info.lastSyncedAt && <>Última atualização: {new Date(info.lastSyncedAt).toLocaleString('pt-BR')} · </>}
-            {info.lastMutatedAt && (!info.lastSyncedAt || info.lastSyncedAt < info.lastMutatedAt)
-              ? <span className="font-medium text-error">alterações ainda não sincronizadas — sincronização automática em instantes</span>
-              : <span className="text-success">sincronizado</span>}
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <code className={`bg-canvas px-3 py-2 text-lg font-semibold tracking-wider text-ink ${revealed ? '' : 'blur-sm select-none'}`}>
-              {info.code}
-            </code>
-            <button onClick={() => setRevealed((r) => !r)} className="btn-secondary text-[13px]">
-              {revealed ? 'Ocultar' : 'Revelar'}
-            </button>
-            <button onClick={copyCode} className="btn-secondary text-[13px]">Copiar</button>
-          </div>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <button onClick={() => push.mutate()} disabled={push.isPending} className="btn-primary">
-              {push.isPending ? 'Atualizando…' : 'Atualizar dados na chave'}
-            </button>
-            <button onClick={onGenerate} disabled={generate.isPending} className="btn-secondary">Gerar nova chave</button>
-            <button onClick={onRemove} disabled={remove.isPending} className="btn-secondary">Remover chave</button>
-          </div>
-        </div>
-      ) : (
-        <button onClick={onGenerate} disabled={generate.isPending} className="btn-primary">
-          {generate.isPending ? 'Gerando…' : 'Gerar chave de restauração'}
-        </button>
-      )}
-
-      <div className="space-y-2 border border-hairline bg-surface-soft p-4">
-        <p className="text-[13px] text-steel">Tem uma chave de outro dispositivo? Restaure aqui.</p>
-        <div className="flex flex-wrap gap-2">
-          <input value={restoreCode} onChange={(e) => setRestoreCode(e.target.value.toUpperCase())}
-            placeholder="XXXX-XXXX-XXXX" className="input flex-1" />
-          <button onClick={onRestore} disabled={!restoreCode.trim() || restore.isPending} className="btn-secondary">
-            {restore.isPending ? 'Restaurando…' : 'Restaurar'}
-          </button>
-        </div>
-      </div>
-
-      {msg && <p className={`text-sm font-medium ${msg.ok ? 'text-success' : 'text-error'}`}>{msg.text}</p>}
-
-      {pending && (
-        <ConfirmDialog
-          title={CONFIRM[pending].title}
-          message={CONFIRM[pending].message}
-          confirmLabel={CONFIRM[pending].label}
-          onConfirm={() => { const p = pending; setPending(null); CONFIRM[p].run() }}
-          onCancel={() => setPending(null)}
-        />
-      )}
-    </section>
-  )
-}
-
-function BackupSection() {
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
-  const [pendingFile, setPendingFile] = useState<File | null>(null)
-  const kb = (storageUsage().bytes / 1024).toFixed(1)
-
-  function onImport(file: File | undefined) {
-    if (!file) return
-    setPendingFile(file) // confirmar antes de substituir os dados
-  }
-
-  async function doImport(file: File) {
+    if (password !== confirm) return setMsg({ ok: false, text: 'As senhas não conferem.' })
+    setPending(true)
     try {
-      const r = await importBackup(file)
-      setMsg({ ok: true, text: `Backup importado: ${r.careers} carreira(s), ${r.players} jogador(es). Recarregando…` })
-      setTimeout(() => location.reload(), 1200)
-    } catch (e) {
-      setMsg({ ok: false, text: (e as Error).message })
+      await api('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: current, newPassword: password }),
+      })
+      setCurrent(''); setPassword(''); setConfirm('')
+      setMsg({ ok: true, text: 'Senha alterada. As outras sessões foram desconectadas.' })
+    } catch (err) {
+      setMsg({ ok: false, text: (err as Error).message })
+    } finally {
+      setPending(false)
     }
   }
 
   return (
-    <section className="card space-y-3 bg-surface-soft p-6">
-      <h2 className="text-lg font-semibold text-ink">Backup — exportar / importar</h2>
+    <section className="card space-y-3 p-6">
+      <h2 className="text-lg font-semibold text-ink">Conta</h2>
       <p className="text-sm text-slate-ink">
-        Seus dados vivem neste navegador ({kb} KB). Exporte um arquivo <code className="bg-surface px-1 text-[13px]">.json</code>{' '}
-        para guardar ou transferir para outro dispositivo. Importar substitui os dados atuais.
+        Logado como <b>{user?.email}</b>
+        {user?.role === 'admin' && <span className="tag-purple ml-2">admin</span>}
       </p>
-      <input ref={fileRef} type="file" accept="application/json,.json" className="hidden"
-        onChange={(e) => onImport(e.target.files?.[0])} />
-      <div className="flex flex-wrap gap-2">
-        <button onClick={() => exportBackup()} className="btn-primary">Exportar backup</button>
-        <button onClick={() => fileRef.current?.click()} className="btn-secondary">Importar backup</button>
-      </div>
-      {msg && <p className={`text-sm font-medium ${msg.ok ? 'text-success' : 'text-error'}`}>{msg.text}</p>}
-
-      {pendingFile && (
-        <ConfirmDialog
-          title="Importar backup"
-          message="Importar um backup substitui TODOS os dados atuais deste dispositivo. Continuar?"
-          confirmLabel="Importar"
-          onConfirm={() => { const f = pendingFile; setPendingFile(null); doImport(f) }}
-          onCancel={() => setPendingFile(null)}
-        />
-      )}
+      <form onSubmit={submit} className="space-y-2 border border-hairline bg-surface-soft p-4">
+        <p className="text-[13px] text-steel">Trocar senha</p>
+        <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)}
+          placeholder="Senha atual" autoComplete="current-password" required className="input" />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+          placeholder="Nova senha (mín. 8 caracteres)" autoComplete="new-password" minLength={8} required className="input" />
+        <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+          placeholder="Repita a nova senha" autoComplete="new-password" minLength={8} required className="input" />
+        <button type="submit" disabled={pending} className="btn-primary">
+          {pending ? 'Salvando…' : 'Trocar senha'}
+        </button>
+        {msg && <p className={`text-sm font-medium ${msg.ok ? 'text-success' : 'text-error'}`}>{msg.text}</p>}
+      </form>
     </section>
   )
 }
