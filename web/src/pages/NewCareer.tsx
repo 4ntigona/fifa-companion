@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { api, fmtEur, type SofifaTeam, type VersionInfo } from '../api/client'
 import { createCareer } from '../api/user-data'
 import ServerErrorCard from '../components/ServerErrorCard'
+import CurrencyNote from '../components/CurrencyNote'
 import { useDebouncedValue } from '../hooks'
 
 interface CountryLeagues {
@@ -203,6 +204,7 @@ export default function NewCareer() {
                   </li>
                 ))}
               </ul>
+              <CurrencyNote />
             </div>
           )}
 
@@ -214,6 +216,7 @@ export default function NewCareer() {
                   placeholder="Verba de transferência (€)" inputMode="numeric" className="input w-1/2" />
                 <input value={quality} onChange={(e) => setQuality(e.target.value)} placeholder="Qualidade do elenco (ex. 4.5★)" className="input w-1/2" />
               </div>
+              <CurrencyNote />
               {selected?.imported ? (
                 <>
                   <div className="flex gap-2">

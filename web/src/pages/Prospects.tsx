@@ -6,6 +6,7 @@ import { getCareer, listProspects, addProspect as addProspectStore, updateProspe
 import { useDebouncedValue } from '../hooks'
 import ServerErrorCard from '../components/ServerErrorCard'
 import CompareProspects from '../components/CompareProspects'
+import CurrencyNote from '../components/CurrencyNote'
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'CF', 'ST']
 const STATUS_LABEL: Record<Prospect['status'], string> = {
@@ -117,6 +118,7 @@ export default function ProspectsPage() {
         <Link to={`/carreira/${id}`} className="text-sm font-medium text-steel hover:text-ink">← Carreira</Link>
       </div>
       <p className="text-[13px] text-steel">Busca na database original do jogo — overalls, potenciais e valores reais.</p>
+      <CurrencyNote />
 
       <div className="flex gap-2">
         <button onClick={() => setTab('buscar')} className={tab === 'buscar' ? 'pill-tab-active' : 'pill-tab'}>

@@ -5,6 +5,7 @@ import { fmtEur, versionLabel, type CareerPlayer } from '../api/client'
 import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer, deleteCareer } from '../api/user-data'
 import ConfirmDialog from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
+import CurrencyNote from '../components/CurrencyNote'
 import { sanitizeStat } from '../hooks'
 
 export default function CareerPage() {
@@ -110,6 +111,7 @@ export default function CareerPage() {
             <div className="col-span-2">Verba: <b className="text-white">{fmtEur(career.team.transfer_budget_eur)}</b></div>
           </div>
         )}
+        {(career.team_type === 'created' || career.team) && <CurrencyNote className="mt-2 text-white/60" />}
         {objectives.length > 0 && (
           <ul className="mt-4 list-inside list-disc text-sm text-white/80">
             {objectives.map((o, i) => <li key={i}>{o}</li>)}

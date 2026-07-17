@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } f
 import { fmtEur, versionLabel } from '../api/client'
 import { getCareerPlayer, addSnapshot, updateCareerPlayer } from '../api/user-data'
 import Modal from '../components/Modal'
+import CurrencyNote from '../components/CurrencyNote'
 import { sanitizeStat } from '../hooks'
 
 const STATUS_OPTIONS = [
@@ -94,6 +95,7 @@ export default function PlayerPage() {
             {p.sofifa.skill_moves ? ` · Skills ${p.sofifa.skill_moves}★` : ''}
           </div>
         )}
+        {p.sofifa && <CurrencyNote className="mt-1 text-steel" />}
         {(baseOvr != null || basePot != null) && (
           <div className="mt-2 text-[13px] text-steel">
             Original no jogo: <b className="text-charcoal">{baseOvr ?? '—'}</b> OVR / <b className="text-charcoal">{basePot ?? '—'}</b> POT
