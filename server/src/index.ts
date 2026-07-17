@@ -16,6 +16,7 @@ import { careerRoutes } from './routes/careers.js'
 import { careerPlayerRoutes } from './routes/career-players.js'
 import { prospectRoutes } from './routes/prospects.js'
 import { importLocalRoutes } from './routes/import-local.js'
+import { adminUserRoutes } from './routes/admin-users.js'
 import { authPlugin } from './auth/plugin.js'
 import { seedAdminIfEmpty } from './auth/seed-admin.js'
 import { pruneExpiredSessions } from './auth/sessions.js'
@@ -59,6 +60,7 @@ careerRoutes(app)
 careerPlayerRoutes(app)
 prospectRoutes(app)
 importLocalRoutes(app)
+adminUserRoutes(app)
 
 // Database do jogo + análise de fotos (proxy stateless): leitura exige login —
 // escopo próprio para o preHandler não vazar para sync (migração) e auth.

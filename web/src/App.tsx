@@ -1,8 +1,10 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from './api/client'
-import { RequireAuth, useAuth, useClearAuth } from './auth'
+import { AdminRoute, RequireAuth, useAuth, useClearAuth } from './auth'
 const Login = lazy(() => import('./pages/Login'))
+const AdminDatabases = lazy(() => import('./pages/admin/Databases'))
+const AdminUsers = lazy(() => import('./pages/admin/Users'))
 const Home = lazy(() => import('./pages/Home'))
 const NewCareer = lazy(() => import('./pages/NewCareer'))
 const CareerPage = lazy(() => import('./pages/Career'))
@@ -70,6 +72,7 @@ export default function App() {
         </Link>
         <nav className="flex items-center gap-4 text-sm font-medium text-steel">
           {user && loc.pathname !== '/' && <Link to="/" className="hover:text-ink">Início</Link>}
+          {user?.role === 'admin' && <Link to="/admin/databases" className="hover:text-ink">Admin</Link>}
           {user && <Link to="/config" title="Configurações" className="hover:text-ink">⚙️ Config</Link>}
           {user && (
             <button onClick={logout} title={`Sair (${user.email})`} className="hover:text-ink">
@@ -96,6 +99,8 @@ export default function App() {
           <Route path="/carreira/:id/captura" element={<RequireAuth><CapturePage /></RequireAuth>} />
           <Route path="/jogador/:id" element={<RequireAuth><PlayerPage /></RequireAuth>} />
           <Route path="/config" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+          <Route path="/admin/databases" element={<RequireAuth><AdminRoute><AdminDatabases /></AdminRoute></RequireAuth>} />
+          <Route path="/admin/usuarios" element={<RequireAuth><AdminRoute><AdminUsers /></AdminRoute></RequireAuth>} />
         </Routes>
       </Suspense>
       <footer className="mt-12 border-t border-hairline pt-4 text-center text-[13px] text-steel">
