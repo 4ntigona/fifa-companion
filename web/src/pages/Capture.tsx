@@ -1,47 +1,87 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { api, type Career, type ExtractedPlayer, type VisionResult } from '../api/client'
+import { analyzePhoto, type Career, type ExtractedPlayer, type VisionResult } from '../api/client'
+import { getAiSettings, DEFAULT_MODELS, PROVIDER_LABELS } from '../store'
+import { getCareer, applyCapturedPlayers, listCareerPlayers, type CapturedPlayerRow } from '../api/user-data'
+import type { CareerPlayer } from '../api/client'
+import { sanitizeStat } from '../hooks'
 
 const SCREEN_LABEL: Record<string, string> = {
   elenco: 'Elenco', perfil_jogador: 'Perfil de jogador', base_olheiros: 'Base/Olheiros',
   negociacao: 'Negociação', outro: 'Outra tela',
 }
 
+/** File → { base64, mediaType } normalizando para um dos formatos aceitos. */
+function fileToBase64(file: File): Promise<{ base64: string; mediaType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = String(reader.result)
+      const [meta, b64] = dataUrl.split(',')
+      const mime = meta.slice(meta.indexOf(':') + 1, meta.indexOf(';'))
+      const mediaType = /image\/(jpeg|png|webp)/.test(mime) ? mime : 'image/jpeg'
+      resolve({ base64: b64, mediaType })
+    }
+    reader.onerror = () => reject(new Error('Falha ao ler a imagem.'))
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function CapturePage() {
   const { id } = useParams()
   const qc = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
+  const lastFileRef = useRef<File | null>(null)
+  const previewUrlRef = useRef<string | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  const [result, setResult] = useState<{ captureId: number; extracted: VisionResult } | null>(null)
+  const [result, setResult] = useState<{ extracted: VisionResult } | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
+
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+  }, [])
+
+  function setPreviewUrl(url: string | null) {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+    previewUrlRef.current = url
+    setPreview(url)
+  }
 
   const { data: careerData } = useQuery({
     queryKey: ['career', id],
-    queryFn: () => api<{ career: Career }>(`/api/careers/${id}`),
+    queryFn: async () => getCareer(Number(id)),
+    retry: false,
   })
   const career = careerData?.career
 
+  const ai = getAiSettings()
+  const aiKey = ai.keys[ai.activeProvider]
+
   const upload = useMutation({
     mutationFn: async (file: File) => {
-      const fd = new FormData()
-      fd.append('careerId', String(id))
-      fd.append('image', file)
-      return api<{ id: number; extracted: VisionResult | null; error: string | null }>('/api/captures', {
-        method: 'POST', body: fd,
+      if (!aiKey) {
+        throw new Error(`Adicione a chave da ${PROVIDER_LABELS[ai.activeProvider]} em ⚙️ Configurações para analisar fotos.`)
+      }
+      const { base64, mediaType } = await fileToBase64(file)
+      return analyzePhoto({
+        provider: ai.activeProvider,
+        apiKey: aiKey,
+        model: ai.models[ai.activeProvider] || DEFAULT_MODELS[ai.activeProvider],
+        mediaType,
+        imageBase64: base64,
       })
     },
-    onSuccess: (r) => {
-      if (r.error) setAnalysisError(r.error)
-      else if (r.extracted) setResult({ captureId: r.id, extracted: r.extracted })
-    },
+    onSuccess: (extracted) => setResult({ extracted }),
+    onError: (e) => setAnalysisError((e as Error).message),
   })
 
   function onFile(file: File | undefined) {
     if (!file) return
+    lastFileRef.current = file
     setResult(null)
     setAnalysisError(null)
-    setPreview(URL.createObjectURL(file))
+    setPreviewUrl(URL.createObjectURL(file))
     upload.mutate(file)
   }
 
@@ -71,20 +111,23 @@ export default function CapturePage() {
       {preview && <img src={preview} alt="captura" className="card max-h-64 w-full object-contain p-1" />}
       {upload.isPending && <p className="animate-pulse text-sm font-medium text-primary">Analisando a foto com IA…</p>}
       {(analysisError || upload.isError) && (
-        <p className="bg-tint-rose p-4 text-sm text-charcoal">
-          {analysisError ?? (upload.error as Error)?.message}
-        </p>
+        <div className="bg-tint-rose p-4 text-sm text-charcoal">
+          <p>{analysisError ?? (upload.error as Error)?.message}</p>
+          {lastFileRef.current && (
+            <button onClick={() => onFile(lastFileRef.current!)} className="btn-secondary mt-3">
+              Tentar novamente
+            </button>
+          )}
+        </div>
       )}
 
       {result && career && (
         <ReviewPanel
-          key={result.captureId}
-          captureId={result.captureId}
           extracted={result.extracted}
           career={career}
           onApplied={() => {
             qc.invalidateQueries({ queryKey: ['career-players', id] })
-            setResult(null); setPreview(null)
+            setResult(null); setPreviewUrl(null)
           }}
         />
       )}
@@ -95,57 +138,89 @@ export default function CapturePage() {
 interface ReviewRow extends ExtractedPlayer {
   include: boolean
   destination: 'generated' | 'youth' | 'regen' | 'snapshot'
+  targetPlayerId?: number
 }
 
-function ReviewPanel(props: { captureId: number; extracted: VisionResult; career: Career; onApplied: () => void }) {
+/** Normaliza para comparação de nome (minúsculas, sem acento) — só para sugerir, nunca decide sozinho. */
+function normalizeName(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+}
+
+function suggestMatch(name: string, squad: CareerPlayer[]): number | undefined {
+  const n = normalizeName(name)
+  return squad.find((p) => normalizeName(p.name) === n || normalizeName(p.name).includes(n) || n.includes(normalizeName(p.name)))?.id
+}
+
+function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied: () => void }) {
   const { extracted, career } = props
   const isSquadScreen = extracted.screenType === 'elenco'
+  const isProfileScreen = extracted.screenType === 'perfil_jogador'
+  const { data: squadData } = useQuery({
+    queryKey: ['career-players', String(career.id)],
+    queryFn: () => listCareerPlayers(career.id),
+  })
+  const squad = squadData?.players ?? []
   const [season, setSeason] = useState(career.current_season)
   const [date, setDate] = useState(career.current_date_ingame ?? '')
   const [rows, setRows] = useState<ReviewRow[]>(
     extracted.players.map((p) => ({
       ...p, include: true,
-      destination: isSquadScreen && career.team_type === 'created' ? 'generated'
-        : extracted.screenType === 'base_olheiros' ? 'youth' : 'youth',
+      destination: isProfileScreen ? 'snapshot'
+        : isSquadScreen && career.team_type === 'created' ? 'generated'
+        : 'youth',
+      targetPlayerId: undefined,
     })),
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // O elenco chega async do servidor — sugere o casamento por nome quando carregar.
+  useEffect(() => {
+    if (!squad.length) return
+    setRows((rs) => rs.map((r) =>
+      r.destination === 'snapshot' && r.targetPlayerId == null
+        ? { ...r, targetPlayerId: suggestMatch(r.name, squad) }
+        : r,
+    ))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [squadData])
+
   async function apply() {
     setSaving(true)
     setError(null)
     try {
-      for (const row of rows.filter((r) => r.include)) {
-        const created = await api<{ id: number }>('/api/career-players', {
-          method: 'POST',
-          body: JSON.stringify({
-            careerId: career.id,
-            origin: row.destination === 'snapshot' ? 'youth' : row.destination,
-            name: row.name,
-            positions: row.positions || '—',
-            age: row.age,
-            overallOriginal: row.overall,
-            potentialOriginal: row.potential,
-            notes: [row.notes, row.value ? `Valor visto: ${row.value}` : null].filter(Boolean).join(' · ') || undefined,
-            jerseyNumber: row.jerseyNumber,
-            status: row.destination === 'generated' ? 'elenco' : 'base',
-            inSquad: row.destination === 'generated',
-          }),
-        })
-        // Snapshot inicial datado — registra o estado visto na foto na temporada atual.
-        if (row.overall != null || row.potential != null) {
-          await api(`/api/career-players/${created.id}/snapshots`, {
-            method: 'POST',
-            body: JSON.stringify({
-              season, dateIngame: date || undefined,
-              overall: row.overall, potential: row.potential,
-              position: row.positions, formNotes: 'Registrado por foto',
-            }),
-          })
-        }
+      const included = rows.filter((r) => r.include)
+      const missingTarget = included.filter((r) => r.destination === 'snapshot' && !r.targetPlayerId)
+      if (missingTarget.length) {
+        throw new Error(`Escolha o jogador do elenco para "${missingTarget[0].name}" (destino Evolução exige o jogador-alvo) ou mude o destino.`)
       }
-      await api(`/api/captures/${props.captureId}`, { method: 'PATCH', body: JSON.stringify({ applied: true }) })
+      const missingStats = included.filter((r) => r.destination === 'snapshot' && r.overall == null && r.potential == null)
+      if (missingStats.length) {
+        throw new Error(`"${missingStats[0].name}" não tem overall/potencial lidos — não há o que registrar como evolução.`)
+      }
+      const capturedRows: CapturedPlayerRow[] = included.map((row): CapturedPlayerRow => {
+        const snapshot = row.overall != null || row.potential != null
+          ? { season, dateIngame: date || undefined, overall: row.overall, potential: row.potential, position: row.positions, formNotes: 'Registrado por foto' }
+          : undefined
+        if (row.destination === 'snapshot') {
+          return { target: 'existing', targetPlayerId: row.targetPlayerId!, snapshot: snapshot! }
+        }
+        return {
+          target: 'new',
+          origin: row.destination,
+          name: row.name,
+          positions: row.positions || '—',
+          age: row.age,
+          overallOriginal: row.overall,
+          potentialOriginal: row.potential,
+          notes: [row.notes, row.value ? `Valor visto: ${row.value}` : null].filter(Boolean).join(' · ') || undefined,
+          jerseyNumber: row.jerseyNumber,
+          status: row.destination === 'generated' ? 'elenco' : 'base',
+          inSquad: row.destination === 'generated',
+          snapshot,
+        }
+      })
+      await applyCapturedPlayers(career.id, capturedRows)
       props.onApplied()
     } catch (e) {
       setError((e as Error).message)
@@ -187,19 +262,37 @@ function ReviewPanel(props: { captureId: number; extracted: VisionResult; career
                 onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, age: e.target.value ? Number(e.target.value.replace(/\D/g, '')) : undefined } : r)))}
                 className="input w-12 px-1 py-1 text-center text-sm" /></label>
               <label>OVR <input value={row.overall ?? ''} inputMode="numeric"
-                onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, overall: e.target.value ? Number(e.target.value.replace(/\D/g, '')) : undefined } : r)))}
+                onChange={(e) => { const v = sanitizeStat(e.target.value); setRows((rs) => rs.map((r, j) => (j === i ? { ...r, overall: v ? Number(v) : undefined } : r))) }}
                 className="input w-12 px-1 py-1 text-center text-sm" /></label>
               <label>POT <input value={row.potential ?? ''} inputMode="numeric"
-                onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, potential: e.target.value ? Number(e.target.value.replace(/\D/g, '')) : undefined } : r)))}
+                onChange={(e) => { const v = sanitizeStat(e.target.value); setRows((rs) => rs.map((r, j) => (j === i ? { ...r, potential: v ? Number(v) : undefined } : r))) }}
                 className="input w-12 px-1 py-1 text-center text-sm" /></label>
               <select value={row.destination}
-                onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, destination: e.target.value as ReviewRow['destination'] } : r)))}
+                onChange={(e) => {
+                  const destination = e.target.value as ReviewRow['destination']
+                  setRows((rs) => rs.map((r, j) => (j === i ? {
+                    ...r, destination,
+                    targetPlayerId: destination === 'snapshot' ? (r.targetPlayerId ?? suggestMatch(r.name, squad)) : undefined,
+                  } : r)))
+                }}
                 className="input ml-auto w-auto px-2 py-1 text-sm">
+                {squad.length > 0 && <option value="snapshot">Evolução (jogador existente)</option>}
                 <option value="youth">Base</option>
                 <option value="regen">Regen</option>
                 <option value="generated">Elenco (gerado)</option>
               </select>
             </div>
+            {row.destination === 'snapshot' && (
+              <div className="mt-2 flex items-center gap-2 text-[13px] text-steel">
+                <span>Jogador do elenco:</span>
+                <select value={row.targetPlayerId ?? ''}
+                  onChange={(e) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, targetPlayerId: e.target.value ? Number(e.target.value) : undefined } : r)))}
+                  className="input flex-1 px-2 py-1 text-sm">
+                  <option value="">Escolha o jogador…</option>
+                  {squad.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            )}
             {row.notes && <p className="mt-1 text-[13px] text-steel">{row.notes}</p>}
           </li>
         ))}

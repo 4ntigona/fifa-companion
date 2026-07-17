@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dev-dist/
+*.tsbuildinfo
 server/.env
 server/data/*.db
 server/data/*.db-*

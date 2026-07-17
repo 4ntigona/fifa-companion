@@ -87,6 +87,15 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 
+-- Chaves de restauração: blob opaco do backup do usuário (localStorage), guardado
+-- aqui só para ele não precisar exportar/importar arquivo toda hora. O código em si
+-- é a única credencial de acesso — não há login. Usuário controla via ⚙️ Configurações.
+CREATE TABLE IF NOT EXISTS sync_blobs (
+  code TEXT PRIMARY KEY,
+  data TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Dados do usuário (carreiras)
 
 CREATE TABLE IF NOT EXISTS careers (

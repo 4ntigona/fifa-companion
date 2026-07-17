@@ -1,14 +1,42 @@
 export async function api<T = unknown>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    headers: init?.body instanceof FormData ? undefined : { 'Content-Type': 'application/json' },
-    ...init,
-  })
+  // Content-Type só quando há corpo: Fastify rejeita (400) um Content-Type
+  // application/json em requisição sem corpo (ex.: DELETE sem body).
+  const hasBody = init?.body != null && !(init.body instanceof FormData)
+  let res: Response
+  try {
+    res = await fetch(path, {
+      headers: hasBody ? { 'Content-Type': 'application/json' } : undefined,
+      ...init,
+    })
+  } catch {
+    throw new Error('Não foi possível falar com o servidor. Verifique sua conexão — ou se o servidor do app está no ar.')
+  }
+  if (res.status === 401 && !path.startsWith('/api/auth/') && window.location.pathname !== '/login') {
+    // Sessão expirou/inexistente: manda para o login. As rotas /api/auth/* ficam de
+    // fora (o 401 delas é tratado no fluxo de login/contexto de sessão).
+    window.location.href = '/login'
+  }
   if (!res.ok) {
-    let msg = `Erro ${res.status}`
-    try { msg = (await res.json()).error ?? msg } catch { /* mantém msg */ }
+    let msg: string | null = null
+    try { msg = (await res.json()).error ?? null } catch { /* corpo não-JSON */ }
+    if (!msg) {
+      msg = res.status >= 500
+        ? `O servidor está indisponível no momento (HTTP ${res.status}). Tente de novo em instantes.`
+        : `Erro ${res.status}`
+    }
     throw new Error(msg)
   }
   return res.json() as Promise<T>
+}
+
+/** Análise de foto (stateless) no servidor, com BYOK vindo do localStorage. */
+export async function analyzePhoto(input: {
+  provider: string; apiKey: string; model: string; mediaType: string; imageBase64: string
+}): Promise<VisionResult> {
+  const r = await api<{ extracted: VisionResult }>('/api/analyze', {
+    method: 'POST', body: JSON.stringify(input),
+  })
+  return r.extracted
 }
 
 export const fmtEur = (v?: number | null) =>
@@ -24,7 +52,9 @@ export interface VersionInfo {
   createClub: boolean
 }
 
-export interface SofifaPlayer {
+/** Subconjunto de colunas devolvido pela busca (`GET /api/players/:version`) — sem
+ *  attributes_json nem os atributos individuais, que só vêm na reidratação completa. */
+export interface SofifaPlayerListItem {
   fifa_version: number
   player_id: number
   short_name: string
@@ -38,6 +68,9 @@ export interface SofifaPlayer {
   club_name: string | null
   league_name: string | null
   nationality_name: string | null
+}
+
+export interface SofifaPlayer extends SofifaPlayerListItem {
   club_jersey_number: number | null
   club_loaned_from: string | null
   preferred_foot: string | null

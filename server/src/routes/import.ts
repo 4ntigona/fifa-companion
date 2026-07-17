@@ -1,9 +1,21 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { kaggleCreds } from '../settings.js'
 import { csvFilesPresent, importFromCsv, PLAYERS_CSV, TEAMS_CSV } from '../sofifa/kaggle-csv.js'
 import { downloadDatasetFile } from '../sofifa/kaggle-download.js'
 import { KNOWN_VERSIONS } from '../sofifa/source.js'
+
+const LOOPBACK_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
+
+/**
+ * Import baixa centenas de MB e faz parsing pesado — é ação de administração,
+ * não de usuário final. Aceita de loopback (CLI import:data / curl na VPS) ou
+ * de uma sessão de admin logada (área /admin do app).
+ */
+export function isAuthorizedForImport(req: FastifyRequest): boolean {
+  if (LOOPBACK_IPS.has(req.ip)) return true
+  return req.user?.role === 'admin'
+}
 
 /** Job de importação em memória — um por vez; progresso consultado por polling. */
 interface ImportState {
@@ -65,14 +77,21 @@ async function runImport(versions: number[]) {
 }
 
 export function importRoutes(app: FastifyInstance) {
-  app.post('/api/import', (req, reply) => {
-    if (state.running) return reply.code(409).send({ error: 'Já existe uma importação em andamento.' })
-    const { versions } = z.object({ versions: z.array(z.number().int()).min(1) }).parse(req.body ?? {})
-    const valid = versions.filter((v) => (KNOWN_VERSIONS as readonly number[]).includes(v))
-    if (!valid.length) return reply.code(400).send({ error: 'Nenhuma versão válida (15–24).' })
-    void runImport(valid)
-    return { started: true, versions: valid }
-  })
+  app.post(
+    '/api/import',
+    { config: { rateLimit: { max: 3, timeWindow: '1 hour' } } },
+    (req, reply) => {
+      if (!isAuthorizedForImport(req)) {
+        return reply.code(403).send({ error: 'Importação só é permitida a partir do próprio servidor (ou por um administrador logado).' })
+      }
+      if (state.running) return reply.code(409).send({ error: 'Já existe uma importação em andamento.' })
+      const { versions } = z.object({ versions: z.array(z.number().int()).min(1) }).parse(req.body ?? {})
+      const valid = versions.filter((v) => (KNOWN_VERSIONS as readonly number[]).includes(v))
+      if (!valid.length) return reply.code(400).send({ error: 'Nenhuma versão válida (15–24).' })
+      void runImport(valid)
+      return { started: true, versions: valid }
+    },
+  )
 
   app.get('/api/import/status', () => ({
     ...state,

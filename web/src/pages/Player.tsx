@@ -2,17 +2,45 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { api, fmtEur, versionLabel, type Career, type CareerPlayer } from '../api/client'
+import { fmtEur, versionLabel } from '../api/client'
+import { getCareerPlayer, addSnapshot, updateCareerPlayer } from '../api/user-data'
+import Modal from '../components/Modal'
+import CurrencyNote from '../components/CurrencyNote'
+import { sanitizeStat } from '../hooks'
+
+const STATUS_OPTIONS = [
+  ['titular', 'Titular'], ['reserva', 'Reserva'], ['emprestado', 'Emprestado'], ['vendido', 'Vendido'],
+] as const
+// vendido sai do elenco ativo; emprestado continua visível no elenco com a tag de aviso
+// (é como a importação já marca club_loaned_from — mantém consistência com o comportamento atual).
+const OUT_OF_SQUAD_STATUS = new Set(['vendido'])
 
 export default function PlayerPage() {
   const { id } = useParams()
   const qc = useQueryClient()
   const [showSnapshot, setShowSnapshot] = useState(false)
 
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ['career-player', id],
-    queryFn: () => api<{ player: CareerPlayer; career: Career }>(`/api/career-players/${id}`),
+    queryFn: async () => getCareerPlayer(Number(id)),
+    retry: false,
   })
+  if (isError) return (
+    <div className="card mt-6 bg-surface-soft p-6 text-sm text-slate-ink">
+      <p className="font-semibold text-ink">Jogador não encontrado neste dispositivo.</p>
+      <p className="mt-1">Ele pode ter sido excluído ou os dados foram restaurados de outro backup.</p>
+      <Link to="/" className="btn-primary mt-3 inline-block">Voltar ao início</Link>
+    </div>
+  )
+  const updateStatus = useMutation({
+    mutationFn: async (status: string) =>
+      updateCareerPlayer(Number(id), { status, inSquad: !OUT_OF_SQUAD_STATUS.has(status) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['career-player', id] })
+      qc.invalidateQueries({ queryKey: ['career-players', data?.player.career_id] })
+    },
+  })
+
   if (!data) return <p className="pt-6 text-slate-ink">Carregando…</p>
   const { player: p, career } = data
   const snaps = p.snapshots ?? []
@@ -67,11 +95,21 @@ export default function PlayerPage() {
             {p.sofifa.skill_moves ? ` · Skills ${p.sofifa.skill_moves}★` : ''}
           </div>
         )}
+        {p.sofifa && <CurrencyNote className="mt-1 text-steel" />}
         {(baseOvr != null || basePot != null) && (
           <div className="mt-2 text-[13px] text-steel">
             Original no jogo: <b className="text-charcoal">{baseOvr ?? '—'}</b> OVR / <b className="text-charcoal">{basePot ?? '—'}</b> POT
           </div>
         )}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="text-[13px] text-steel">Status:</span>
+          {STATUS_OPTIONS.map(([s, label]) => (
+            <button key={s} onClick={() => updateStatus.mutate(s)}
+              className={`${p.status === s ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
+              {label}
+            </button>
+          ))}
+        </div>
         {p.strengths && <div className="mt-2 text-charcoal"><span className="text-steel">Pontos fortes:</span> {p.strengths}</div>}
         {p.notes && <div className="mt-1 text-charcoal"><span className="text-steel">Observações:</span> {p.notes}</div>}
         {p.regenOf && (
@@ -166,42 +204,37 @@ function SnapshotModal(props: {
   const [notes, setNotes] = useState('')
 
   const create = useMutation({
-    mutationFn: () =>
-      api(`/api/career-players/${props.playerId}/snapshots`, {
-        method: 'POST',
-        body: JSON.stringify({
-          season, dateIngame: date || undefined,
-          overall: overall ? Number(overall) : undefined,
-          potential: potential ? Number(potential) : undefined,
-          position: position || undefined, formNotes: notes || undefined,
-        }),
+    mutationFn: async () =>
+      addSnapshot(props.playerId, {
+        season, dateIngame: date || undefined,
+        overall: overall ? Number(overall) : undefined,
+        potential: potential ? Number(potential) : undefined,
+        position: position || undefined, formNotes: notes || undefined,
       }),
     onSuccess: props.onSaved,
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy-deep/50 sm:items-center" onClick={props.onClose}>
-      <div className="w-full max-w-md space-y-2  bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)] sm:" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold text-ink">Registrar evolução</h3>
-        <p className="text-[13px] text-steel">Sempre vinculada à temporada/data do jogo — é assim que o desenvolvimento é acompanhado.</p>
-        <div className="flex gap-2">
-          <input value={season} onChange={(e) => setSeason(e.target.value)} placeholder="Temporada *" className="input w-1/2" />
-          <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="input w-1/2" />
-        </div>
-        <div className="flex gap-2">
-          <input value={overall} onChange={(e) => setOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall atual" inputMode="numeric" className="input w-1/2" />
-          <input value={potential} onChange={(e) => setPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial atual" inputMode="numeric" className="input w-1/2" />
-        </div>
-        <div className="flex gap-2">
-          <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Posição (se mudou)" className="input w-1/2" />
-          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Forma/observações" className="input w-1/2" />
-        </div>
-        {create.isError && <p className="text-[13px] text-error">{(create.error as Error).message}</p>}
-        <div className="flex gap-2 pt-1">
-          <button onClick={() => create.mutate()} disabled={!season || create.isPending} className="btn-primary flex-1">Salvar</button>
-          <button onClick={props.onClose} className="btn-secondary">Cancelar</button>
-        </div>
+    <Modal onClose={props.onClose}>
+      <h3 className="text-lg font-semibold text-ink">Registrar evolução</h3>
+      <p className="text-[13px] text-steel">Sempre vinculada à temporada/data do jogo — é assim que o desenvolvimento é acompanhado.</p>
+      <div className="flex gap-2">
+        <input autoFocus value={season} onChange={(e) => setSeason(e.target.value)} placeholder="Temporada *" className="input w-1/2" />
+        <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="input w-1/2" />
       </div>
-    </div>
+      <div className="flex gap-2">
+        <input value={overall} onChange={(e) => setOverall(sanitizeStat(e.target.value))} placeholder="Overall atual" inputMode="numeric" className="input w-1/2" />
+        <input value={potential} onChange={(e) => setPotential(sanitizeStat(e.target.value))} placeholder="Potencial atual" inputMode="numeric" className="input w-1/2" />
+      </div>
+      <div className="flex gap-2">
+        <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Posição (se mudou)" className="input w-1/2" />
+        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Forma/observações" className="input w-1/2" />
+      </div>
+      {create.isError && <p className="text-[13px] text-error">{(create.error as Error).message}</p>}
+      <div className="flex gap-2 pt-1">
+        <button onClick={() => create.mutate()} disabled={!season || create.isPending} className="btn-primary flex-1">Salvar</button>
+        <button onClick={props.onClose} className="btn-secondary">Cancelar</button>
+      </div>
+    </Modal>
   )
 }

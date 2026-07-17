@@ -2,6 +2,10 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api, fmtEur, type SofifaTeam, type VersionInfo } from '../api/client'
+import { createCareer } from '../api/user-data'
+import ServerErrorCard from '../components/ServerErrorCard'
+import CurrencyNote from '../components/CurrencyNote'
+import { useDebouncedValue } from '../hooks'
 
 interface CountryLeagues {
   country: string
@@ -26,7 +30,9 @@ export default function NewCareer() {
   const [quality, setQuality] = useState('')
   const [objectives, setObjectives] = useState('')
 
-  const { data: versionsData } = useQuery({
+  const debouncedTeamQuery = useDebouncedValue(teamQuery)
+
+  const { data: versionsData, isError: versionsError, error: versionsErr, refetch: refetchVersions } = useQuery({
     queryKey: ['versions'],
     queryFn: () => api<{ versions: VersionInfo[] }>('/api/versions'),
   })
@@ -43,14 +49,14 @@ export default function NewCareer() {
   const selectedLeague = countryLeagues.find((l) => String(l.id) === leagueId)
 
   const { data: teamsData } = useQuery({
-    queryKey: ['teams', version, leagueId, teamQuery],
+    queryKey: ['teams', version, leagueId, debouncedTeamQuery],
     queryFn: () =>
       api<{ teams: SofifaTeam[] }>(
         `/api/teams/${version}?` +
-        new URLSearchParams({ ...(leagueId && { leagueId }), ...(teamQuery && { q: teamQuery }) }),
+        new URLSearchParams({ ...(leagueId && { leagueId }), ...(debouncedTeamQuery && { q: debouncedTeamQuery }) }),
       ),
     // sem liga escolhida, busca por nome ainda funciona (todas as ligas)
-    enabled: version != null && Boolean(selected?.imported) && Boolean(leagueId || teamQuery),
+    enabled: version != null && Boolean(selected?.imported) && Boolean(leagueId || debouncedTeamQuery),
   })
 
   const defaultSeason = useMemo(() => {
@@ -61,23 +67,20 @@ export default function NewCareer() {
 
   const create = useMutation({
     mutationFn: () =>
-      api<{ id: number; squadLoaded: number }>('/api/careers', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: name || (teamType === 'created' ? createdName : teamsData?.teams.find((t) => t.team_id === teamId)?.team_name) || 'Carreira',
-          fifaVersion: version,
-          teamType,
-          sofifaTeamId: teamType === 'existing' ? teamId : undefined,
-          createdTeamName: teamType === 'created' ? createdName : undefined,
-          createdTeamBudgetEur: teamType === 'created' && createdBudget ? Number(createdBudget) : undefined,
-          createdTeamLeague: teamType === 'created'
-            ? (selectedLeague ? `${selectedLeague.name} (${country})` : undefined)
-            : undefined,
-          replacedTeamId: teamType === 'created' ? replacedTeamId ?? undefined : undefined,
-          objectives: objectives ? objectives.split('\n').filter(Boolean) : undefined,
-          squadQuality: teamType === 'created' ? quality || undefined : undefined,
-          currentSeason: season || defaultSeason,
-        }),
+      createCareer({
+        name: name || (teamType === 'created' ? createdName : teamsData?.teams.find((t) => t.team_id === teamId)?.team_name) || 'Carreira',
+        fifaVersion: version!,
+        teamType,
+        sofifaTeamId: teamType === 'existing' ? teamId ?? undefined : undefined,
+        createdTeamName: teamType === 'created' ? createdName : undefined,
+        createdTeamBudgetEur: teamType === 'created' && createdBudget ? Number(createdBudget) : undefined,
+        createdTeamLeague: teamType === 'created'
+          ? (selectedLeague ? `${selectedLeague.name} (${country})` : undefined)
+          : undefined,
+        replacedTeamId: teamType === 'created' ? replacedTeamId ?? undefined : undefined,
+        objectives: objectives ? objectives.split('\n').filter(Boolean) : undefined,
+        squadQuality: teamType === 'created' ? quality || undefined : undefined,
+        currentSeason: season || defaultSeason,
       }),
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ['careers'] })
@@ -96,6 +99,9 @@ export default function NewCareer() {
 
       <section>
         <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-steel">Versão do jogo</h2>
+        {versionsError ? (
+          <ServerErrorCard message={(versionsErr as Error).message} onRetry={() => refetchVersions()} />
+        ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           {versions.map((v) => (
             <button
@@ -114,6 +120,7 @@ export default function NewCareer() {
             </button>
           ))}
         </div>
+        )}
         {selected && !selected.imported && (
           <p className="mt-2  bg-tint-peach p-3 text-[13px] text-orange-deep">
             Database do {selected.label} não importada — importe na tela inicial.
@@ -197,6 +204,7 @@ export default function NewCareer() {
                   </li>
                 ))}
               </ul>
+              <CurrencyNote />
             </div>
           )}
 
@@ -208,6 +216,7 @@ export default function NewCareer() {
                   placeholder="Verba de transferência (€)" inputMode="numeric" className="input w-1/2" />
                 <input value={quality} onChange={(e) => setQuality(e.target.value)} placeholder="Qualidade do elenco (ex. 4.5★)" className="input w-1/2" />
               </div>
+              <CurrencyNote />
               {selected?.imported ? (
                 <>
                   <div className="flex gap-2">

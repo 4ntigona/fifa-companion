@@ -2,6 +2,10 @@ import type { FastifyInstance } from 'fastify'
 import { db } from '../db/index.js'
 import { CREATE_CLUB_MIN_VERSION, KNOWN_VERSIONS } from '../sofifa/source.js'
 
+// Colunas usadas pela lista de busca (Prospects.tsx) — não inclui attributes_json nem os
+// atributos individuais (pace/shooting/…), que só a reidratação de /api/player traz.
+const LIST_COLS = 'fifa_version, player_id, short_name, long_name, positions, overall, potential, value_eur, wage_eur, age, club_name, league_name, nationality_name'
+
 /** Rotas de leitura da database original do jogo (espelho local, dados reais). */
 export function gameDataRoutes(app: FastifyInstance) {
   app.get('/api/versions', () => {
@@ -123,11 +127,13 @@ export function gameDataRoutes(app: FastifyInstance) {
     const off = Number(offset ?? 0)
 
     const where = conds.join(' AND ')
+    // COUNT(*) OVER() traz o total na mesma query — evita um segundo full-scan a cada "carregar mais".
     const rows = db
-      .prepare(`SELECT * FROM sofifa_players WHERE ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`)
-      .all(...params, lim, off)
-    const total = (db.prepare(`SELECT COUNT(*) AS c FROM sofifa_players WHERE ${where}`).get(...params) as { c: number }).c
-    return { players: rows, total }
+      .prepare(`SELECT ${LIST_COLS}, COUNT(*) OVER() AS _total FROM sofifa_players WHERE ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`)
+      .all(...params, lim, off) as Array<Record<string, unknown> & { _total: number }>
+    const total = rows[0]?._total ?? 0
+    const players = rows.map(({ _total, ...p }) => p)
+    return { players, total }
   })
 
   app.get<{ Params: { version: string; playerId: string } }>('/api/player/:version/:playerId', (req) => {

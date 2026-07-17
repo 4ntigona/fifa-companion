@@ -60,7 +60,6 @@ Concise, confident, implementation-focused.
 - Include keyboard, pointer, and touch behavior.
 - Include spacing and typography token requirements.
 - Include long-content, overflow, and empty-state handling.
-- Include known page component density: links (9), cards (6), navigation (2), buttons (1).
 
 - Extraction diagnostics: Audience and product surface inference confidence is low; verify generated brand context.
 

@@ -1,35 +1,57 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
-import { api, fmtEur, versionLabel, type Career, type CareerPlayer } from '../api/client'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { fmtEur, versionLabel, type CareerPlayer } from '../api/client'
+import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer, deleteCareer } from '../api/user-data'
+import ConfirmDialog from '../components/ConfirmDialog'
+import Modal from '../components/Modal'
+import CurrencyNote from '../components/CurrencyNote'
+import { sanitizeStat } from '../hooks'
 
 export default function CareerPage() {
   const { id } = useParams()
+  const nav = useNavigate()
   const qc = useQueryClient()
   const [tab, setTab] = useState<'elenco' | 'base'>('elenco')
   const [editingSeason, setEditingSeason] = useState(false)
   const [showAddPlayer, setShowAddPlayer] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ['career', id],
-    queryFn: () => api<{ career: Career }>(`/api/careers/${id}`),
+    queryFn: async () => getCareer(Number(id)),
+    retry: false,
   })
   const { data: playersData } = useQuery({
     queryKey: ['career-players', id],
-    queryFn: () => api<{ players: CareerPlayer[] }>(`/api/careers/${id}/players`),
+    queryFn: async () => listCareerPlayers(Number(id)),
   })
 
   const career = data?.career
   const players = playersData?.players ?? []
-  const squad = players.filter((p) => p.in_squad && !['base'].includes(p.status))
+  // vendido sai do elenco ativo (e já tem in_squad=0 via updateCareerPlayer, mas o filtro é
+  // explícito por segurança); emprestado permanece visível no elenco, com a tag de aviso.
+  const squad = players.filter((p) => p.in_squad && !['base', 'vendido'].includes(p.status))
   const youth = players.filter((p) => p.origin === 'youth' || p.origin === 'regen' || p.status === 'base')
 
   const updateSeason = useMutation({
-    mutationFn: (payload: { currentSeason?: string; currentDateIngame?: string }) =>
-      api(`/api/careers/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+    mutationFn: async (payload: { currentSeason?: string; currentDateIngame?: string }) =>
+      updateCareer(Number(id), payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['career', id] }); setEditingSeason(false) },
   })
 
+  const remove = useMutation({
+    mutationFn: async () => deleteCareer(Number(id)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['careers'] }); nav('/') },
+  })
+
+  if (isError) return (
+    <div className="card mt-6 bg-surface-soft p-6 text-sm text-slate-ink">
+      <p className="font-semibold text-ink">Carreira não encontrada neste dispositivo.</p>
+      <p className="mt-1">Ela pode ter sido excluída ou os dados foram restaurados de outro backup.</p>
+      <Link to="/" className="btn-primary mt-3 inline-block">Voltar ao início</Link>
+    </div>
+  )
   if (!career) return <p className="pt-6 text-slate-ink">Carregando…</p>
 
   const objectives: string[] = career.objectives ? JSON.parse(career.objectives) : []
@@ -89,6 +111,7 @@ export default function CareerPage() {
             <div className="col-span-2">Verba: <b className="text-white">{fmtEur(career.team.transfer_budget_eur)}</b></div>
           </div>
         )}
+        {(career.team_type === 'created' || career.team) && <CurrencyNote className="mt-2 text-white/60" />}
         {objectives.length > 0 && (
           <ul className="mt-4 list-inside list-disc text-sm text-white/80">
             {objectives.map((o, i) => <li key={i}>{o}</li>)}
@@ -104,6 +127,10 @@ export default function CareerPage() {
           <button onClick={() => setShowAddPlayer(true)}
             className="border border-white/40 px-[18px] py-2.5 text-sm font-medium text-white hover:bg-white/10">
             + Jogador
+          </button>
+          <button onClick={() => setConfirmingDelete(true)} disabled={remove.isPending}
+            className="ml-auto border border-error/60 px-[18px] py-2.5 text-sm font-medium text-error hover:bg-error/10">
+            {remove.isPending ? 'Excluindo…' : '🗑 Excluir carreira'}
           </button>
         </div>
       </section>
@@ -126,6 +153,15 @@ export default function CareerPage() {
       </section>
 
       {showAddPlayer && <AddPlayerModal careerId={Number(id)} version={career.fifa_version} onClose={() => setShowAddPlayer(false)} />}
+      {confirmingDelete && career && (
+        <ConfirmDialog
+          title="Excluir carreira"
+          message={`Excluir "${career.name}"? Todos os jogadores, snapshots e a shortlist dela serão apagados. Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          onConfirm={() => { setConfirmingDelete(false); remove.mutate() }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   )
 }
@@ -193,54 +229,49 @@ function AddPlayerModal({ careerId, version, onClose }: { careerId: number; vers
   const [notes, setNotes] = useState('')
 
   const create = useMutation({
-    mutationFn: () =>
-      api('/api/career-players', {
-        method: 'POST',
-        body: JSON.stringify({
-          careerId, origin, name, positions: positions || '—',
-          age: age ? Number(age) : undefined,
-          overallOriginal: overall ? Number(overall) : undefined,
-          potentialOriginal: potential ? Number(potential) : undefined,
-          strengths: strengths || undefined, notes: notes || undefined,
-          status: origin === 'generated' ? 'elenco' : 'base',
-          inSquad: origin === 'generated',
-        }),
+    mutationFn: async () =>
+      createCareerPlayer({
+        careerId, origin, name, positions: positions || '—',
+        age: age ? Number(age) : undefined,
+        overallOriginal: overall ? Number(overall) : undefined,
+        potentialOriginal: potential ? Number(potential) : undefined,
+        strengths: strengths || undefined, notes: notes || undefined,
+        status: origin === 'generated' ? 'elenco' : 'base',
+        inSquad: origin === 'generated',
       }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['career-players', String(careerId)] }); onClose() },
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy-deep/50 sm:items-center" onClick={onClose}>
-      <div className="w-full max-w-md space-y-2  bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)] sm:" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold text-ink">Adicionar jogador</h3>
-        <p className="text-[13px] text-steel">
-          Para jogadores reais da database do {versionLabel(version)}, use a Prospecção. Aqui entram os que só existem no seu save.
-        </p>
-        <div className="flex gap-2 text-sm">
-          {(['youth', 'regen', 'generated'] as const).map((o) => (
-            <button key={o} onClick={() => setOrigin(o)}
-              className={origin === o ? 'pill-tab-active' : 'pill-tab'}>
-              {o === 'youth' ? 'Base' : o === 'regen' ? 'Regen' : 'Gerado (clube criado)'}
-            </button>
-          ))}
-        </div>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome *" className="input" />
-        <div className="flex gap-2">
-          <input value={positions} onChange={(e) => setPositions(e.target.value)} placeholder="Posições (ST, CAM)" className="input w-1/2" />
-          <input value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade" inputMode="numeric" className="input w-1/2" />
-        </div>
-        <div className="flex gap-2">
-          <input value={overall} onChange={(e) => setOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall original" inputMode="numeric" className="input w-1/2" />
-          <input value={potential} onChange={(e) => setPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial original" inputMode="numeric" className="input w-1/2" />
-        </div>
-        <input value={strengths} onChange={(e) => setStrengths(e.target.value)} placeholder="Pontos fortes" className="input" />
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observações" rows={2} className="input h-auto" />
-        {create.isError && <p className="text-[13px] text-error">{(create.error as Error).message}</p>}
-        <div className="flex gap-2 pt-1">
-          <button onClick={() => create.mutate()} disabled={!name || create.isPending} className="btn-primary flex-1">Salvar</button>
-          <button onClick={onClose} className="btn-secondary">Cancelar</button>
-        </div>
+    <Modal onClose={onClose}>
+      <h3 className="text-lg font-semibold text-ink">Adicionar jogador</h3>
+      <p className="text-[13px] text-steel">
+        Para jogadores reais da database do {versionLabel(version)}, use a Prospecção. Aqui entram os que só existem no seu save.
+      </p>
+      <div className="flex gap-2 text-sm">
+        {(['youth', 'regen', 'generated'] as const).map((o) => (
+          <button key={o} onClick={() => setOrigin(o)}
+            className={origin === o ? 'pill-tab-active' : 'pill-tab'}>
+            {o === 'youth' ? 'Base' : o === 'regen' ? 'Regen' : 'Gerado (clube criado)'}
+          </button>
+        ))}
       </div>
-    </div>
+      <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome *" className="input" />
+      <div className="flex gap-2">
+        <input value={positions} onChange={(e) => setPositions(e.target.value)} placeholder="Posições (ST, CAM)" className="input w-1/2" />
+        <input value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade" inputMode="numeric" className="input w-1/2" />
+      </div>
+      <div className="flex gap-2">
+        <input value={overall} onChange={(e) => setOverall(sanitizeStat(e.target.value))} placeholder="Overall original" inputMode="numeric" className="input w-1/2" />
+        <input value={potential} onChange={(e) => setPotential(sanitizeStat(e.target.value))} placeholder="Potencial original" inputMode="numeric" className="input w-1/2" />
+      </div>
+      <input value={strengths} onChange={(e) => setStrengths(e.target.value)} placeholder="Pontos fortes" className="input" />
+      <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observações" rows={2} className="input h-auto" />
+      {create.isError && <p className="text-[13px] text-error">{(create.error as Error).message}</p>}
+      <div className="flex gap-2 pt-1">
+        <button onClick={() => create.mutate()} disabled={!name || create.isPending} className="btn-primary flex-1">Salvar</button>
+        <button onClick={onClose} className="btn-secondary">Cancelar</button>
+      </div>
+    </Modal>
   )
 }
