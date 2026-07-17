@@ -11,6 +11,11 @@ export async function api<T = unknown>(path: string, init?: RequestInit): Promis
   } catch {
     throw new Error('Não foi possível falar com o servidor. Verifique sua conexão — ou se o servidor do app está no ar.')
   }
+  if (res.status === 401 && !path.startsWith('/api/auth/') && window.location.pathname !== '/login') {
+    // Sessão expirou/inexistente: manda para o login. As rotas /api/auth/* ficam de
+    // fora (o 401 delas é tratado no fluxo de login/contexto de sessão).
+    window.location.href = '/login'
+  }
   if (!res.ok) {
     let msg: string | null = null
     try { msg = (await res.json()).error ?? null } catch { /* corpo não-JSON */ }

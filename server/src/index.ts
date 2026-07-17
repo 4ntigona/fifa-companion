@@ -60,11 +60,17 @@ careerPlayerRoutes(app)
 prospectRoutes(app)
 importLocalRoutes(app)
 
-// API (recurso compartilhado): database do jogo + análise de fotos stateless
-gameDataRoutes(app)
-importRoutes(app)
-analyzeRoutes(app)
-syncRoutes(app)
+// Database do jogo + análise de fotos (proxy stateless): leitura exige login —
+// escopo próprio para o preHandler não vazar para sync (migração) e auth.
+await app.register(async (scope) => {
+  scope.addHook('preHandler', async (req, reply) => {
+    if (!req.user) return reply.code(401).send({ error: 'Não autenticado.' })
+  })
+  gameDataRoutes(scope)
+  analyzeRoutes(scope)
+})
+importRoutes(app) // guard próprio: loopback ou sessão de admin
+syncRoutes(app)   // GET fica público como fonte de migração (deprecado; sai na v0.3.000)
 
 // GC de blobs de restauração e sessões expiradas + seed do 1º admin — uma vez no boot.
 pruneExpiredSyncBlobs()
