@@ -1,68 +1,30 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import Fastify from 'fastify'
-import { syncRoutes } from './sync.js'
+import { syncRoutes, pruneExpiredSyncBlobs } from './sync.js'
 import { db } from '../db/index.js'
 
-// A suíte roda numa base efêmera via DATA_DIR (ver server/vitest.config.ts) — o cleanup abaixo
-// é redundante para a base real, mas mantido para não acumular lixo dentro da própria suíte.
 function buildApp() {
   const app = Fastify()
   syncRoutes(app)
   return app
 }
 
-const createdCodes: string[] = []
+const CODE = 'TEST-MIGR-AAAA'
 afterEach(() => {
-  for (const code of createdCodes.splice(0)) {
-    db.prepare(`DELETE FROM sync_blobs WHERE code = ?`).run(code)
-  }
+  db.prepare(`DELETE FROM sync_blobs WHERE code = ?`).run(CODE)
 })
 
-describe('rotas de sync (/api/sync)', () => {
-  it('POST cria um código e GET recupera o mesmo payload', async () => {
-    const app = buildApp()
-    const post = await app.inject({ method: 'POST', url: '/api/sync', payload: { data: '{"v":1}' } })
-    expect(post.statusCode).toBe(200)
-    const { code } = post.json()
-    createdCodes.push(code)
-    expect(code).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/)
+function seedBlob(data: string, updatedAt = "datetime('now')") {
+  db.prepare(`INSERT INTO sync_blobs (code, data, updated_at) VALUES (?, ?, ${updatedAt})`).run(CODE, data)
+}
 
-    const get = await app.inject({ method: 'GET', url: `/api/sync/${code}` })
+describe('rotas de sync deprecadas (só leitura para migração)', () => {
+  it('GET devolve o blob existente (case-insensitive)', async () => {
+    const app = buildApp()
+    seedBlob('{"v":1}')
+    const get = await app.inject({ method: 'GET', url: `/api/sync/${CODE.toLowerCase()}` })
     expect(get.statusCode).toBe(200)
     expect(get.json().data).toBe('{"v":1}')
-  })
-
-  it('GET é case-insensitive (normaliza para maiúsculas)', async () => {
-    const app = buildApp()
-    const post = await app.inject({ method: 'POST', url: '/api/sync', payload: { data: '{"x":1}' } })
-    const { code } = post.json()
-    createdCodes.push(code)
-
-    const get = await app.inject({ method: 'GET', url: `/api/sync/${code.toLowerCase()}` })
-    expect(get.statusCode).toBe(200)
-  })
-
-  it('PUT em código existente atualiza os dados', async () => {
-    const app = buildApp()
-    const post = await app.inject({ method: 'POST', url: '/api/sync', payload: { data: '{"a":1}' } })
-    const { code } = post.json()
-    createdCodes.push(code)
-
-    const put = await app.inject({ method: 'PUT', url: `/api/sync/${code}`, payload: { data: '{"a":2}' } })
-    expect(put.statusCode).toBe(200)
-
-    const get = await app.inject({ method: 'GET', url: `/api/sync/${code}` })
-    expect(get.json().data).toBe('{"a":2}')
-  })
-
-  it('PUT em código inexistente retorna 404 (não cria)', async () => {
-    const app = buildApp()
-    const fakeCode = 'ZZZZ-ZZZZ-ZZZZ'
-    const put = await app.inject({ method: 'PUT', url: `/api/sync/${fakeCode}`, payload: { data: '{"x":1}' } })
-    expect(put.statusCode).toBe(404)
-
-    const get = await app.inject({ method: 'GET', url: `/api/sync/${fakeCode}` })
-    expect(get.statusCode).toBe(404) // confirma que o PUT não criou o código
   })
 
   it('GET de código inexistente retorna 404', async () => {
@@ -71,23 +33,16 @@ describe('rotas de sync (/api/sync)', () => {
     expect(get.statusCode).toBe(404)
   })
 
-  it('DELETE remove o blob', async () => {
+  it('escrita foi removida: POST/PUT/DELETE não existem mais', async () => {
     const app = buildApp()
-    const post = await app.inject({ method: 'POST', url: '/api/sync', payload: { data: '{"d":1}' } })
-    const { code } = post.json()
-
-    const del = await app.inject({ method: 'DELETE', url: `/api/sync/${code}` })
-    expect(del.statusCode).toBe(200)
-    expect(del.json().deleted).toBe(1)
-
-    const get = await app.inject({ method: 'GET', url: `/api/sync/${code}` })
-    expect(get.statusCode).toBe(404)
-    // não precisa entrar em createdCodes: já foi removido pelo DELETE
+    expect((await app.inject({ method: 'POST', url: '/api/sync', payload: { data: 'x' } })).statusCode).toBe(404)
+    expect((await app.inject({ method: 'PUT', url: `/api/sync/${CODE}`, payload: { data: 'x' } })).statusCode).toBe(404)
+    expect((await app.inject({ method: 'DELETE', url: `/api/sync/${CODE}` })).statusCode).toBe(404)
   })
 
-  it('POST rejeita corpo inválido (400)', async () => {
-    const app = buildApp()
-    const post = await app.inject({ method: 'POST', url: '/api/sync', payload: {} })
-    expect(post.statusCode).toBe(400)
+  it('prune apaga blobs expirados e preserva os recentes', async () => {
+    seedBlob('{"v":1}', "datetime('now', '-400 days')")
+    pruneExpiredSyncBlobs()
+    expect(db.prepare(`SELECT 1 FROM sync_blobs WHERE code = ?`).get(CODE)).toBeUndefined()
   })
 })

@@ -16,21 +16,25 @@ Comandos individuais: `npm run typecheck`, `npm test`, `npm run build`. Não há
 > ainda aponta para 3.x). O pin escapa de um advisory crítico de RCE no happy-dom que as versões
 > antigas puxavam. `npm i vitest@latest` seria um DOWNGRADE — não faça.
 
-## Modelo de dados (contraintuitivo — leia antes de mexer)
+## Modelo de dados (leia antes de mexer)
 
-Os dados do usuário (carreiras, elencos, jogadores da base/regens, snapshots de evolução,
-prospecção/shortlist e as **chaves de IA — BYOK**) vivem no **localStorage do navegador**
-(`web/src/store.ts`), **não no servidor**. O servidor é essencialmente stateless quanto ao
-usuário; ele guarda apenas:
+Desde a v0.3.000 o app tem **contas reais**: os dados do usuário (carreiras, elencos,
+jogadores da base/regens, snapshots, prospecção) vivem no **servidor**, por `user_id`
+(`server/src/routes/careers.ts` etc.), atrás de sessão por cookie (`server/src/auth/`).
+Cadastro é fechado: **admin cria usuários** (senha temporária + troca forçada no 1º login);
+primeiro admin é semeado via `ADMIN_EMAIL`/`ADMIN_PASSWORD` no boot com `users` vazio.
 
-- A database original do jogo, somente leitura (`sofifa_players` / `sofifa_teams`, importada uma
-  vez por versão a partir de dumps públicos do SoFIFA/Kaggle).
-- Blobs opacos de backup (`sync_blobs`) — usados só pela "chave de restauração" opcional, para o
-  usuário levar os dados para outro aparelho sem precisar de arquivo. O código de 12 caracteres é
-  a única credencial; **nunca deve conter as chaves de IA do usuário** (ver `web/src/store.ts`
-  `stripSecrets`/`snapshotForSync`).
-- Nenhuma persistência de chave de provedor de IA: `/api/analyze` é um proxy stateless — o
-  navegador manda a chave BYOK a cada request; o servidor nunca grava.
+O que continua fora do servidor / especial:
+
+- **Chaves de IA (BYOK) ficam no localStorage do navegador** (`web/src/store.ts`) — invariante:
+  o servidor NUNCA persiste chave de provedor; `/api/analyze` é um proxy stateless (o navegador
+  manda a chave a cada request).
+- A database original do jogo é somente leitura (`sofifa_players` / `sofifa_teams`, importada
+  por versão a partir de dumps públicos do SoFIFA/Kaggle) e compartilhada entre usuários.
+  **Migrations nunca tocam nessas tabelas.**
+- `sync_blobs` (chave de restauração do modelo antigo) está **deprecado**: só `GET /api/sync/:code`
+  existe, como fonte da migração one-shot (`/api/me/import-local`); some numa release futura.
+- Schema evolui via `server/src/db/migrations/00N-*.sql` (runner em `server/src/db/index.ts`).
 
 ## Invariante de produto
 

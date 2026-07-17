@@ -8,6 +8,30 @@ Este projeto segue o [PrideVer](https://pridever.org) — `PROUD.DEFAULT.SHAME`:
 
 O terceiro segmento usa 3 dígitos por decisão do projeto (`0.2.000`, `0.2.001`, …).
 
+## 0.3.000 — 2026-07-17
+
+**Contas reais + desmembramento admin/frontend.** O app deixa o modelo local-first: os dados de
+carreira migram do localStorage para o servidor, por usuário, atrás de login.
+
+- **Auth**: sessão por cookie (HttpOnly/SameSite=Lax, SHA-256 do token no banco, 90 dias com
+  expiração deslizante), senha com scrypt, check de Origin em mutações, rate-limit no login.
+  Cadastro fechado: admin cria usuários com senha temporária (troca forçada no 1º login);
+  primeiro admin semeado via `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
+- **Dados per-user no servidor**: carreiras (criação carrega o elenco real server-side),
+  jogadores, snapshots, prospecção e captura em lote — com isolamento por `user_id` testado.
+  Migrations sequenciais (`schema_migrations`) sem tocar em `sofifa_players`/`sofifa_teams`.
+- **Migração**: banner one-shot pós-login importa os dados do modelo antigo (localStorage ou
+  chave de restauração) via `/api/me/import-local`, remapeando ids em transação.
+- **Área admin** (`/admin`): databases do jogo (import movido da Home) e gestão de usuários
+  (criar/desativar/promover/resetar senha/derrubar sessões/excluir, com guardas de último admin).
+- **Deprecações**: chave de restauração (só GET de migração), auto-sync, backup em arquivo,
+  `ADMIN_TOKEN` (import agora aceita loopback ou admin logado).
+- **Invariantes preservadas**: chaves de IA (BYOK) seguem só no navegador; `/api/analyze`
+  continua proxy stateless; dados do jogo intocados (validado contra cópia da base real).
+
+Deploy: no primeiro boot desta versão, defina `ADMIN_EMAIL`/`ADMIN_PASSWORD` (ver
+`ecosystem.config.cjs`) — sem isso ninguém loga. Depois remova do ambiente.
+
 ## 0.2.000 — 2026-07-14
 
 Baseline do versionamento, definida arbitrariamente sobre o estado atual do app.

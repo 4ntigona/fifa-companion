@@ -14,21 +14,17 @@ O app nunca inventa nem reduz atributos — o que não foi importado aparece com
 
 ## Arquitetura (onde ficam os dados)
 
-- **No seu navegador (localStorage):** suas carreiras, elencos, jogadores da base/regens,
-  snapshots de evolução, prospecção e as **chaves de IA (BYOK)**. Nada disso vai para o servidor
-  automaticamente.
-- **Chave de restauração (⚙️ Configurações):** gere um código único (ex. `QTUV-GJSA-8Z6S`) que
-  guarda uma cópia dos seus dados no servidor — não precisa exportar/importar arquivo toda vez.
-  Em outro aparelho, cole o código e restaure. Quem tiver o código acessa os dados: trate-o como
-  senha. Pode gerar uma chave nova (invalida a antiga), atualizar os dados na chave atual ou
-  **remover** a chave do servidor a qualquer momento (os dados no dispositivo não são afetados).
-  **As chaves de IA (BYOK) NÃO são incluídas** nem na chave de restauração nem no backup — por
-  segurança, você reconfigura a chave de IA em cada dispositivo/após restaurar.
-- **Backup em arquivo (⚙️ Configurações):** alternativa manual — exporta/importa um `.json` (também
-  sem as chaves de IA).
-- **No servidor (SQLite, compartilhado, somente leitura):** a database original do jogo
-  (`sofifa_players` / `sofifa_teams`, importada uma vez por versão) e, opcionalmente, os blobs das
-  chaves de restauração (tabela `sync_blobs` — texto opaco, sem leitura/indexação pelo app).
+- **Na sua conta (servidor, SQLite):** carreiras, elencos, jogadores da base/regens, snapshots
+  de evolução e prospecção — por usuário, atrás de login (sessão por cookie). O cadastro é
+  fechado: o administrador cria usuários com senha temporária (troca obrigatória no 1º login).
+- **No seu navegador (localStorage):** apenas as **chaves de IA (BYOK)** — elas nunca vão para
+  o servidor; você as configura em cada dispositivo (⚙️ Configurações).
+- **Área admin (`/admin`):** importação das databases do jogo e gestão de usuários
+  (criar/desativar/promover/resetar senha/excluir).
+- **Database do jogo (compartilhada, somente leitura):** `sofifa_players` / `sofifa_teams`,
+  importada uma vez por versão a partir dos dumps públicos.
+- **Migração do modelo antigo:** quem tinha dados no localStorage (ou uma chave de restauração)
+  vê um banner após o login para importá-los para a conta — one-shot, sem perder nada.
 - **Análise de fotos:** stateless. O navegador manda a imagem + o provedor/chave/modelo escolhidos
   para `POST /api/analyze`, que só faz proxy para o provedor de IA (Anthropic, OpenAI, Gemini ou
   OpenRouter) e devolve o JSON extraído. A chave de IA nunca é gravada no servidor.
@@ -149,14 +145,15 @@ deploy. Guarde `server/data/` num backup se quiser preservar a importação.
 
 ## Estrutura
 
-- `server/` — Fastify + SQLite (better-sqlite3). Database do jogo (somente leitura) + rotas
-  `/api/versions`, `/api/leagues/:v`, `/api/teams/:v`, `/api/team/:v/:id`, `/api/players/:v`,
-  `/api/player/:v/:id` (leitura), `/api/import/*`
-  (importação), `/api/analyze` + `/api/test-ai` (proxy de IA stateless) e `/api/sync/*`
-  (blob opaco da chave de restauração — criar/ler/atualizar/apagar por código). Em produção,
-  também serve `web/dist` com fallback de SPA.
-- `web/src/store.ts` — armazenamento local (localStorage) das carreiras + BYOK + chave de
-  restauração + export/import de arquivo.
+- `server/` — Fastify + SQLite (better-sqlite3). Auth por sessão (`/api/auth/*`), dados
+  per-user (`/api/careers*`, `/api/career-players/*`, `/api/prospects/*`, `/api/me/import-local`),
+  admin (`/api/admin/users*`, `/api/import/*`), database do jogo somente leitura
+  (`/api/versions`, `/api/leagues/:v`, `/api/teams/:v`, `/api/team/:v/:id`, `/api/players/:v`,
+  `/api/player/:v/:id`) e `/api/analyze` + `/api/test-ai` (proxy de IA stateless).
+  `GET /api/sync/:code` sobrevive deprecado só como fonte de migração. Em produção, também
+  serve `web/dist` com fallback de SPA. Schema evolui via `src/db/migrations/`.
+- `web/src/store.ts` — só o que é local por design: chaves BYOK de IA + leitor do blob legado.
+- `web/src/api/user-data.ts` — client das rotas de dados da conta.
 - `web/` — React + Vite + Tailwind (PWA, PT-BR, mobile-first).
 
 ## Conceitos
