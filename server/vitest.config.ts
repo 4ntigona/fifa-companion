@@ -13,5 +13,8 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     env: { DATA_DIR: testDataDir },
+    // Arquivos em série: cada arquivo importa o singleton do db e roda as
+    // migrations no companion.db compartilhado — em paralelo isso corrompe/trava.
+    fileParallelism: false,
   },
 })

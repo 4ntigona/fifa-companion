@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
 import fastifyStatic from '@fastify/static'
 import helmet from '@fastify/helmet'
@@ -10,11 +11,16 @@ import { gameDataRoutes } from './routes/game-data.js'
 import { importRoutes } from './routes/import.js'
 import { analyzeRoutes } from './routes/analyze.js'
 import { syncRoutes, pruneExpiredSyncBlobs } from './routes/sync.js'
+import { authRoutes } from './routes/auth.js'
+import { authPlugin } from './auth/plugin.js'
+import { seedAdminIfEmpty } from './auth/seed-admin.js'
+import { pruneExpiredSessions } from './auth/sessions.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
 // body grande o bastante para as fotos em base64 (câmera do celular)
-const app = Fastify({ logger: true, bodyLimit: 30 * 1024 * 1024 })
+// trustProxy: atrás do proxy HTTPS do CloudPanel — IP real do cliente p/ rate limit.
+const app = Fastify({ logger: true, bodyLimit: 30 * 1024 * 1024, trustProxy: true })
 
 // Headers de hardening — CSP em report-only por ora (ver Step 5 do plano 004),
 // para não quebrar o bundle Vite/PWA antes de calibrar.
@@ -39,14 +45,21 @@ await app.register(rateLimit, { max: 120, timeWindow: '1 minute' })
 const origins = process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean)
 await app.register(cors, { origin: origins && origins.length ? origins : true })
 
+// Sessões por cookie + usuário anexado a cada request
+await app.register(cookie)
+authPlugin(app)
+authRoutes(app)
+
 // API (recurso compartilhado): database do jogo + análise de fotos stateless
 gameDataRoutes(app)
 importRoutes(app)
 analyzeRoutes(app)
 syncRoutes(app)
 
-// GC de blobs de restauração expirados — uma vez no boot.
+// GC de blobs de restauração e sessões expiradas + seed do 1º admin — uma vez no boot.
 pruneExpiredSyncBlobs()
+pruneExpiredSessions()
+seedAdminIfEmpty(app.log)
 
 // Front buildado (SPA). Em produção o mesmo processo serve API + app.
 const webDist = process.env.WEB_DIST
