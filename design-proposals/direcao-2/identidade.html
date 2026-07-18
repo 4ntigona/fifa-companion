@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direção 2 — Caderno do Olheiro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Alegreya+Sans:wght@400;500;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Alegreya Sans', sans-serif; background: #eceae2; color: #232936; padding: 48px 24px; }
+  .wrap { max-width: 900px; margin: 0 auto; display: grid; gap: 32px; }
+  h1 { font-family: 'Newsreader', serif; font-size: 42px; font-weight: 600; letter-spacing: -0.015em; }
+  h1 .hl { position: relative; white-space: nowrap; }
+  h1 .hl::before { content: ''; position: absolute; inset: 8% -2% 4% -1%; background: #ffe14d; transform: skewX(-6deg) rotate(-0.6deg); z-index: -1; }
+  h2 { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: #707a89; margin-bottom: 12px; }
+  .lead { font-size: 17.5px; line-height: 1.6; max-width: 64ch; color: #3a4150; }
+  .card { background: #f7f6f1; border: 1px solid #dcd9cd; border-radius: 4px; padding: 24px; position: relative; }
+  .card.ruled { background-image: repeating-linear-gradient(#f7f6f1 0 27px, #e4e1d6 27px 28px); }
+  .card.margined { padding-left: 40px; }
+  .card.margined::before { content: ''; position: absolute; left: 26px; top: 0; bottom: 0; width: 1.5px; background: rgba(196,71,47,.45); }
+  .sw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .sw { border-radius: 4px; overflow: hidden; border: 1px solid #dcd9cd; }
+  .sw .chip { height: 64px; }
+  .sw .meta { padding: 10px 12px; font-size: 12.5px; background: #fff; }
+  .sw .meta b { display: block; font-weight: 700; }
+  .sw .meta code { font-family: 'Courier Prime', monospace; color: #707a89; font-size: 11.5px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  @media (max-width: 720px){ .cols { grid-template-columns: 1fr; } }
+  .type-display { font-family: 'Newsreader', serif; font-size: 32px; font-weight: 600; line-height: 1.15; }
+  .type-anno { font-family: 'Newsreader', serif; font-style: italic; font-size: 19px; color: #2d5fad; margin-top: 8px; }
+  .type-body { font-size: 16.5px; line-height: 1.55; margin-top: 8px; }
+  .type-num { font-family: 'Courier Prime', monospace; font-weight: 700; font-size: 26px; margin-top: 10px; }
+  .hl-demo { background: linear-gradient(104deg, transparent 2%, #ffe14d 3%, #ffe14d 96%, transparent 97%); padding: 0 4px; }
+  .stamp { display: inline-block; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: #c4472f; border: 2px solid #c4472f; border-radius: 3px; padding: 4px 10px; transform: rotate(-2deg); }
+  .stamp.green { color: #316b46; border-color: #316b46; }
+  ul.rules { list-style: none; display: grid; gap: 10px; font-size: 15.5px; line-height: 1.55; }
+  ul.rules li { padding-left: 22px; position: relative; }
+  ul.rules li::before { content: '—'; position: absolute; left: 0; color: #c4472f; font-weight: 700; }
+  .dark-note { background: #15181f; color: #e9e6dc; border-radius: 4px; padding: 24px; border: 1px solid #2a2f3c; }
+  .dark-note h2 { color: #8d94a5; }
+  .dark-note .hl-demo { background: linear-gradient(104deg, transparent 2%, #f2ce2e 3%, #f2ce2e 96%, transparent 97%); color: #15181f; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Direção 2 — <span class="hl">Caderno do Olheiro</span></h1>
+    <p class="lead" style="margin-top:16px">
+      O caderno que o olheiro leva ao estádio: linhas pautadas, margem à esquerda, achados
+      marcados com marca-texto e vereditos carimbados. O app vira o registro vivo da carreira —
+      papel disciplinado, tinta de caneta, e o amarelo do marca-texto reservado para o que
+      realmente importa. Editorial, quente, pessoal.
+    </p>
+  </header>
+
+  <section class="card">
+    <h2>Paleta — claro (papel)</h2>
+    <div class="sw-grid">
+      <div class="sw"><div class="chip" style="background:#f7f6f1"></div><div class="meta"><b>Papel</b><code>#f7f6f1</code></div></div>
+      <div class="sw"><div class="chip" style="background:#e4e1d6"></div><div class="meta"><b>Pauta (linhas)</b><code>#e4e1d6</code></div></div>
+      <div class="sw"><div class="chip" style="background:#232936"></div><div class="meta"><b>Tinta</b><code>#232936</code></div></div>
+      <div class="sw"><div class="chip" style="background:#ffe14d"></div><div class="meta"><b>Marca-texto</b><code>#ffe14d</code></div></div>
+      <div class="sw"><div class="chip" style="background:#2d5fad"></div><div class="meta"><b>Caneta azul (ações)</b><code>#2d5fad</code></div></div>
+      <div class="sw"><div class="chip" style="background:#c4472f"></div><div class="meta"><b>Lápis vermelho</b><code>#c4472f</code></div></div>
+    </div>
+    <h2 style="margin-top:24px">Paleta — escuro (caderno sob a luminária)</h2>
+    <div class="sw-grid">
+      <div class="sw"><div class="chip" style="background:#15181f"></div><div class="meta"><b>Papel escuro</b><code>#15181f</code></div></div>
+      <div class="sw"><div class="chip" style="background:#2a2f3c"></div><div class="meta"><b>Pauta</b><code>#2a2f3c</code></div></div>
+      <div class="sw"><div class="chip" style="background:#e9e6dc"></div><div class="meta"><b>Tinta clara</b><code>#e9e6dc</code></div></div>
+      <div class="sw"><div class="chip" style="background:#f2ce2e"></div><div class="meta"><b>Marca-texto</b><code>#f2ce2e</code></div></div>
+      <div class="sw"><div class="chip" style="background:#7da4e3"></div><div class="meta"><b>Caneta azul</b><code>#7da4e3</code></div></div>
+    </div>
+    <p style="margin-top:16px;font-size:14.5px;color:#707a89">
+      Sem preto puro e sem branco puro: papel e tinta. O marca-texto é o único elemento que
+      grita — por isso só aparece sobre o dado decisivo de cada tela.
+    </p>
+  </section>
+
+  <div class="cols">
+    <section class="card">
+      <h2>Tipografia</h2>
+      <p class="type-display">Newsreader para títulos,<br>como notas de margem</p>
+      <p class="type-anno">itálico azul para as anotações do olheiro</p>
+      <p class="type-body">Alegreya Sans no corpo — humanista, quente, excelente em PT-BR. Três vozes claras: título, anotação, dado.</p>
+      <p class="type-num">94 &rarr; 95 &nbsp; €100.0M</p>
+      <p style="font-size:13.5px;color:#707a89;margin-top:6px">Courier Prime para números — datilografado como uma súmula.</p>
+    </section>
+    <section class="card ruled margined">
+      <h2>Assinatura — marca-texto & carimbos</h2>
+      <p style="font-size:16px;line-height:28px">
+        O potencial de <span class="hl-demo"><b>Munir, 73 → 85</b></span> é o achado da semana.<br>
+        Veredito do olheiro: <span class="stamp green">Contratar</span><br>
+        Vermaelen, 29 anos, estagnado: <span class="stamp">Vender</span>
+      </p>
+    </section>
+  </div>
+
+  <div class="cols">
+    <section class="card">
+      <h2>Forma & movimento</h2>
+      <ul class="rules">
+        <li>Listas assentam em linhas pautadas; a página tem margem vermelha à esquerda, como um caderno de verdade.</li>
+        <li>Raio quase zero (4px) — papel tem canto, não bolha. Nada de sombra profunda: no máximo a sombra de uma folha sobre outra.</li>
+        <li>Movimento: o marca-texto "risca" ao aparecer (largura 0→100% em 240ms). Reduced-motion: aparece pronto.</li>
+        <li>Tom de voz: o olheiro experiente — observação curta, veredito claro.</li>
+      </ul>
+    </section>
+    <section class="dark-note">
+      <h2>Modo escuro</h2>
+      <p style="font-size:15.5px;line-height:1.6">O mesmo caderno à noite, sob a luminária:
+      papel azulado escuro, tinta clara, e o <span class="hl-demo">marca-texto continua amarelo</span> —
+      quente contra o frio da página.</p>
+    </section>
+  </div>
+</div>
+</body>
+</html>

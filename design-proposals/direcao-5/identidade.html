@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direção 5 — Dossiê</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;800&family=Fragment+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Libre Franklin', sans-serif; background: #e5ddcc; color: #2b2a26; padding: 48px 24px; }
+  .wrap { max-width: 900px; margin: 0 auto; display: grid; gap: 32px; }
+  h1 { font-size: 38px; font-weight: 800; text-transform: uppercase; letter-spacing: .01em; }
+  h1 .stamp-inline { display: inline-block; color: #b3372b; border: 3px solid #b3372b; border-radius: 4px; padding: 0 10px; transform: rotate(-2deg); }
+  h2 { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: #7a746a; margin-bottom: 12px; }
+  .lead { font-size: 17px; line-height: 1.55; max-width: 62ch; color: #46443d; }
+  .folder { background: #f9f6ee; border: 1px solid #ddd5c2; border-radius: 0 8px 8px 8px; padding: 24px; position: relative; margin-top: 26px; }
+  .folder .ftab { position: absolute; top: -25px; left: -1px; background: #f9f6ee; border: 1px solid #ddd5c2; border-bottom: 0; border-radius: 6px 6px 0 0; padding: 4px 16px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .14em; color: #7a746a; }
+  .sw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .sw { border-radius: 6px; overflow: hidden; border: 1px solid #ddd5c2; }
+  .sw .chip { height: 64px; }
+  .sw .meta { padding: 10px 12px; font-size: 12px; background: #fdfbf5; }
+  .sw .meta b { display: block; font-weight: 700; }
+  .sw .meta code { font-family: 'Fragment Mono', monospace; color: #7a746a; font-size: 11px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  @media (max-width: 720px){ .cols { grid-template-columns: 1fr; } }
+  .type-display { font-size: 30px; font-weight: 800; text-transform: uppercase; line-height: 1.12; }
+  .type-body { font-size: 16px; line-height: 1.55; margin-top: 8px; }
+  .type-num { font-family: 'Fragment Mono', monospace; font-size: 24px; margin-top: 10px; color: #2f4f8f; }
+  .stamp { display: inline-block; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; border: 2.5px solid currentColor; border-radius: 4px; padding: 4px 10px; transform: rotate(-2.5deg); }
+  .stamp.red { color: #b3372b; }
+  .stamp.green { color: #4a6d4a; }
+  .stamp.blue { color: #2f4f8f; }
+  .photo { position: relative; display: inline-block; background: #fdfbf5; border: 1px solid #ddd5c2; padding: 14px 18px; margin: 8px; }
+  .photo::before, .photo::after, .photo .c3, .photo .c4 { content: ''; position: absolute; width: 16px; height: 16px; border: 3px solid #b9a77c; }
+  .photo::before { top: -4px; left: -4px; border-right: 0; border-bottom: 0; }
+  .photo::after { top: -4px; right: -4px; border-left: 0; border-bottom: 0; }
+  .photo .c3 { bottom: -4px; left: -4px; border-right: 0; border-top: 0; }
+  .photo .c4 { bottom: -4px; right: -4px; border-left: 0; border-top: 0; }
+  ul.rules { list-style: none; display: grid; gap: 10px; font-size: 15px; line-height: 1.5; }
+  ul.rules li { padding-left: 22px; position: relative; }
+  ul.rules li::before { content: ''; position: absolute; left: 0; top: 7px; width: 10px; height: 10px; background: #2f4f8f; border-radius: 2px; }
+  .dark-note { background: #1c1a16; color: #ece7da; border-radius: 0 8px 8px 8px; padding: 24px; border: 1px solid #3a362c; }
+  .dark-note h2 { color: #9c9484; }
+  .dark-note .carbon { color: #8fa8d8; }
+  .perf { border: 0; border-top: 2px dashed #ddd5c2; margin: 16px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Direção 5 — <span class="stamp-inline">Dossiê</span></h1>
+    <p class="lead" style="margin-top:20px">
+      O departamento de futebol do clube, anos 80: pastas de papel kraft com abas, fichas
+      datilografadas em cópia-carbono azul, fotos presas com cantoneiras e vereditos carimbados
+      em vermelho. Cada jogador é um dossiê; cada carreira, um arquivo. Institucional, tátil e
+      sério — o app como o arquivo-morto mais organizado do futebol.
+    </p>
+  </header>
+
+  <section class="folder">
+    <span class="ftab">Pasta 01 · Cores</span>
+    <h2>Paleta — claro (arquivo de dia)</h2>
+    <div class="sw-grid">
+      <div class="sw"><div class="chip" style="background:#efe9dd"></div><div class="meta"><b>Kraft</b><code>#efe9dd</code></div></div>
+      <div class="sw"><div class="chip" style="background:#f9f6ee"></div><div class="meta"><b>Sulfite (pasta)</b><code>#f9f6ee</code></div></div>
+      <div class="sw"><div class="chip" style="background:#2b2a26"></div><div class="meta"><b>Tinta</b><code>#2b2a26</code></div></div>
+      <div class="sw"><div class="chip" style="background:#2f4f8f"></div><div class="meta"><b>Carbono (dados)</b><code>#2f4f8f</code></div></div>
+      <div class="sw"><div class="chip" style="background:#b3372b"></div><div class="meta"><b>Carimbo vermelho</b><code>#b3372b</code></div></div>
+      <div class="sw"><div class="chip" style="background:#4a6d4a"></div><div class="meta"><b>Verde de aprovação</b><code>#4a6d4a</code></div></div>
+    </div>
+    <h2 style="margin-top:24px">Paleta — escuro (arquivo à noite)</h2>
+    <div class="sw-grid">
+      <div class="sw"><div class="chip" style="background:#1c1a16"></div><div class="meta"><b>Kraft escuro</b><code>#1c1a16</code></div></div>
+      <div class="sw"><div class="chip" style="background:#26231c"></div><div class="meta"><b>Pasta</b><code>#26231c</code></div></div>
+      <div class="sw"><div class="chip" style="background:#ece7da"></div><div class="meta"><b>Tinta clara</b><code>#ece7da</code></div></div>
+      <div class="sw"><div class="chip" style="background:#8fa8d8"></div><div class="meta"><b>Carbono</b><code>#8fa8d8</code></div></div>
+      <div class="sw"><div class="chip" style="background:#d96a54"></div><div class="meta"><b>Carimbo</b><code>#d96a54</code></div></div>
+    </div>
+    <p style="margin-top:16px;font-size:14px;color:#7a746a">
+      Papel e tinta, nunca branco e preto puros. O azul-carbono é a cor do DADO (números,
+      valores); o vermelho só carimba veredito. Nada de gradiente.
+    </p>
+  </section>
+
+  <div class="cols">
+    <section class="folder">
+      <span class="ftab">Pasta 02 · Tipo</span>
+      <p class="type-display">Libre Franklin 800 —<br>o formulário oficial</p>
+      <p class="type-body">Uma família só (Franklin) do título ao corpo: burocrática no bom sentido, sólida, flexível. </p>
+      <p class="type-num">94 -> 95&nbsp;&nbsp;€100.0M</p>
+      <p style="font-size:13px;color:#7a746a;margin-top:6px">Fragment Mono para números — a máquina de escrever do departamento, em carbono azul.</p>
+    </section>
+    <section class="folder">
+      <span class="ftab">Pasta 03 · Assinatura</span>
+      <h2>Abas, cantoneiras & carimbos</h2>
+      <div class="photo">L. MESSI · RW<span class="c3"></span><span class="c4"></span></div>
+      <p style="margin-top:10px"><span class="stamp green">Aprovado</span> <span class="stamp blue">Observando</span> <span class="stamp red">Vender</span></p>
+      <p style="font-size:14px;color:#7a746a;margin-top:10px">Toda seção é uma pasta com aba; fotos de jogador levam cantoneiras; vereditos são carimbos girados. Divisores são picotes de arquivo.</p>
+      <hr class="perf">
+    </section>
+  </div>
+
+  <div class="cols">
+    <section class="folder">
+      <span class="ftab">Pasta 04 · Regras</span>
+      <ul class="rules">
+        <li>Raio: 0 em cima da aba, 8px no resto da pasta — o canto da pasta de verdade.</li>
+        <li>Sombra única: uma pasta sobre a outra (2px, dura). Nada flutua.</li>
+        <li>Movimento: a pasta "abre" — conteúdo desliza 8px de baixo (160ms). Reduced-motion: sem deslize.</li>
+        <li>Tom de voz: o secretário do departamento — protocolo, data e fato.</li>
+      </ul>
+    </section>
+    <section class="dark-note">
+      <h2>Modo escuro</h2>
+      <p style="font-size:15px;line-height:1.55">O arquivo à noite: kraft queimado, tinta clara,
+      <span class="carbon">carbono mais luminoso</span> — como ler os dossiês com a luz da mesa
+      acesa. Materiais idênticos, hora diferente.</p>
+    </section>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direção 4 — Placar de Flip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Karla', sans-serif; background: #e4e7e4; color: #1b1f22; padding: 48px 24px; }
+  .wrap { max-width: 900px; margin: 0 auto; display: grid; gap: 32px; }
+  h1 { font-family: 'Oswald', sans-serif; font-size: 40px; font-weight: 600; text-transform: uppercase; letter-spacing: .01em; }
+  .flap-demo { display: inline-flex; gap: 3px; vertical-align: middle; }
+  .flap-demo .t { position: relative; background: #22262a; color: #f2efe6; font-family: 'Oswald', sans-serif; font-weight: 500; border-radius: 6px; padding: 2px 10px; display: inline-block; }
+  .flap-demo .t::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(0,0,0,.55); }
+  h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: #626a6e; margin-bottom: 12px; }
+  .lead { font-size: 17px; line-height: 1.55; max-width: 62ch; color: #343b3f; }
+  .card { background: #fff; border: 1px solid #d7dbd7; border-radius: 10px; padding: 24px; }
+  .sw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .sw { border-radius: 8px; overflow: hidden; border: 1px solid #d7dbd7; }
+  .sw .chip { height: 64px; }
+  .sw .meta { padding: 10px 12px; font-size: 12px; background: #fff; }
+  .sw .meta b { display: block; font-weight: 700; }
+  .sw .meta code { font-family: 'Oswald', sans-serif; color: #626a6e; font-size: 11px; letter-spacing: .04em; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  @media (max-width: 720px){ .cols { grid-template-columns: 1fr; } }
+  .type-display { font-family: 'Oswald', sans-serif; font-size: 32px; font-weight: 600; text-transform: uppercase; line-height: 1.12; }
+  .type-body { font-size: 16px; line-height: 1.55; margin-top: 8px; }
+  ul.rules { list-style: none; display: grid; gap: 10px; font-size: 15px; line-height: 1.5; }
+  ul.rules li { padding-left: 22px; position: relative; }
+  ul.rules li::before { content: ''; position: absolute; left: 0; top: 7px; width: 10px; height: 10px; border-radius: 2px; background: #e08c00; }
+  .dark-note { background: #101214; color: #f2efe6; border-radius: 10px; padding: 24px; border: 1px solid #2c3034; }
+  .dark-note h2 { color: #97a0a4; }
+  .dark-note .amber { color: #ffb547; }
+  .board-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed #d7dbd7; font-size: 15px; }
+  .board-row:last-child { border-bottom: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Direção 4 — Placar <span class="flap-demo"><span class="t">DE</span><span class="t">FLIP</span></span></h1>
+    <p class="lead" style="margin-top:16px">
+      O placar mecânico de estádio — telhas de flip que viram uma a uma para atualizar o jogo.
+      Toda a informação vive em "linhas de placar": nome à esquerda, telhas escuras com os
+      números à direita. Materiais físicos (concreto, esmalte, âmbar), zero brilho digital.
+      Nostálgico sem ser retrô-caricato; denso sem ser frio.
+    </p>
+  </header>
+
+  <section class="card">
+    <h2>Paleta — claro (estádio de dia)</h2>
+    <div class="sw-grid">
+      <div class="sw"><div class="chip" style="background:#eef0ee"></div><div class="meta"><b>Concreto</b><code>#eef0ee</code></div></div>
+      <div class="sw"><div class="chip" style="background:#ffffff;border-bottom:1px solid #eee"></div><div class="meta"><b>Superfície</b><code>#ffffff</code></div></div>
+      <div class="sw"><div class="chip" style="background:#1b1f22"></div><div class="meta"><b>Tinta</b><code>#1b1f22</code></div></div>
+      <div class="sw"><div class="chip" style="background:#22262a"></div><div class="meta"><b>Telha (flip)</b><code>#22262a</code></div></div>
+      <div class="sw"><div class="chip" style="background:#f2efe6"></div><div class="meta"><b>Creme das telhas</b><code>#f2efe6</code></div></div>
+      <div class="sw"><div class="chip" style="background:#e08c00"></div><div class="meta"><b>Âmbar (ação)</b><code>#e08c00</code></div></div>
+    </div>
+    <h2 style="margin-top:24px">Paleta — escuro (noite de jogo)</h2>
+    <div class="sw-grid">
+      <div class="sw"><div class="chip" style="background:#101214"></div><div class="meta"><b>Grafite</b><code>#101214</code></div></div>
+      <div class="sw"><div class="chip" style="background:#191c1f"></div><div class="meta"><b>Superfície</b><code>#191c1f</code></div></div>
+      <div class="sw"><div class="chip" style="background:#f2efe6"></div><div class="meta"><b>Texto creme</b><code>#f2efe6</code></div></div>
+      <div class="sw"><div class="chip" style="background:#23272b"></div><div class="meta"><b>Telha</b><code>#23272b</code></div></div>
+      <div class="sw"><div class="chip" style="background:#ffb547"></div><div class="meta"><b>Âmbar</b><code>#ffb547</code></div></div>
+    </div>
+    <p style="margin-top:16px;font-size:14px;color:#626a6e">
+      A telha escura com texto creme é constante nos dois temas — o placar não muda de material
+      quando anoitece, só a arquibancada ao redor.
+    </p>
+  </section>
+
+  <div class="cols">
+    <section class="card">
+      <h2>Tipografia</h2>
+      <p class="type-display">Oswald condensada<br>como letreiro</p>
+      <p class="type-body">Karla no corpo — humanista, larga, contrapõe a condensação do letreiro. Números sempre dentro de telhas, sempre tabulares.</p>
+      <div style="margin-top:12px" class="flap-demo"><span class="t" style="font-size:24px;padding:4px 12px">94</span><span class="t" style="font-size:24px;padding:4px 12px">→</span><span class="t" style="font-size:24px;padding:4px 12px">95</span></div>
+    </section>
+    <section class="card">
+      <h2>Assinatura — a linha de placar</h2>
+      <div class="board-row"><span style="flex:1;font-weight:700">L. Messi <span style="color:#626a6e;font-weight:400">RW · 28</span></span><span class="flap-demo"><span class="t">94</span><span class="t" style="opacity:.65">95</span></span></div>
+      <div class="board-row"><span style="flex:1;font-weight:700">Munir <span style="color:#626a6e;font-weight:400">ST · 19</span></span><span class="flap-demo"><span class="t" style="background:#e08c00;color:#1b1f22">+3</span><span class="t">76</span></span></div>
+      <p style="font-size:14px;color:#626a6e;margin-top:10px">Tudo que é número vira telha; a telha âmbar é reservada ao crescimento. Divisores tracejados como furos de fixação do painel.</p>
+    </section>
+  </div>
+
+  <div class="cols">
+    <section class="card">
+      <h2>Forma & movimento</h2>
+      <ul class="rules">
+        <li>Raio 6px nas telhas, 10px nos cards — cantos de esmalte, não de vidro.</li>
+        <li>Movimento: o flip — número novo gira em rotateX (220ms) quando um dado atualiza. É a única animação do app. Reduced-motion: troca seca.</li>
+        <li>Sombras mínimas; profundidade vem do contraste telha × superfície.</li>
+        <li>Tom de voz: o anunciador do estádio — frases curtas, factuais, em maiúsculas só no letreiro.</li>
+      </ul>
+    </section>
+    <section class="dark-note">
+      <h2>Modo escuro</h2>
+      <p style="font-size:15px;line-height:1.55">A noite de jogo: grafite profundo, telhas quase
+      da cor do fundo (o creme dos números carrega o contraste), e o <span class="amber">âmbar
+      aceso</span> como as lâmpadas do placar. O claro é o mesmo estádio numa tarde de sábado.</p>
+    </section>
+  </div>
+</div>
+</body>
+</html>
