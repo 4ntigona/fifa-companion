@@ -51,8 +51,11 @@ atributos. O que não foi importado aparece como indisponível, não como valor 
 
 ## Estética
 
-Segue `DESIGN.md` — tema terminal (marca PEDRO\RIVERA): IBM Plex Mono, paleta preto/vermelho,
-**raio de borda zero** em todo o app. Decisão intencional, não drift.
+Segue `DESIGN.md` — identidade **Prancheta / "Goleiro 92"** (aprovada na concepção v0.4.000,
+`design-proposals/`): roxo royal como ação, rosa-choque EXCLUSIVO do dado de crescimento,
+amarelo só no padrão geométrico, Anybody (display) + Chivo (corpo) + Chivo Mono (números),
+cards 14px / controles em pílula. O tema terminal anterior (PEDRO\RIVERA, raio zero) está
+morto — não reintroduzir.
 
 ## plans/
 

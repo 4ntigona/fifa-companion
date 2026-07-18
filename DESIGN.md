@@ -1,70 +1,121 @@
-# PEDRO \ RIVERA
+# Prancheta — Design System
 
-## Mission
-Create implementation-ready, token-driven UI guidance for PEDRO \ RIVERA that is optimized for consistency, accessibility, and fast delivery across content site.
+> Identidade "Goleiro 92" (direção 3 da concepção v0.4.000, aprovada em 18/07/2026).
+> Substitui integralmente o sistema anterior (PEDRO \ RIVERA / terminal). Referências da
+> concepção: `design-proposals/direcao-3/` (identidade.html + telas.html + png/).
 
-## Brand
-- Product/brand: PEDRO \ RIVERA
-- URL: https://pedrorivera.me/
-- Audience: readers and knowledge seekers
-- Product surface: content site
+## Missão
 
-## Style Foundations
-- Visual style: clean, functional, implementation-oriented
-- Main font style: `font.family.primary=IBM Plex Mono`, `font.family.stack=IBM Plex Mono, monospace`, `font.size.base=16.8568px`, `font.weight.base=400`, `font.lineHeight.base=25.2851px`
-- Typography scale: `font.size.xs=10.06px`, `font.size.sm=12.57px`, `font.size.md=13.33px`, `font.size.lg=14.6px`, `font.size.xl=16.86px`, `font.size.2xl=23.2px`, `font.size.3xl=26.07px`, `font.size.4xl=32.85px`
-- Color palette: `color.text.primary=#fcfcfc`, `color.text.secondary=#666666`, `color.surface.muted=#030303`, `color.surface.base=#000000`, `color.surface.raised=color(srgb 0.01 0.01 0.01 / 0.99)`, `color.surface.strong=#ff0033`, `color.border.muted=rgb(252, 252, 252) rgb(252, 252, 252) rgb(13, 13, 13)`
-- Spacing scale: `space.1=4.52px`, `space.2=4.93px`, `space.3=15.09px`, `space.4=18.23px`, `space.5=21.89px`, `space.6=36.67px`
-- Radius/shadow/motion tokens: `motion.duration.instant=200ms`
+O Prancheta é o companheiro de sofá do jogador de modo carreira do FIFA/EA FC: memória e
+planejamento de longo prazo do save, focado em **desenvolvimento do time**, com IA
+conselheira sob demanda. Mobile-first (o celular na mão, o jogo na TV), PT-BR, PWA.
 
-## Accessibility
-- Target: WCAG 2.2 AA
-- Keyboard-first interactions required.
-- Focus-visible rules required.
-- Contrast constraints required.
+## A identidade em uma frase
 
-## Writing Tone
-Concise, confident, implementation-focused.
+A energia gráfica das camisas de goleiro do início dos anos 90 — geometria ousada e cor sem
+pedir desculpa — com disciplina de produto: **os padrões vivem só no topo e nas molduras; o
+corpo é limpo, denso e legível**.
 
-## Rules: Do
-- Use semantic tokens, not raw hex values, in component guidance.
-- Every component must define states for default, hover, focus-visible, active, disabled, loading, and error.
-- Component behavior should specify responsive and edge-case handling.
-- Interactive components must document keyboard, pointer, and touch behavior.
-- Accessibility acceptance criteria must be testable in implementation.
+## Tokens de cor (semânticos — sempre via token, nunca hex solto)
 
-## Rules: Don't
-- Do not allow low-contrast text or hidden focus indicators.
-- Do not introduce one-off spacing or typography exceptions.
-- Do not use ambiguous labels or non-descriptive actions.
-- Do not ship component guidance without explicit state rules.
+| Token | Claro | Escuro | Papel |
+|---|---|---|---|
+| `canvas` | `#f2f1f7` | `#171034` | fundo do app (nunca branco/preto puros) |
+| `surface` | `#ffffff` | `#201849` | cards e superfícies |
+| `surface-soft` | `#f8f7fb` | `#1b1440` | superfícies rebaixadas |
+| `hairline` / `-soft` / `-strong` | `#d9d5e6` / `#e7e4f0` / `#b4aed0` | `#322a5e` / `#281f52` / `#453c7a` | bordas e divisores |
+| `ink` | `#241b45` | `#efedfa` | texto principal (roxo-tinta) |
+| `charcoal` → `faint` | escala roxo-cinza | escala lilás | hierarquia de texto |
+| `primary` | `#5230c9` | `#8b68ff` | AÇÃO (roxo royal); texto sobre ele = `primary-ink` |
+| `primary-ink` | `#ffffff` | `#14092e` | texto sobre primary |
+| `pink` (`tint-rose` como wash) | `#f43f7f` | `#ff5c93` | DESTAQUE — exclusivo do crescimento (OVR→POT) |
+| `yellow` | `#ffd23e` | `#ffd23e` | SÓ no padrão geométrico; nunca toca texto |
+| `success` / `warning` / `error` | `#177a4c` / `#9a6a00` / `#d13b52` | `#45d68c` / `#f5b04a` / `#ff6f85` | estados |
 
-## Guideline Authoring Workflow
-1. Restate design intent in one sentence.
-2. Define foundations and semantic tokens.
-3. Define component anatomy, variants, interactions, and state behavior.
-4. Add accessibility acceptance criteria with pass/fail checks.
-5. Add anti-patterns, migration notes, and edge-case handling.
-6. End with a QA checklist.
+Regra de ouro da cor: **o rosa-choque é gasto num lugar só** — o dado de crescimento (a
+margem OVR→POT, os "+N"). O amarelo existe apenas dentro do padrão geométrico. Todo o resto
+da energia vem do roxo.
 
-## Required Output Structure
-- Context and goals.
-- Design tokens and foundations.
-- Component-level rules (anatomy, variants, states, responsive behavior).
-- Accessibility requirements and testable acceptance criteria.
-- Content and tone standards with examples.
-- Anti-patterns and prohibited implementations.
-- QA checklist.
+## Tipografia
 
-## Component Rule Expectations
-- Include keyboard, pointer, and touch behavior.
-- Include spacing and typography token requirements.
-- Include long-content, overflow, and empty-state handling.
+- **Display**: `Anybody` (Google Fonts, variável) — peso 850–900, largura ~112–122
+  (`font-variation-settings: 'wdth' 116`), caixa alta, itálico no wordmark. Títulos de
+  seção, números de camisa, wordmark. Usada com moderação: é a voz, não o corpo.
+- **Corpo**: `Chivo` 400/500/700 — grotesk latina sólida; aguenta densidade de dados.
+- **Números**: `Chivo Mono` 400/600, `tabular-nums` sempre (colunas não dançam).
+- Wordmark: `PRANCHETA!` — Anybody 900 itálico, "!" em rosa.
 
-- Extraction diagnostics: Audience and product surface inference confidence is low; verify generated brand context.
+## Assinatura — o número de camisa
 
-## Quality Gates
-- Every non-negotiable rule must use "must".
-- Every recommendation should use "should".
-- Every accessibility rule must be testable in implementation.
-- Teams should prefer system consistency over local visual exceptions.
+Cards de jogador e de carreira carregam o número gigante como marca d'água (Anybody 900,
+wdth 85–90, opacidade 10–12%, cor primary). O elenco é um vestiário de mantos pendurados.
+Elementos de apoio: a **faixa de padrão geométrico** (triângulos roxo/rosa/amarelo sobre
+tinta, 10px de altura) no topo das telas; posições/números como âncora tipográfica das linhas.
+
+## Forma
+
+- Raio: cards **14px**, controles e chips **pílula cheia** (999px), inputs 12px. O raio zero
+  do sistema anterior está morto.
+- Sombra: mínima — profundidade vem de contraste e hairline, não de blur. Padrão:
+  `0 1px 3px rgba(36,27,69,.18)` só em elementos "levantados" (segmented ativo).
+- Densidade: linhas de lista com 10–11px de padding vertical; toque ≥44px.
+
+## Movimento
+
+- Entrada "em chute": translateY curto com overshoot de 4px, 180ms. Pressed: scale(0.97),
+  120ms. Transições de cor 200ms.
+- `prefers-reduced-motion: reduce`: sem overshoot, sem scale — troca seca. Obrigatório.
+
+## Tom de voz
+
+O locutor dos anos 90 — vivo, direto, sem ironia forçada. PT-BR, sentence case (caixa alta
+só em display), verbos ativos ("Analisar carreira", não "Análise"). Erros dizem o que
+aconteceu e como resolver; telas vazias convidam à ação.
+
+## Componentes — estados obrigatórios
+
+Todo componente interativo define: default, hover, focus-visible (outline 2px primary,
+offset 2px), active/pressed, disabled, loading, error. Sem exceção.
+
+- `.card` — surface, hairline, raio 14px.
+- `.btn-primary` — pílula primary/primary-ink; hover escurece; disabled hairline+faint.
+- `.btn-secondary` — pílula com borda hairline-strong, texto ink.
+- `.btn-dark` — pílula ink/canvas (CTA alternativo).
+- `.pill-tab` / `.pill-tab-active` — chips de filtro; ativa = ink invertido.
+- `.input` — raio 12px, foco primary (borda + ring).
+- `.tag-*` — etiquetas com wash (lavender=seleção/roxo, rose=crescimento, mint=ok, peach=alerta).
+- `.growpill` — a pílula rosa do crescimento (`73 → 76`), Chivo Mono.
+- `.patternband` — a faixa geométrica da marca (topo de tela/hero apenas).
+- `.shirtno` — número de camisa (Anybody 900) em linhas de lista.
+- `.watermark-no` — número gigante de fundo em cards.
+
+## Acessibilidade (WCAG 2.2 AA)
+
+- Contraste AA nos dois temas (verificar primary sobre surface, pink sobre wash).
+- Foco visível sempre; navegação por teclado em tudo.
+- Alvos de toque ≥44×44px na tab bar e controles primários.
+- Reduced-motion respeitado em toda animação.
+
+## Anti-padrões (proibido)
+
+- Hex solto em componente (sempre token).
+- Amarelo em texto ou fundo de texto; rosa fora do dado de crescimento.
+- Padrão geométrico atrás de conteúdo legível.
+- Gradiente decorativo, glassmorphism, sombra profunda.
+- Raio zero ou raio gigante fora da escala (14/12/999).
+- Emoji como ícone de UI (usar SVG inline).
+
+## PWA / marca aplicada
+
+- Nome: **Prancheta** (`short_name: Prancheta`); title "Prancheta — companheiro de modo carreira".
+- `theme_color: #241b45`, `background_color: #f2f1f7`; ícones 192/512 com o "P!" sobre roxo
+  e a faixa geométrica (`web/public/icon-*.png`).
+
+## QA checklist (por tela migrada)
+
+- [ ] Ambos os temas, 375px, sem scroll horizontal.
+- [ ] Números em Chivo Mono tabular; display só em títulos.
+- [ ] Rosa apenas em crescimento; amarelo apenas em padrão.
+- [ ] Estados de foco/disabled/loading presentes.
+- [ ] Reduced-motion sem animação.
+- [ ] Nada do sistema antigo: grep `#ff0033`, `IBM Plex`, `PEDRO` = zero.

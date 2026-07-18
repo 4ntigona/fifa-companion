@@ -84,11 +84,19 @@ Regras de produto:
 - **Todo conselho cita os dados** (jogador X, snapshot Y, objetivo Z) — coerente com a
   invariante "o app nunca inventa dado": a IA opina, os fatos são do banco.
 
-MVP (v0.4.000): **Parecer da carreira** no hub — botão "Analisar carreira" monta contexto
-no servidor (objetivos + elenco com idades/OVR/POT/status + evolução por snapshots +
-shortlist) e devolve orientações priorizadas: lacunas do elenco vs. objetivos, quem
-desenvolver, quem vender/emprestar, alvos da shortlist que resolvem lacunas. Cache local
-com carimbo "analisado em".
+MVP (v0.4.000) — **decisão do Pedro (18/07/2026)**: o Conselheiro é uma **área viva** no hub,
+não um botão único. Funciona assim:
+
+- **Invocável a qualquer momento**: além do "Analisar carreira" (parecer completo), o usuário
+  pode fazer uma consulta dirigida em texto livre ("preciso de um lateral até €20M?",
+  "quem da base promovo?") — sempre por gatilho explícito.
+- **Com registro**: toda interação (parecer ou consulta) é gravada no servidor por carreira
+  (`advisor_reports`: tipo, pergunta, resposta estruturada, data). A área mostra o parecer
+  mais recente no topo e o histórico de consultas abaixo — vai se atualizando conforme o
+  jogador interage.
+- O contexto enviado à IA é sempre montado do banco (objetivos + elenco com idades/OVR/POT/
+  status + evolução por snapshots + shortlist); a resposta cita os dados. Persistir a
+  RESPOSTA é ok; a chave do provedor continua sem nunca tocar o servidor.
 
 Pós-v0.4.000 (fica registrado, não entra agora): parecer individual de prospecto ("vale a
 pena?"), plano de temporada (minutagem da base), parecer de janela de transferências.

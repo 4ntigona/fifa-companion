@@ -10,11 +10,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'FIFA Career Companion',
-        short_name: 'Career',
-        description: 'Companion do modo carreira do FIFA — prospecção e desenvolvimento de jogadores',
-        theme_color: '#000000',
-        background_color: '#000000',
+        name: 'Prancheta — companheiro de modo carreira',
+        short_name: 'Prancheta',
+        description: 'O companheiro do modo carreira do FIFA — desenvolvimento do time, prospecção e conselheiro de IA',
+        theme_color: '#241b45',
+        background_color: '#f2f1f7',
         display: 'standalone',
         lang: 'pt-BR',
         icons: [

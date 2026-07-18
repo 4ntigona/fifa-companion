@@ -67,8 +67,8 @@ export default function App() {
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24">
       <header className="flex items-center justify-between border-b border-hairline-soft py-4">
-        <Link to="/" className="text-base font-semibold uppercase tracking-widest text-ink">
-          Career <span className="text-primary">\</span> Companion
+        <Link to="/" className="display text-[17px] italic text-ink">
+          Prancheta<span className="text-pink">!</span>
         </Link>
         <nav className="flex items-center gap-4 text-sm font-medium text-steel">
           {user && loc.pathname !== '/' && <Link to="/" className="hover:text-ink">Início</Link>}
