@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -6,7 +6,7 @@ import { fmtEur, versionLabel } from '../api/client'
 import { getCareerPlayer, addSnapshot, updateCareerPlayer } from '../api/user-data'
 import Modal from '../components/Modal'
 import CurrencyNote from '../components/CurrencyNote'
-import { sanitizeStat } from '../hooks'
+import { sanitizeStat, setActiveCareerId } from '../hooks'
 
 const STATUS_OPTIONS = [
   ['titular', 'Titular'], ['reserva', 'Reserva'], ['emprestado', 'Emprestado'], ['vendido', 'Vendido'],
@@ -25,6 +25,9 @@ export default function PlayerPage() {
     queryFn: async () => getCareerPlayer(Number(id)),
     retry: false,
   })
+  // o jogador pertence a uma carreira — mantém o contexto ativo do app
+  const careerId = data?.player.career_id
+  useEffect(() => { if (careerId) setActiveCareerId(careerId) }, [careerId])
   if (isError) return (
     <div className="card mt-6 bg-surface-soft p-6 text-sm text-slate-ink">
       <p className="font-semibold text-ink">Jogador não encontrado neste dispositivo.</p>

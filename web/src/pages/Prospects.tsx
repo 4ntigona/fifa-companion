@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import { api, fmtEur, versionLabel, type Prospect, type SofifaPlayer, type SofifaPlayerListItem } from '../api/client'
 import { getCareer, listProspects, addProspect as addProspectStore, updateProspect as updateProspectStore, removeProspect as removeProspectStore } from '../api/user-data'
-import { useDebouncedValue } from '../hooks'
+import { useDebouncedValue, setActiveCareerId } from '../hooks'
 import ServerErrorCard from '../components/ServerErrorCard'
 import CompareProspects from '../components/CompareProspects'
 import CurrencyNote from '../components/CurrencyNote'
@@ -34,6 +34,8 @@ export default function ProspectsPage() {
   const [nationality, setNationality] = useState('')
   const [sort, setSort] = useState('potential')
   const [limit, setLimit] = useState(50)
+
+  useEffect(() => { if (id) setActiveCareerId(Number(id)) }, [id])
 
   // valores debounced — não busca a cada tecla
   const dq = useDebouncedValue(q)

@@ -5,7 +5,7 @@ import { analyzePhoto, type Career, type ExtractedPlayer, type VisionResult } fr
 import { getAiSettings, DEFAULT_MODELS, PROVIDER_LABELS } from '../store'
 import { getCareer, applyCapturedPlayers, listCareerPlayers, type CapturedPlayerRow } from '../api/user-data'
 import type { CareerPlayer } from '../api/client'
-import { sanitizeStat } from '../hooks'
+import { sanitizeStat, setActiveCareerId } from '../hooks'
 
 const SCREEN_LABEL: Record<string, string> = {
   elenco: 'Elenco', perfil_jogador: 'Perfil de jogador', base_olheiros: 'Base/Olheiros',
@@ -37,6 +37,8 @@ export default function CapturePage() {
   const [preview, setPreview] = useState<string | null>(null)
   const [result, setResult] = useState<{ extracted: VisionResult } | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
+
+  useEffect(() => { if (id) setActiveCareerId(Number(id)) }, [id])
 
   useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { fmtEur, versionLabel, type CareerPlayer } from '../api/client'
@@ -6,7 +6,7 @@ import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer, deleteC
 import ConfirmDialog from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
 import CurrencyNote from '../components/CurrencyNote'
-import { sanitizeStat } from '../hooks'
+import { sanitizeStat, setActiveCareerId } from '../hooks'
 
 export default function CareerPage() {
   const { id } = useParams()
@@ -16,6 +16,9 @@ export default function CareerPage() {
   const [editingSeason, setEditingSeason] = useState(false)
   const [showAddPlayer, setShowAddPlayer] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+
+  // esta carreira vira o contexto ativo do app (tab bar + header)
+  useEffect(() => { if (id) setActiveCareerId(Number(id)) }, [id])
 
   const { data, isError } = useQuery({
     queryKey: ['career', id],
