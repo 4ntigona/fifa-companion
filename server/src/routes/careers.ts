@@ -66,6 +66,8 @@ const patchSchema = z.object({
   name: z.string().min(1).optional(),
   currentSeason: z.string().min(1).optional(),
   currentDateIngame: z.string().optional(),
+  // marcação de cumprido/pendente por objetivo (hub de desenvolvimento, v0.4.000)
+  objectives: z.array(z.object({ text: z.string(), done: z.boolean() })).optional(),
 })
 
 export function careerRoutes(app: FastifyInstance) {
@@ -146,9 +148,13 @@ export function careerRoutes(app: FastifyInstance) {
       `UPDATE careers SET
          name = COALESCE(?, name),
          current_season = COALESCE(?, current_season),
-         current_date_ingame = COALESCE(?, current_date_ingame)
+         current_date_ingame = COALESCE(?, current_date_ingame),
+         objectives = COALESCE(?, objectives)
        WHERE id = ?`,
-    ).run(p.name ?? null, p.currentSeason ?? null, p.currentDateIngame ?? null, row.id)
+    ).run(
+      p.name ?? null, p.currentSeason ?? null, p.currentDateIngame ?? null,
+      p.objectives ? JSON.stringify(p.objectives) : null, row.id,
+    )
     return { updated: 1 }
   })
 

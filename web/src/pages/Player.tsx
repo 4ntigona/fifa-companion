@@ -30,9 +30,9 @@ export default function PlayerPage() {
   useEffect(() => { if (careerId) setActiveCareerId(careerId) }, [careerId])
   if (isError) return (
     <div className="card mt-6 bg-surface-soft p-6 text-sm text-slate-ink">
-      <p className="font-semibold text-ink">Jogador não encontrado neste dispositivo.</p>
-      <p className="mt-1">Ele pode ter sido excluído ou os dados foram restaurados de outro backup.</p>
-      <Link to="/" className="btn-primary mt-3 inline-block">Voltar ao início</Link>
+      <p className="font-semibold text-ink">Jogador não encontrado nesta conta.</p>
+      <p className="mt-1">Ele pode ter sido excluído.</p>
+      <Link to="/mais" className="btn-primary mt-3 inline-block">Voltar</Link>
     </div>
   )
   const updateStatus = useMutation({
@@ -50,6 +50,10 @@ export default function PlayerPage() {
 
   const baseOvr = p.sofifa?.overall ?? p.overall_original
   const basePot = p.sofifa?.potential ?? p.potential_original
+  const currentOvr = snaps.at(-1)?.overall ?? baseOvr
+  const currentPot = snaps.at(-1)?.potential ?? basePot
+  const growth = baseOvr != null && currentOvr != null ? currentOvr - baseOvr : null
+
   const chartData = [
     ...(baseOvr != null ? [{ label: 'Original', overall: baseOvr, potencial: basePot }] : []),
     ...snaps.map((s) => ({
@@ -61,50 +65,56 @@ export default function PlayerPage() {
   const attrs: Record<string, unknown> = p.sofifa?.attributes_json ? JSON.parse(p.sofifa.attributes_json) : {}
 
   return (
-    <div className="space-y-6 pt-6">
+    <div className="space-y-6 pt-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{p.name}</h1>
-        <Link to={`/carreira/${p.career_id}`} className="text-sm font-medium text-steel hover:text-ink">← Carreira</Link>
+        <Link to={`/carreira/${p.career_id}`} className="text-[13px] font-bold uppercase tracking-[0.06em] text-steel hover:text-ink">
+          ← Elenco
+        </Link>
+        <span className="text-[12px] text-steel">{versionLabel(career.fifa_version)}</span>
       </div>
 
-      <section className="card p-5 text-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-slate-ink">{p.positions}{p.age ? ` · ${p.age} anos` : ''}</span>
-            <span className={p.origin === 'sofifa' ? 'tag-purple' : 'tag-orange'}>
-              {p.origin === 'sofifa' ? `database ${versionLabel(career.fifa_version)}` : p.origin}
+      <section className="card relative overflow-hidden p-5">
+        <span className="watermark-no">{p.jersey_number ?? p.sofifa?.club_jersey_number ?? ''}</span>
+        <div className="relative">
+          <h1 className="display text-[24px] not-italic text-ink">{p.name}</h1>
+          <p className="mt-0.5 text-sm text-steel">
+            {p.positions}{p.age ? ` · ${p.age} anos` : ''}
+            {p.sofifa ? ` · ${p.sofifa.club_name ?? '—'} · ${p.sofifa.league_name ?? '—'}` : ''}
+          </p>
+        </div>
+
+        <div className="relative mt-4 flex items-center justify-between rounded-xl bg-surface-soft p-3">
+          <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-steel">Overall / Potencial</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[26px] font-semibold tabular-nums text-ink">
+              {currentOvr ?? '—'} <span className="text-[18px] text-faint">/ {currentPot ?? '—'}</span>
             </span>
-          </div>
-          <div className="text-lg">
-            <b className="text-success">{snaps.at(-1)?.overall ?? baseOvr ?? '—'}</b>
-            <span className="text-stone"> / {snaps.at(-1)?.potential ?? basePot ?? '—'}</span>
+            {growth != null && growth > 0 && <span className="growpill">+{growth}</span>}
           </div>
         </div>
+
         {p.sofifa && (
-          <div className="mt-3 grid grid-cols-3 gap-1 text-[13px] text-charcoal sm:grid-cols-6">
-            <div>PAC <b>{p.sofifa.pace ?? '—'}</b></div>
-            <div>SHO <b>{p.sofifa.shooting ?? '—'}</b></div>
-            <div>PAS <b>{p.sofifa.passing ?? '—'}</b></div>
-            <div>DRI <b>{p.sofifa.dribbling ?? '—'}</b></div>
-            <div>DEF <b>{p.sofifa.defending ?? '—'}</b></div>
-            <div>FIS <b>{p.sofifa.physic ?? '—'}</b></div>
+          <div className="relative mt-3 grid grid-cols-3 gap-2 rounded-xl bg-surface-soft p-3 text-[12px] text-steel sm:grid-cols-6">
+            <div>PAC <b className="font-mono text-ink">{p.sofifa.pace ?? '—'}</b></div>
+            <div>SHO <b className="font-mono text-ink">{p.sofifa.shooting ?? '—'}</b></div>
+            <div>PAS <b className="font-mono text-ink">{p.sofifa.passing ?? '—'}</b></div>
+            <div>DRI <b className="font-mono text-ink">{p.sofifa.dribbling ?? '—'}</b></div>
+            <div>DEF <b className="font-mono text-ink">{p.sofifa.defending ?? '—'}</b></div>
+            <div>FIS <b className="font-mono text-ink">{p.sofifa.physic ?? '—'}</b></div>
           </div>
         )}
+
         {p.sofifa && (
-          <div className="mt-2 text-[13px] text-steel">
-            {p.sofifa.club_name} · {p.sofifa.league_name} · Valor original {fmtEur(p.sofifa.value_eur)} · Salário {fmtEur(p.sofifa.wage_eur)}
+          <div className="relative mt-3 text-[13px] text-steel">
+            Valor original {fmtEur(p.sofifa.value_eur)} · Salário {fmtEur(p.sofifa.wage_eur)}
             {p.sofifa.preferred_foot ? ` · Pé ${p.sofifa.preferred_foot === 'Left' ? 'esquerdo' : 'direito'}` : ''}
             {p.sofifa.weak_foot ? ` · Pé ruim ${p.sofifa.weak_foot}★` : ''}
             {p.sofifa.skill_moves ? ` · Skills ${p.sofifa.skill_moves}★` : ''}
           </div>
         )}
-        {p.sofifa && <CurrencyNote className="mt-1 text-steel" />}
-        {(baseOvr != null || basePot != null) && (
-          <div className="mt-2 text-[13px] text-steel">
-            Original no jogo: <b className="text-charcoal">{baseOvr ?? '—'}</b> OVR / <b className="text-charcoal">{basePot ?? '—'}</b> POT
-          </div>
-        )}
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {p.sofifa && <CurrencyNote className="relative mt-1" />}
+
+        <div className="relative mt-4 flex flex-wrap items-center gap-1.5">
           <span className="text-[13px] text-steel">Status:</span>
           {STATUS_OPTIONS.map(([s, label]) => (
             <button key={s} onClick={() => updateStatus.mutate(s)}
@@ -113,16 +123,16 @@ export default function PlayerPage() {
             </button>
           ))}
         </div>
-        {p.strengths && <div className="mt-2 text-charcoal"><span className="text-steel">Pontos fortes:</span> {p.strengths}</div>}
-        {p.notes && <div className="mt-1 text-charcoal"><span className="text-steel">Observações:</span> {p.notes}</div>}
+        {p.strengths && <div className="relative mt-3 text-sm text-ink"><span className="text-steel">Pontos fortes:</span> {p.strengths}</div>}
+        {p.notes && <div className="relative mt-1 text-sm text-ink"><span className="text-steel">Observações:</span> {p.notes}</div>}
         {p.regenOf && (
-          <div className="mt-2"><span className="tag-orange">Regen de {p.regenOf.short_name} ({p.regenOf.overall} OVR original)</span></div>
+          <div className="relative mt-2"><span className="tag-orange">Regen de {p.regenOf.short_name} ({p.regenOf.overall} OVR original)</span></div>
         )}
       </section>
 
       <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink">Desenvolvimento</h2>
+        <div className="mb-2 flex items-center justify-between px-1">
+          <h2 className="display text-[13px] tracking-[0.04em] text-ink">Desenvolvimento</h2>
           <button onClick={() => setShowSnapshot(true)} className="btn-primary px-3.5 py-2 text-[13px]">
             + Registrar evolução
           </button>
@@ -133,10 +143,10 @@ export default function PlayerPage() {
               <LineChart data={chartData}>
                 <XAxis dataKey="label" stroke="var(--color-stone)" fontSize={11} tickLine={false} axisLine={{ stroke: 'var(--color-hairline)' }} />
                 <YAxis domain={['dataMin - 3', 'dataMax + 3']} stroke="var(--color-stone)" fontSize={11} width={30} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: 'var(--color-canvas)', border: '1px solid var(--color-hairline)', borderRadius: 0, fontSize: 12, color: 'var(--color-ink)' }} />
+                <Tooltip contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-hairline)', borderRadius: 10, fontSize: 12, color: 'var(--color-ink)' }} />
                 <Legend />
-                <Line type="monotone" dataKey="overall" name="Overall" stroke="var(--color-primary)" strokeWidth={2} dot={{ fill: 'var(--color-primary)' }} />
-                <Line type="monotone" dataKey="potencial" name="Potencial" stroke="var(--color-steel)" strokeWidth={2} strokeDasharray="4 3" dot={{ fill: 'var(--color-steel)' }} />
+                <Line type="monotone" dataKey="overall" name="Overall" stroke="var(--color-primary)" strokeWidth={2.5} dot={{ fill: 'var(--color-primary)' }} />
+                <Line type="monotone" dataKey="potencial" name="Potencial" stroke="var(--color-pink)" strokeWidth={2} strokeDasharray="4 3" dot={{ fill: 'var(--color-pink)' }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -145,18 +155,22 @@ export default function PlayerPage() {
             Registre a evolução ao longo das temporadas para ver o gráfico (mínimo 2 pontos).
           </p>
         )}
-        <ul className="mt-2 space-y-1 text-sm">
-          {[...snaps].reverse().map((s) => (
-            <li key={s.id} className="card flex items-center justify-between p-2.5">
-              <span className="text-charcoal">
-                📅 {s.season}{s.date_ingame ? ` · ${s.date_ingame}` : ''}
-                {s.position ? ` · ${s.position}` : ''}
-                {s.form_notes ? <span className="ml-1 text-[13px] text-stone">({s.form_notes})</span> : ''}
-              </span>
-              <span><b className="text-success">{s.overall ?? '—'}</b><span className="text-stone"> / {s.potential ?? '—'}</span></span>
-            </li>
-          ))}
-        </ul>
+        {snaps.length > 0 && (
+          <div className="card mt-2 divide-y divide-hairline-soft">
+            {[...snaps].reverse().map((s) => (
+              <div key={s.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                <span className="text-steel">
+                  {s.season}{s.date_ingame ? ` · ${s.date_ingame}` : ''}
+                  {s.position ? ` · ${s.position}` : ''}
+                  {s.form_notes ? <span className="ml-1 text-[12px] text-faint">({s.form_notes})</span> : ''}
+                </span>
+                <span className="font-mono tabular-nums text-ink">
+                  {s.overall ?? '—'} <span className="text-faint">/ {s.potential ?? '—'}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {p.origin === 'sofifa' && Object.keys(attrs).length > 0 && (
@@ -168,7 +182,7 @@ export default function PlayerPage() {
               .map(([k, v]) => (
                 <div key={k} className="flex justify-between border-b border-hairline-soft py-0.5">
                   <span className="text-steel">{k.replace(/_/g, ' ')}</span>
-                  <span>{String(v)}</span>
+                  <span className="font-mono">{String(v)}</span>
                 </div>
               ))}
           </div>
@@ -180,8 +194,8 @@ export default function PlayerPage() {
           playerId={p.id}
           defaultSeason={career.current_season}
           defaultDate={career.current_date_ingame}
-          lastOverall={snaps.at(-1)?.overall ?? baseOvr}
-          lastPotential={snaps.at(-1)?.potential ?? basePot}
+          lastOverall={currentOvr}
+          lastPotential={currentPot}
           onClose={() => setShowSnapshot(false)}
           onSaved={() => { qc.invalidateQueries({ queryKey: ['career-player', id] }); setShowSnapshot(false) }}
         />
