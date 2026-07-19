@@ -6,6 +6,7 @@ import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer, deleteC
 import ConfirmDialog from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
 import CurrencyNote from '../components/CurrencyNote'
+import AdvisorPanel from '../components/AdvisorPanel'
 import { sanitizeStat, setActiveCareerId } from '../hooks'
 
 /** O hub de desenvolvimento do time (ver design-proposals/blueprint.md §3): contexto do
@@ -153,18 +154,10 @@ export default function CareerPage() {
         </section>
       )}
 
-      {/* 3. Conselheiro — reserva do painel de IA (fase 0.3.007) */}
+      {/* 3. Conselheiro de IA */}
       <section>
         <SectionTitle>Conselheiro</SectionTitle>
-        <div className="card relative overflow-hidden p-5" style={{ borderLeft: '4px solid var(--color-primary)' }}>
-          <p className="text-sm text-steel">
-            Em breve: peça um parecer da carreira e receba orientações priorizadas com base
-            no elenco, nos objetivos e na evolução registrada — sempre por sua conta, nunca automático.
-          </p>
-          <button disabled className="btn-primary mt-3 cursor-not-allowed opacity-40">
-            Analisar carreira (em breve)
-          </button>
-        </div>
+        <AdvisorPanel careerId={Number(id)} />
       </section>
 
       {/* 4. Radar de desenvolvimento */}

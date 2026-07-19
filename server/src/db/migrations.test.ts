@@ -44,9 +44,12 @@ describe('runner de migrations', () => {
     // novo modelo presente; careers agora exige user_id
     const cols = d.prepare(`PRAGMA table_info(careers)`).all().map((r: any) => r.name)
     expect(cols).toContain('user_id')
-    // ambas registradas
+    // todas as migrations registradas (001 baseline, 002 contas, 003 conselheiro…)
     const applied = d.prepare(`SELECT id FROM schema_migrations ORDER BY id`).all().map((r: any) => r.id)
-    expect(applied).toEqual([1, 2])
+    expect(applied).toEqual([1, 2, 3])
+    // o conselheiro (003) foi criado por cima do schema antigo
+    const tables = d.prepare(`SELECT name FROM sqlite_master WHERE type='table'`).all().map((r: any) => r.name)
+    expect(tables).toContain('advisor_reports')
   })
 
   it('careers sem user_id é rejeitado (NOT NULL + FK)', () => {

@@ -39,6 +39,43 @@ export async function analyzePhoto(input: {
   return r.extracted
 }
 
+/* ---------------- conselheiro de IA ---------------- */
+
+export interface AdvisorReport {
+  resumo: string
+  orientacoes: {
+    titulo: string
+    detalhe: string
+    prioridade: 'alta' | 'media' | 'baixa'
+    jogadores?: string[]
+  }[]
+}
+
+export interface AdvisorEntry {
+  id: number
+  kind: 'parecer' | 'consulta'
+  question: string | null
+  report: AdvisorReport
+  provider: string
+  model: string
+  createdAt: string
+}
+
+/** Pede um parecer/consulta ao conselheiro. BYOK: a chave vem do localStorage, o servidor
+ *  só a repassa ao provedor (nunca persiste). Gatilho sempre explícito (custa 1 chamada). */
+export async function requestAdvisor(careerId: number, input: {
+  provider: string; apiKey: string; model: string; question?: string
+}): Promise<AdvisorEntry> {
+  const r = await api<{ report: AdvisorEntry }>(`/api/careers/${careerId}/advisor`, {
+    method: 'POST', body: JSON.stringify(input),
+  })
+  return r.report
+}
+
+export function listAdvisorReports(careerId: number): Promise<{ reports: AdvisorEntry[] }> {
+  return api(`/api/careers/${careerId}/advisor`)
+}
+
 export const fmtEur = (v?: number | null) =>
   v == null ? '—' : v >= 1_000_000 ? `€${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `€${Math.round(v / 1000)}K` : `€${v}`
 
