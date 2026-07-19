@@ -72,11 +72,12 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="space-y-6 pt-6">
+    <div className="space-y-6 pt-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Admin · Usuários</h1>
-        <Link to="/admin/databases" className="text-sm font-medium text-steel hover:text-ink">← Databases</Link>
+        <Link to="/mais" className="text-[13px] font-bold uppercase tracking-[0.06em] text-steel hover:text-ink">← Mais</Link>
+        <Link to="/admin/databases" className="text-sm font-medium text-steel hover:text-ink">Databases →</Link>
       </div>
+      <h1 className="display text-[24px] not-italic text-ink">Usuários</h1>
 
       <form onSubmit={onCreate} className="card space-y-2 p-5">
         <p className="text-sm font-semibold text-ink">Criar usuário</p>
@@ -99,7 +100,7 @@ export default function AdminUsers() {
       </form>
 
       {notice && (
-        <p className={`break-all p-3 text-sm font-medium ${notice.ok ? 'bg-tint-mint text-charcoal' : 'bg-tint-rose text-charcoal'}`}>
+        <p className={`break-all rounded-xl p-3 text-sm font-medium ${notice.ok ? 'bg-tint-mint text-charcoal' : 'bg-tint-rose text-charcoal'}`}>
           {notice.text}
         </p>
       )}

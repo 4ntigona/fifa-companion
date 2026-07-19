@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api } from '../api/client'
 import { useAuth, useSetAuthUser } from '../auth'
+import AuthShell from '../components/AuthShell'
 
 /** Tela bloqueante do primeiro login: a senha temporária precisa ser trocada. */
 export default function ForcePasswordChange() {
@@ -30,11 +31,7 @@ export default function ForcePasswordChange() {
   }
 
   return (
-    <div className="mx-auto max-w-sm pt-16">
-      <h1 className="text-2xl font-bold tracking-tight text-ink">Defina sua senha</h1>
-      <p className="mt-1 text-sm text-slate-ink">
-        Você entrou com uma senha temporária. Escolha a sua senha definitiva para continuar.
-      </p>
+    <AuthShell title="Defina sua senha" subtitle="Você entrou com uma senha temporária. Escolha a sua senha definitiva para continuar.">
       <form onSubmit={submit} className="mt-6 space-y-3">
         <input
           type="password"
@@ -61,6 +58,6 @@ export default function ForcePasswordChange() {
           {pending ? 'Salvando…' : 'Salvar e continuar'}
         </button>
       </form>
-    </div>
+    </AuthShell>
   )
 }
