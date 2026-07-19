@@ -52,15 +52,15 @@ export default function MigrateLocalBanner() {
 
   if (done) {
     return (
-      <div className="bg-tint-mint p-4 text-sm text-charcoal">
-        ✓ Importado para sua conta: {done.careers} carreira(s), {done.players} jogador(es),{' '}
+      <div className="rounded-xl bg-tint-mint p-4 text-sm text-charcoal">
+        Importado para sua conta: {done.careers} carreira(s), {done.players} jogador(es),{' '}
         {done.snapshots} snapshot(s), {done.prospects} prospecto(s).
       </div>
     )
   }
 
   return (
-    <div className="space-y-3 border border-hairline bg-tint-yellow-bold p-4 text-sm text-charcoal">
+    <div className="space-y-3 rounded-xl border border-hairline bg-tint-yellow-bold p-4 text-sm text-charcoal">
       <p className="font-semibold">Seus dados agora vivem na sua conta.</p>
       <p>
         {legacy

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import { api, fmtEur, versionLabel, type Prospect, type SofifaPlayer, type SofifaPlayerListItem } from '../api/client'
@@ -10,9 +10,9 @@ import CurrencyNote from '../components/CurrencyNote'
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'CF', 'ST']
 const STATUS_LABEL: Record<Prospect['status'], string> = {
-  observando: '👀 Observando', negociando: '🤝 Negociando', contratado: '✅ Contratado', descartado: '✖ Descartado',
+  observando: 'Observando', negociando: 'Negociando', contratado: 'Contratado', descartado: 'Descartado',
 }
-const PRIORITY = [[1, '🔴 Alta'], [2, '🟡 Média'], [3, '⚪ Baixa']] as const
+const PRIORITY = [[1, 'Alta'], [2, 'Média'], [3, 'Baixa']] as const
 
 interface CountryLeagues {
   country: string
@@ -64,6 +64,8 @@ export default function ProspectsPage() {
   // volta o limite ao mudar qualquer filtro
   useEffect(() => { setLimit(50) }, [dq, position, dMaxAge, dMinAge, dMinOverall, dMinPotential, dMaxValue, league, nationality, sort])
 
+  const activeFilters = [position, minAge, maxAge, minOverall, minPotential, maxValue, league, nationality].filter(Boolean).length
+
   const params = new URLSearchParams({
     ...(dq && { q: dq }), ...(position && { position }), ...(dMaxAge && { maxAge: dMaxAge }),
     ...(dMinAge && { minAge: dMinAge }),
@@ -91,7 +93,7 @@ export default function ProspectsPage() {
 
   const addProspect = useMutation({
     // a busca só traz um subconjunto de colunas — reidrata o registro completo (attributes_json
-    // incluso) antes de gravar no localStorage, para a tela do jogador poder exibi-lo depois.
+    // incluso) antes de gravar, para a tela do jogador poder exibi-lo depois.
     mutationFn: async (p: SofifaPlayerListItem) => {
       const full = await api<{ player: SofifaPlayer }>(`/api/player/${version}/${p.player_id}`)
       return addProspectStore(Number(id), full.player)
@@ -112,19 +114,18 @@ export default function ProspectsPage() {
   })
 
   return (
-    <div className="space-y-4 pt-6">
+    <div className="space-y-4 pt-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          Prospecção {version ? <span className="text-steel">· {versionLabel(version)}</span> : ''}
-        </h1>
-        <Link to={`/carreira/${id}`} className="text-sm font-medium text-steel hover:text-ink">← Carreira</Link>
+        <Link to={`/carreira/${id}`} className="text-[13px] font-bold uppercase tracking-[0.06em] text-steel hover:text-ink">
+          ← Elenco
+        </Link>
+        <span className="text-[12px] text-steel">{version ? `${versionLabel(version)} · database real` : ''}</span>
       </div>
-      <p className="text-[13px] text-steel">Busca na database original do jogo — overalls, potenciais e valores reais.</p>
-      <CurrencyNote />
+      <h1 className="display text-[24px] not-italic text-ink">Scout</h1>
 
       <div className="flex gap-2">
         <button onClick={() => setTab('buscar')} className={tab === 'buscar' ? 'pill-tab-active' : 'pill-tab'}>
-          Buscar jogadores
+          Buscar
         </button>
         <button onClick={() => setTab('shortlist')} className={tab === 'shortlist' ? 'pill-tab-active' : 'pill-tab'}>
           Shortlist ({prospects.length})
@@ -133,26 +134,34 @@ export default function ProspectsPage() {
 
       {tab === 'buscar' && (
         <>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nome…" className="input" />
-            <select value={position} onChange={(e) => setPosition(e.target.value)} className="input">
-              <option value="">Posição</option>
-              {POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-            <input value={minAge} onChange={(e) => setMinAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade mín." inputMode="numeric" className="input" />
-            <input value={maxAge} onChange={(e) => setMaxAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade máx." inputMode="numeric" className="input" />
-            <input value={minOverall} onChange={(e) => setMinOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall mín." inputMode="numeric" className="input" />
-            <input value={minPotential} onChange={(e) => setMinPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial mín." inputMode="numeric" className="input" />
-            <input value={maxValue} onChange={(e) => setMaxValue(e.target.value.replace(/\D/g, ''))} placeholder="Valor máx. (€M)" inputMode="numeric" className="input" />
-            <select value={league} onChange={(e) => setLeague(e.target.value)} className="input">
-              <option value="">Liga</option>
-              {allLeagues.map((l) => <option key={l.name} value={l.name}>{l.name}</option>)}
-            </select>
-            <select value={nationality} onChange={(e) => setNationality(e.target.value)} className="input">
-              <option value="">Nacionalidade</option>
-              {countries.map((c) => <option key={c.country} value={c.country}>{c.country}</option>)}
-            </select>
-          </div>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome…" className="input" />
+
+          <details className="card overflow-hidden">
+            <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-ink">
+              Filtros
+              {activeFilters > 0 && <span className="tag-purple">{activeFilters}</span>}
+            </summary>
+            <div className="grid grid-cols-2 gap-2 border-t border-hairline-soft p-3 sm:grid-cols-3">
+              <select value={position} onChange={(e) => setPosition(e.target.value)} className="input">
+                <option value="">Posição</option>
+                {POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <input value={minAge} onChange={(e) => setMinAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade mín." inputMode="numeric" className="input" />
+              <input value={maxAge} onChange={(e) => setMaxAge(e.target.value.replace(/\D/g, ''))} placeholder="Idade máx." inputMode="numeric" className="input" />
+              <input value={minOverall} onChange={(e) => setMinOverall(e.target.value.replace(/\D/g, ''))} placeholder="Overall mín." inputMode="numeric" className="input" />
+              <input value={minPotential} onChange={(e) => setMinPotential(e.target.value.replace(/\D/g, ''))} placeholder="Potencial mín." inputMode="numeric" className="input" />
+              <input value={maxValue} onChange={(e) => setMaxValue(e.target.value.replace(/\D/g, ''))} placeholder="Valor máx. (€M)" inputMode="numeric" className="input" />
+              <select value={league} onChange={(e) => setLeague(e.target.value)} className="input">
+                <option value="">Liga</option>
+                {allLeagues.map((l) => <option key={l.name} value={l.name}>{l.name}</option>)}
+              </select>
+              <select value={nationality} onChange={(e) => setNationality(e.target.value)} className="input">
+                <option value="">Nacionalidade</option>
+                {countries.map((c) => <option key={c.country} value={c.country}>{c.country}</option>)}
+              </select>
+            </div>
+          </details>
+
           <div className="flex flex-wrap items-center gap-1.5 text-sm">
             <span className="mr-1 text-[13px] text-steel">Ordenar:</span>
             {[['potential', 'Potencial'], ['overall', 'Overall'], ['growth', 'Margem'], ['age', 'Idade'], ['value', 'Valor']].map(([k, label]) => (
@@ -166,36 +175,32 @@ export default function ProspectsPage() {
             <ServerErrorCard message={(searchErr as Error).message} onRetry={() => refetchSearch()} />
           ) : (
           <>
-          {isFetching && <p className="text-sm text-steel">Buscando…</p>}
-          {searchData && (
-            <p className="text-[13px] text-stone">{searchData.total.toLocaleString('pt-BR')} jogadores encontrados</p>
-          )}
-          <ul className="space-y-1">
+          <div className="flex items-center justify-between text-[13px] text-steel">
+            <span>{searchData ? `${searchData.total.toLocaleString('pt-BR')} jogadores encontrados` : ''}</span>
+            {isFetching && <span>Buscando…</span>}
+          </div>
+          <CurrencyNote />
+          <div className="card divide-y divide-hairline-soft">
             {searchData?.players.map((p) => (
-              <li key={p.player_id} className="card p-3 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="font-semibold text-ink">{p.short_name}</span>
-                    <span className="ml-2 text-[13px] text-steel">{p.positions} · {p.age} anos</span>
-                    <div className="truncate text-[13px] text-slate-ink">{p.club_name ?? '—'} · {p.league_name ?? '—'} · {fmtEur(p.value_eur)}</div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <div className="text-right">
-                      <span className="font-semibold text-success">{p.overall}</span>
-                      <span className="text-stone"> → {p.potential}</span>
-                    </div>
-                    <button
-                      onClick={() => addProspect.mutate(p)}
-                      disabled={shortlistIds.has(p.player_id)}
-                      className="btn-primary px-3 py-1.5 text-[13px]"
-                    >
-                      {shortlistIds.has(p.player_id) ? 'Na lista' : '+ Shortlist'}
-                    </button>
-                  </div>
+              <div key={p.player_id} className="flex items-center gap-3 px-3 py-3">
+                <span className="shirtno">{p.positions.split(',')[0]?.trim() ?? '—'}</span>
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold text-ink">{p.short_name}</span>
+                  <span className="block truncate text-[12px] text-steel">
+                    {p.age} anos · {p.club_name ?? '—'} · {fmtEur(p.value_eur)}
+                  </span>
                 </div>
-              </li>
+                <span className="growpill shrink-0">{p.overall} → {p.potential}</span>
+                <button
+                  onClick={() => addProspect.mutate(p)}
+                  disabled={shortlistIds.has(p.player_id)}
+                  className="shrink-0 rounded-full border border-primary px-3 py-1.5 text-[12px] font-bold text-primary disabled:border-hairline disabled:text-faint"
+                >
+                  {shortlistIds.has(p.player_id) ? 'Na lista' : '+ Lista'}
+                </button>
+              </div>
             ))}
-          </ul>
+          </div>
           {searchData && searchData.players.length < searchData.total && searchData.players.length < 200 && (
             <button onClick={() => setLimit((l) => l + 50)} disabled={isFetching} className="btn-secondary w-full">
               {isFetching ? 'Carregando…' : `Carregar mais (${searchData.players.length} de ${searchData.total.toLocaleString('pt-BR')})`}
@@ -219,64 +224,72 @@ export default function ProspectsPage() {
             )}
           </div>
         )}
-        <ul className="space-y-2">
-          {prospects.length === 0 && (
-            <p className="card bg-surface-soft p-4 text-sm text-slate-ink">
-              Shortlist vazia — adicione jogadores pela busca.
-            </p>
-          )}
-          {sortedProspects.map((pr) => (
-            <li key={pr.id} className="card p-3 text-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-semibold text-ink">{pr.player?.short_name ?? `#${pr.sofifa_player_id}`}</span>
-                  <span className="ml-2 text-[13px] text-steel">
-                    {pr.player ? `${pr.player.positions} · ${pr.player.age} anos · ${fmtEur(pr.player.value_eur)}` : ''}
-                  </span>
+        {prospects.length === 0 ? (
+          <p className="card bg-surface-soft p-4 text-sm text-slate-ink">
+            Shortlist vazia — adicione jogadores pela busca.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {sortedProspects.map((pr) => (
+              <li key={pr.id} className="card p-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <span className="shirtno">{pr.player?.positions.split(',')[0]?.trim() ?? '—'}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate font-bold text-ink">{pr.player?.short_name ?? `#${pr.sofifa_player_id}`}</span>
+                    <span className="block truncate text-[12px] text-steel">
+                      {pr.player ? `${pr.player.age} anos · ${fmtEur(pr.player.value_eur)}` : ''}
+                    </span>
+                  </div>
+                  {pr.player && <span className="growpill shrink-0">{pr.player.overall} → {pr.player.potential}</span>}
                 </div>
-                <div className="text-right">
-                  <span className="font-semibold text-success">{pr.player?.overall}</span>
-                  <span className="text-stone"> → {pr.player?.potential}</span>
-                </div>
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <button
-                  onClick={() => setCompareIds((ids) =>
-                    ids.includes(pr.id) ? ids.filter((i) => i !== pr.id)
-                    : ids.length < 2 ? [...ids, pr.id] : ids)}
-                  disabled={!pr.player}
-                  className={`${compareIds.includes(pr.id) ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
-                  {compareIds.includes(pr.id) ? '✓ Comparando' : '⚖ Comparar'}
-                </button>
-                {PRIORITY.map(([p, label]) => (
-                  <button key={p} onClick={() => updateProspect.mutate({ pid: pr.id, priority: p })}
-                    className={`${pr.priority === p ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
-                    {label}
+                <ControlRow label="Comparar">
+                  <button
+                    onClick={() => setCompareIds((ids) =>
+                      ids.includes(pr.id) ? ids.filter((i) => i !== pr.id)
+                      : ids.length < 2 ? [...ids, pr.id] : ids)}
+                    disabled={!pr.player}
+                    className={`${compareIds.includes(pr.id) ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
+                    {compareIds.includes(pr.id) ? 'Comparando' : 'Comparar'}
                   </button>
-                ))}
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                {(Object.keys(STATUS_LABEL) as Prospect['status'][]).map((s) => (
-                  <button key={s} onClick={() => updateProspect.mutate({ pid: pr.id, status: s })}
-                    className={`${pr.status === s ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
-                    {STATUS_LABEL[s]}
+                  {PRIORITY.map(([p, label]) => (
+                    <button key={p} onClick={() => updateProspect.mutate({ pid: pr.id, priority: p })}
+                      className={`${pr.priority === p ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
+                      {label}
+                    </button>
+                  ))}
+                </ControlRow>
+                <ControlRow label="Status">
+                  {(Object.keys(STATUS_LABEL) as Prospect['status'][]).map((s) => (
+                    <button key={s} onClick={() => updateProspect.mutate({ pid: pr.id, status: s })}
+                      className={`${pr.status === s ? 'pill-tab-active' : 'pill-tab'} px-3 py-1 text-[13px]`}>
+                      {STATUS_LABEL[s]}
+                    </button>
+                  ))}
+                  <button onClick={() => removeProspect.mutate(pr.id)}
+                    className="ml-auto rounded-full px-2.5 py-1 text-[13px] font-medium text-error hover:bg-tint-rose">
+                    Remover
                   </button>
-                ))}
-                <button onClick={() => removeProspect.mutate(pr.id)}
-                  className="ml-auto  px-2 py-1 text-[13px] font-medium text-error hover:bg-tint-rose">
-                  Remover
-                </button>
-              </div>
-              <NotesEditor value={pr.notes} onSave={(notes) => updateProspect.mutate({ pid: pr.id, notes })} />
-            </li>
-          ))}
-        </ul>
+                </ControlRow>
+                <NotesEditor value={pr.notes} onSave={(notes) => updateProspect.mutate({ pid: pr.id, notes })} />
+              </li>
+            ))}
+          </ul>
+        )}
         </>
       )}
       {showCompare && compareIds.length === 2 && (() => {
         const [pa, pb] = compareIds.map((cid) => prospects.find((p) => p.id === cid)?.player)
         return pa && pb ? <CompareProspects a={pa} b={pb} onClose={() => setShowCompare(false)} /> : null
       })()}
+    </div>
+  )
+}
+
+function ControlRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="mt-2">
+      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-steel">{label}</p>
+      <div className="flex flex-wrap items-center gap-1.5">{children}</div>
     </div>
   )
 }

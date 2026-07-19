@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth'
 import { getAiSettings, setAiSettings, PROVIDER_LABELS, DEFAULT_MODELS, type AiProvider } from '../store'
@@ -20,8 +21,11 @@ export default function SettingsPage() {
   const refresh = () => setAi(getAiSettings())
 
   return (
-    <div className="space-y-6 pt-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-ink">Configurações</h1>
+    <div className="space-y-6 pt-5">
+      <div className="flex items-center justify-between">
+        <Link to="/mais" className="text-[13px] font-bold uppercase tracking-[0.06em] text-steel hover:text-ink">← Mais</Link>
+      </div>
+      <h1 className="display text-[24px] not-italic text-ink">Configurações</h1>
       <p className="text-sm text-slate-ink">
         Suas carreiras ficam na sua conta (acessíveis de qualquer aparelho). As chaves de IA
         ficam salvas apenas neste dispositivo — nunca vão para o servidor.
@@ -89,13 +93,13 @@ function AiSection({ ai, onChange }: { ai: ReturnType<typeof getAiSettings>; onC
         {PROVIDERS.map((p) => (
           <button key={p} onClick={() => pick(p)} className={selected === p ? 'pill-tab-active' : 'pill-tab'}>
             {PROVIDER_LABELS[p]}
-            {ai.keys[p] && ' ✓'}
+            {ai.keys[p] && ' · chave'}
             {ai.activeProvider === p && ' · ativo'}
           </button>
         ))}
       </div>
 
-      <div className="space-y-2 border border-hairline bg-surface-soft p-4">
+      <div className="space-y-2 rounded-xl border border-hairline bg-surface-soft p-4">
         <p className="text-[13px] text-steel">
           Crie a chave em{' '}
           <a href={hints.url} target="_blank" rel="noreferrer" className="text-link underline">
@@ -130,7 +134,7 @@ function AiSection({ ai, onChange }: { ai: ReturnType<typeof getAiSettings>; onC
           {savedKey && <button onClick={clearKey} className="btn-secondary">Remover chave</button>}
           {testResult && (
             <span className={`text-sm font-medium ${testResult.ok ? 'text-success' : 'text-error'}`}>
-              {testResult.ok ? '✓ Chave válida' : testResult.error}
+              {testResult.ok ? 'Chave válida' : testResult.error}
             </span>
           )}
         </div>
@@ -173,7 +177,7 @@ function AccountSection() {
         Logado como <b>{user?.email}</b>
         {user?.role === 'admin' && <span className="tag-purple ml-2">admin</span>}
       </p>
-      <form onSubmit={submit} className="space-y-2 border border-hairline bg-surface-soft p-4">
+      <form onSubmit={submit} className="space-y-2 rounded-xl border border-hairline bg-surface-soft p-4">
         <p className="text-[13px] text-steel">Trocar senha</p>
         <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)}
           placeholder="Senha atual" autoComplete="current-password" required className="input" />
