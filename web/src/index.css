@@ -34,8 +34,11 @@
   --color-navy-deep: #1a1233;
   --color-navy-mid: #322a5e;
 
-  /* rosa-choque: EXCLUSIVO do crescimento (OVR→POT, +N) */
+  /* rosa-choque: EXCLUSIVO do crescimento (OVR→POT, +N).
+     `pink` é o tom da marca (traço de gráfico, padrão, wordmark — usos não-textuais);
+     `pink-deep` é a versão legível como TEXTO sobre o wash (AA). */
   --color-pink: #f43f7f;
+  --color-pink-deep: #bd1a54;
   /* amarelo: SÓ dentro do padrão geométrico, nunca em texto */
   --color-yellow: #ffd23e;
 
@@ -77,7 +80,9 @@ html.dark { color-scheme: dark; }
   --color-stone: #7d75a5;
   --color-faint: #5c548a;
 
-  --color-primary: #8b68ff;
+  /* um pouco mais claro que o roxo do tema claro: garante AA como TEXTO sobre a
+     superfície escura (tab ativa, links) sem perder o royal da marca */
+  --color-primary: #9578ff;
   --color-primary-pressed: #7a55f0;
   --color-primary-ink: #14092e;
   --color-link: #b3a0ff;
@@ -87,6 +92,7 @@ html.dark { color-scheme: dark; }
   --color-navy-mid: #322a5e;
 
   --color-pink: #ff5c93;
+  --color-pink-deep: #ff5c93;   /* no escuro o próprio tom já passa AA sobre o wash */
   --color-yellow: #ffd23e;
 
   --color-success: #45d68c;
@@ -180,7 +186,7 @@ button:active:not(:disabled), a:active, summary:active {
   .growpill {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-    @apply inline-flex items-center gap-1 rounded-full bg-tint-rose px-2.5 py-0.5 text-[13px] font-semibold text-pink;
+    @apply inline-flex items-center gap-1 rounded-full bg-tint-rose px-2.5 py-0.5 text-[13px] font-semibold text-pink-deep;
   }
 
   /* título display (Anybody expandida, caixa alta) */

@@ -1,8 +1,11 @@
-# FIFA Career Companion
+# Prancheta
 
-Companion do modo carreira do FIFA/EA FC (foco em FIFA 15–24, com atenção especial ao 16 e ao 22).
-O foco é **gerenciar jogadores** — elencos, prospecção, base/regens, desenvolvimento por
-temporada — não gerenciar campanhas/resultados.
+Companheiro do modo carreira do FIFA/EA FC (foco em FIFA 15–24, com atenção especial ao 16 e
+ao 22). O foco é **desenvolvimento do time** — elencos, base/regens, evolução por temporada,
+prospecção e conselheiro de IA — não gerenciar campanhas/resultados.
+
+Shell mobile-first com tab bar (Elenco · Scout · Captura · Mais) sobre uma **carreira ativa**
+(contexto persistente: URL primeiro, `localStorage` como fallback — ver `web/src/hooks.ts`).
 
 ## Verificação
 
@@ -27,8 +30,11 @@ primeiro admin é semeado via `ADMIN_EMAIL`/`ADMIN_PASSWORD` no boot com `users`
 O que continua fora do servidor / especial:
 
 - **Chaves de IA (BYOK) ficam no localStorage do navegador** (`web/src/store.ts`) — invariante:
-  o servidor NUNCA persiste chave de provedor; `/api/analyze` é um proxy stateless (o navegador
-  manda a chave a cada request).
+  o servidor NUNCA persiste chave de provedor. Vale para os DOIS consumidores de IA:
+  `/api/analyze` (captura de foto) e `/api/careers/:id/advisor` (conselheiro). O encanamento
+  é compartilhado em `server/src/ai/providers.ts` (`complete()` aceita texto e/ou imagem).
+  Do conselheiro, o servidor persiste só a **resposta** (`advisor_reports`), nunca a chave.
+  Toda chamada de IA é por **gatilho explícito** do usuário — nada automático (custa a ele).
 - A database original do jogo é somente leitura (`sofifa_players` / `sofifa_teams`, importada
   por versão a partir de dumps públicos do SoFIFA/Kaggle) e compartilhada entre usuários.
   **Migrations nunca tocam nessas tabelas.**
@@ -47,7 +53,9 @@ atributos. O que não foi importado aparece como indisponível, não como valor 
 - `web/` — React 18 + Vite 6 + Tailwind v4 + TanStack Query v5 + Recharts, PWA em PT-BR
   (mobile-first — o app é usado no celular enquanto o FIFA roda na TV).
 - Deploy: VPS Debian + CloudPanel, PM2 (`ecosystem.config.cjs`), processo único servindo a API e
-  o `web/dist` buildado.
+  o `web/dist` buildado. Passo a passo em `DEPLOY.md`.
+- QA: roteiro E2E + prints de referência em `screenshots/tests/` (rodar sempre contra a base
+  isolada `server/data-qa`, nunca contra `server/data`).
 
 ## Estética
 

@@ -1,117 +1,105 @@
-# Teste end-to-end — contas + admin (v0.3.000)
+# Roteiro de teste E2E — Prancheta v0.4.000
 
-Roteiro de teste manual do fluxo completo de contas/admin, com os 32 prints em
-`screenshots/tests/NN-nome.png` como referência de "como deveria ficar" em cada passo.
-Gerados de forma automatizada (Playwright) em 17/07/2026 contra a branch `feat/accounts`,
-**numa base de dados isolada** (cópia da produção com usuários/carreiras zerados, dados do
-jogo preservados) — a base real (`server/data/companion.db`) não foi tocada em nenhum momento.
+Os 29 prints desta pasta são a referência visual da v0.4.000 (identidade **Goleiro 92**,
+shell de tabs, conselheiro de IA). Foram gerados por Playwright a 390×844 (mobile) contra
+uma **base isolada** — a base real (`server/data/companion.db`) nunca foi aberta em escrita.
 
-Se você quiser repetir este roteiro manualmente contra o seu ambiente de dev, siga os passos
-abaixo na ordem. Cada passo referencia o print correspondente.
+Para repetir o roteiro manualmente, siga os passos abaixo; cada um cita o print correspondente.
 
 ## Preparação
 
-1. `npm run dev:server` e `npm run dev:web` (ou os dois juntos, se tiver um script combinado).
-2. Confirme que existe pelo menos um admin. Se for a primeira vez (banco vazio), defina
-   `ADMIN_EMAIL` e `ADMIN_PASSWORD` no `server/.env` antes de subir o servidor — o primeiro
-   admin é semeado automaticamente no boot quando a tabela `users` está vazia.
-3. Se **não** quiser testar na sua base real, copie-a antes: veja "Testar sem sujar sua base
-   real", no fim deste documento.
+1. `npm run dev:server` e `npm run dev:web`.
+2. Se for a primeira vez (banco vazio), defina `ADMIN_EMAIL` e `ADMIN_PASSWORD` no
+   `server/.env` antes de subir o servidor — o primeiro admin é semeado no boot.
+3. Para não misturar com seus dados reais, use a base isolada (ver o fim deste documento).
 
 ## Roteiro
 
-### 1. Login como admin
-- `01-login-vazio.png` — tela `/login` vazia.
-- `02-login-preenchido.png` — e-mail/senha do admin preenchidos.
-- `03-home-admin-logado.png` — Home após login: usuário admin vê o link **Admin** no header.
+### 1. Login — a primeira impressão da identidade
+- `01-login-claro.png` / `02-login-escuro.png` — wordmark **PRANCHETA!**, faixa geométrica
+  coroando o card, formulário centralizado. Fora do shell (sem tab bar).
 
-### 2. Admin › Databases
-- `04-admin-databases.png` — `/admin/databases`: versões do jogo importadas (FIFA 16, FIFA 22
-  no exemplo), botão de importar versões novas.
+### 2. Admin: preparar o acesso do técnico
+- `03-mais-admin.png` — tab **Mais** com a seção Administração visível (só para admin).
+- `04-admin-databases.png` — versões do jogo importadas (verde) e disponíveis para importar.
+- `05-admin-usuarios.png` — lista de contas.
+- `06-admin-usuario-criado-senha-temp.png` — usuário criado: **a senha temporária aparece
+  uma única vez**. Anote-a; não há como recuperá-la depois.
 
-### 3. Admin › Usuários — criar uma conta
-- `05-admin-usuarios-vazio.png` — `/admin/usuarios`, lista de usuários (só o admin existe).
-- `06-admin-usuarios-form-preenchido.png` — formulário "Criar usuário" com e-mail preenchido,
-  papel "usuário".
-- `07-admin-usuarios-criado-com-senha-temp.png` — usuário criado; **a senha temporária aparece
-  uma única vez na tela**, nunca mais é recuperável. Anote-a.
+### 3. Primeiro login do técnico
+- `07-troca-de-senha-obrigatoria.png` — entrar com a senha temporária força a tela
+  "Defina sua senha" (bloqueante, fora do shell).
+- `08-home-sem-carreira.png` — sem carreira, a Home é o seletor enxuto; as tabs de jogo
+  (Elenco/Scout/Captura) ficam esmaecidas e desabilitadas.
 
-### 4. Logout do admin, login do novo usuário
-- `08-apos-logout-admin.png` — de volta à tela de login.
-- `09-forcado-trocar-senha.png` — login com a senha temporária força a tela "Defina sua senha"
-  (não dá pra usar o resto do app até trocar).
-- `10-nova-senha-preenchida.png` — nova senha definitiva preenchida (mín. 8 caracteres).
-- `11-home-usuario-comum-vazia.png` — Home do usuário comum: **sem** o link "Admin" no header,
-  nenhuma carreira ainda. Repare no banner "Tem dados no modelo antigo?" — é a migração
-  do modelo local antigo (pré-contas), aparece pra quem tem uma chave de restauração salva.
+### 4. Criar a carreira
+- `09-nova-carreira.png` — escolha da versão do jogo.
+- `10-nova-carreira-busca-time.png` — busca do time real na database importada.
 
-### 5. Criar uma carreira
-- `12-nova-carreira-form.png` — `/nova-carreira`, escolha de versão do jogo.
-- `13-nova-carreira-versao-escolhida.png` — FIFA 16 selecionado.
-- `14-nova-carreira-busca-time.png` — busca por "Barcelona" na lista de times reais.
-- `15-nova-carreira-time-selecionado.png` — FC Barcelona selecionado.
-- `16-carreira-criada-dashboard.png` — carreira criada; dashboard com stats do time e elenco
-  completo carregado a partir da database real do jogo.
+### 5. O hub de desenvolvimento (a tela central do produto)
+- `11-hub-elenco-claro.png` / `12-hub-elenco-escuro.png` — a ordem do blueprint:
+  contexto do save → **objetivos da diretoria** (marcáveis) → **conselheiro** →
+  **radar de desenvolvimento** (quem cresceu desde a última captura, com a pílula rosa) →
+  elenco com números de camisa.
+- `13-conselheiro-historico.png` — histórico aberto: consultas anteriores com a pergunta
+  em itálico e suas orientações.
+- `14-hub-base-regens.png` — aba Base & Regens.
+- `15-hub-filtro-rapido.png` — filtro por nome/posição (aqui: `CB`).
+- `16-hub-adicionar-jogador.png` — modal de jogador manual (base/regen/gerado), para os
+  que só existem no seu save.
 
-### 6. Elenco e adicionar jogador manual (base/regen)
-- `17-carreira-elenco.png` — aba "Elenco" com os 30 jogadores reais do time.
-- `18-carreira-base-regens-vazia.png` — aba "Base & Regens", vazia.
-- `19-adicionar-jogador-form.png` — modal "+ Jogador" aberto (para jogadores que só existem
-  no seu save — base, regens, clube criado).
-- `20-adicionar-jogador-preenchido.png` — formulário preenchido (nome, posições, idade,
-  overall/potencial originais, pontos fortes).
-- `21-adicionar-jogador-salvo.png` — modal fechado após salvar.
-- `22-carreira-base-regens-com-jogador.png` — aba "Base & Regens" agora mostra o jogador criado.
+### 6. Ficha do jogador
+- `17-jogador-claro.png` / `18-jogador-escuro.png` — número de camisa como marca d'água,
+  OVR/POT com a pílula de crescimento, atributos, **gráfico de evolução** (roxo = overall,
+  rosa tracejado = potencial) e o histórico de snapshots.
+- `19-jogador-registrar-evolucao.png` — modal de registro, sempre atrelado a temporada/data.
 
-### 7. Prospecção (scouting) e shortlist
-- `23-prospeccao-inicial.png` — `/carreira/:id/prospeccao`, tela de busca.
-- `24-prospeccao-busca-messi.png` — busca por "Messi" retorna jogadores reais da database.
-- `25-prospeccao-adicionado-shortlist.png` — clique em "+ Shortlist" no primeiro resultado.
-- `26-prospeccao-aba-shortlist.png` — aba "Shortlist (1)" mostra o jogador salvo, com os
-  controles de prioridade/status/negociação.
+### 7. Scout
+- `20-scout-inicial.png` — busca vazia.
+- `21-scout-busca.png` — resultados com badge de posição, margem OVR→POT e "+ Lista".
+- `22-scout-filtros.png` — filtros colapsados abertos (com contagem de ativos).
+- `23-scout-shortlist-claro.png` / `24-scout-shortlist-escuro.png` — shortlist com
+  prioridade, status, notas e comparação.
 
-### 8. Perfil de jogador
-- `27-pagina-jogador.png` — `/jogador/:id`, atributos originais da database, área de
-  "Desenvolvimento" (snapshots de evolução por temporada).
+### 8. Captura
+- `25-captura.png` — foto da tela do jogo → IA extrai → você revisa antes de salvar.
+  (O fluxo completo da IA exige uma chave BYOK real — ver "O que não é coberto".)
 
-### 9. Captura de tela (câmera/IA)
-- `28-captura-tela.png` — `/carreira/:id/captura`, tela de upload de foto. (O fluxo de IA em
-  si não foi testado aqui — exige uma chave BYOK configurada em Configurações; ver nota abaixo.)
+### 9. Mais e Configurações
+- `26-mais-usuario-claro.png` / `27-mais-usuario-escuro.png` — hub do usuário comum:
+  carreiras, conta, tema. **Sem** a seção Administração.
+- `28-configuracoes.png` — chaves de IA (BYOK, só neste aparelho) e troca de senha.
 
-### 10. Configurações e tema
-- `29-configuracoes.png` — `/config`: chaves de IA (BYOK), troca de senha. Note que a chave de
-  restauração e o backup de arquivo **não aparecem mais** aqui — foram descontinuados com as
-  contas reais.
-- `30-configuracoes-tema-alternado.png` — alternância de tema (claro/escuro/auto) no header.
-
-### 11. Logout e verificação de isolamento admin
-- `31-logout-usuario-final.png` — logout do usuário comum, volta ao login.
-- `32-usuario-comum-bloqueado-de-admin.png` — login de novo como o mesmo usuário comum e
-  tentativa de acessar `/admin/usuarios` diretamente pela URL: **é redirecionado para a Home**,
-  nunca vê a tela de admin. Confirma que o guard de role funciona tanto na UI quanto (segundo
-  os testes automatizados do servidor) na API.
+### 10. Isolamento de permissão
+- `29-usuario-comum-bloqueado-no-admin.png` — acessar `/admin/usuarios` pela URL como
+  usuário comum redireciona para a Home. O servidor também barra por conta própria
+  (ver `server/src/routes/admin-users.test.ts`).
 
 ## O que este roteiro NÃO cobre
 
-- Fluxo de análise de foto por IA de verdade (precisa de uma chave de provedor real — Anthropic/
-  OpenAI/Gemini/OpenRouter — e consome créditos da API do provedor).
-- Importação de uma database nova do zero (demora minutos, baixa ~centenas de MB do Kaggle).
-- Migração de dados do modelo antigo (chave de restauração) para uma conta nova — o banner
-  aparece na Home, mas testar de ponta a ponta exige ter uma chave de restauração válida de
-  antes das contas.
-- Ações administrativas de gerenciamento (desativar usuário, resetar senha, tornar admin,
-  excluir usuário, derrubar sessões) — os botões existem em `/admin/usuarios` mas não foram
-  exercidos neste roteiro; a suíte automatizada do servidor (`server/src/routes/admin-users.test.ts`)
-  cobre essas regras (não pode remover o último admin, não pode se auto-rebaixar, etc.).
+- **Chamada real de IA** (captura de foto e conselheiro): exige chave BYOK de um provedor
+  e consome créditos. Nos prints, o conselheiro está semeado com pareceres de exemplo e a
+  captura mostra só a tela inicial. A lógica é coberta por testes com provedor mockado
+  (`server/src/routes/advisor.test.ts`).
+- **Importar uma database do zero**: baixa centenas de MB do Kaggle e leva minutos.
+- **Migração do modelo antigo** (chave de restauração): o banner aparece na Home, mas
+  testar ponta a ponta exige uma chave válida de antes das contas.
+- **Ações administrativas de gestão** (desativar, resetar senha, promover, excluir,
+  derrubar sessões): os botões estão em `/admin/usuarios`; as regras (não remover o
+  último admin, não se auto-rebaixar) são cobertas por testes automatizados.
+
+## Acessibilidade (auditada na v0.4.000)
+
+- Contraste **AA em todos os pares de token nos dois temas** (o mais apertado: `error`
+  sobre superfície clara, 4.71).
+- Alvos de toque da tab bar: **98×62px** (mínimo AA é 44×44).
+- Foco visível: contorno de 2px na cor primária em todo elemento focável.
+- `prefers-reduced-motion`: transições zeradas.
 
 ## Testar sem sujar sua base real
 
-O jeito mais seguro de repetir este roteiro sem misturar contas/carreiras de teste com as suas
-de verdade é rodar o servidor contra uma **cópia** do banco, com usuários e carreiras zerados
-mas os dados do jogo preservados (evita ter que reimportar, que demora minutos):
-
 ```bash
-# a partir da raiz do projeto, com o server de dev PARADO
+# a partir da raiz do projeto, com o servidor de dev PARADO
 cd server
 mkdir -p data-qa/captures data-qa/kaggle
 sqlite3 data/companion.db ".backup 'data-qa/companion.db'"   # cópia consistente (via WAL)
@@ -124,12 +112,13 @@ sqlite3 data-qa/companion.db "
 
 # sobe o servidor apontando pra cópia, com um admin de teste semeado no boot
 DATA_DIR="$(pwd)/data-qa" PORT=3344 HOST=127.0.0.1 \
-  ADMIN_EMAIL="qa-admin@teste.local" ADMIN_PASSWORD="SuaSenhaDeTeste" \
+  ADMIN_EMAIL='admin@prancheta.local' ADMIN_PASSWORD='SuaSenhaDeTeste' \
   npx tsx src/index.ts
 ```
 
-Em outro terminal, `npm run dev:web` continua normal — o Vite já faz proxy de `/api` para
-`localhost:3344`, então ele fala com o servidor de teste sem nenhuma mudança.
+Em outro terminal, `npm run dev:web` — o Vite já faz proxy de `/api` para `localhost:3344`.
 
-Ao terminar, `Ctrl+C` no servidor de teste e `rm -rf server/data-qa`. Sua base real nunca foi
-aberta em modo de escrita durante o teste.
+Ao terminar: `Ctrl+C` no servidor e `rm -rf server/data-qa`.
+
+> Dica: evite `!` na senha de teste — dependendo do shell ele vira expansão de histórico e
+> o seed acaba com uma senha diferente da que você digitou.
