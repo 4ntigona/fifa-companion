@@ -9,6 +9,10 @@ do HTTPS (que é o que faz a câmera do PWA funcionar no celular).
 > de `server/data/` deixou de ser opcional. As chaves de IA continuam **BYOK**, no navegador
 > de cada usuário: nunca vão para o servidor.
 
+> **VPS ainda sem CloudPanel?** Este documento assume que ele já está instalado. Para o
+> caminho completo a partir de uma VPS em branco (instalar o CloudPanel, DNS, swap, etc.),
+> veja **[INSTALL.md](INSTALL.md)** primeiro.
+
 ---
 
 ## 0. Pré-requisitos

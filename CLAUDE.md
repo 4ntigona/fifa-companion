@@ -7,6 +7,11 @@ prospecção e conselheiro de IA — não gerenciar campanhas/resultados.
 Shell mobile-first com tab bar (Elenco · Scout · Captura · Mais) sobre uma **carreira ativa**
 (contexto persistente: URL primeiro, `localStorage` como fallback — ver `web/src/hooks.ts`).
 
+**Antes de propor mudanças de arquitetura ou produto, leia [`STATUS.md`](STATUS.md)** — tem o
+histórico completo, o estado técnico verificado e a lista de dívida técnica/pendências
+conhecidas. Evita redescobrir decisões já tomadas conscientemente (seção 3.5 de lá) ou
+reabrir itens já resolvidos.
+
 ## Verificação
 
 ```bash
@@ -53,7 +58,8 @@ atributos. O que não foi importado aparece como indisponível, não como valor 
 - `web/` — React 18 + Vite 6 + Tailwind v4 + TanStack Query v5 + Recharts, PWA em PT-BR
   (mobile-first — o app é usado no celular enquanto o FIFA roda na TV).
 - Deploy: VPS Debian + CloudPanel, PM2 (`ecosystem.config.cjs`), processo único servindo a API e
-  o `web/dist` buildado. Passo a passo em `DEPLOY.md`.
+  o `web/dist` buildado. VPS do zero: `INSTALL.md`. VPS já configurada (update/backup/
+  troubleshooting): `DEPLOY.md`. Referência completa (arquitetura, env vars, config): `README.md`.
 - QA: roteiro E2E + prints de referência em `screenshots/tests/` (rodar sempre contra a base
   isolada `server/data-qa`, nunca contra `server/data`).
 
