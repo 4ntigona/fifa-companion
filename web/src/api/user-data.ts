@@ -33,8 +33,20 @@ export function getCareer(id: number): Promise<{ career: Career }> {
   return api(`/api/careers/${id}`)
 }
 
-export function updateCareer(id: number, patch: { currentSeason?: string; currentDateIngame?: string; name?: string }) {
+export interface Objective { text: string; done: boolean }
+
+export function updateCareer(id: number, patch: {
+  currentSeason?: string; currentDateIngame?: string; name?: string; objectives?: Objective[]
+}) {
   return api<{ updated: number }>(`/api/careers/${id}`, { method: 'PATCH', body: JSON.stringify(patch) })
+}
+
+/** `careers.objectives` aceita tanto o formato antigo (string[]) quanto o novo
+ *  ({text, done}[]) — dados existentes não quebram ao abrir o hub. */
+export function parseObjectives(raw: string | null): Objective[] {
+  if (!raw) return []
+  const parsed = JSON.parse(raw) as unknown[]
+  return parsed.map((o) => (typeof o === 'string' ? { text: o, done: false } : (o as Objective)))
 }
 
 export function deleteCareer(id: number) {

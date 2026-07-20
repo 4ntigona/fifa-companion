@@ -1,21 +1,30 @@
-import { useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { fmtEur, versionLabel, type CareerPlayer } from '../api/client'
-import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer, deleteCareer } from '../api/user-data'
+import { getCareer, listCareerPlayers, updateCareer, createCareerPlayer, deleteCareer, parseObjectives, type Objective } from '../api/user-data'
 import ConfirmDialog from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
 import CurrencyNote from '../components/CurrencyNote'
-import { sanitizeStat } from '../hooks'
+import AdvisorPanel from '../components/AdvisorPanel'
+import { sanitizeStat, setActiveCareerId } from '../hooks'
 
+/** O hub de desenvolvimento do time (ver design-proposals/blueprint.md §3): contexto do
+ *  save, objetivos da diretoria, conselheiro (placeholder até a fase 0.3.007), radar de
+ *  desenvolvimento (o que mudou desde a última captura) e o elenco em si. Prospecção e
+ *  Captura saíram daqui — viraram tabs, sempre disponíveis para a carreira ativa. */
 export default function CareerPage() {
   const { id } = useParams()
   const nav = useNavigate()
   const qc = useQueryClient()
   const [tab, setTab] = useState<'elenco' | 'base'>('elenco')
+  const [quickFilter, setQuickFilter] = useState('')
   const [editingSeason, setEditingSeason] = useState(false)
   const [showAddPlayer, setShowAddPlayer] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+
+  // esta carreira vira o contexto ativo do app (tab bar + header)
+  useEffect(() => { if (id) setActiveCareerId(Number(id)) }, [id])
 
   const { data, isError } = useQuery({
     queryKey: ['career', id],
@@ -29,10 +38,13 @@ export default function CareerPage() {
 
   const career = data?.career
   const players = playersData?.players ?? []
+  const qf = quickFilter.trim().toLowerCase()
+  const matches = (p: CareerPlayer) =>
+    !qf || p.name.toLowerCase().includes(qf) || p.positions.toLowerCase().includes(qf)
   // vendido sai do elenco ativo (e já tem in_squad=0 via updateCareerPlayer, mas o filtro é
   // explícito por segurança); emprestado permanece visível no elenco, com a tag de aviso.
-  const squad = players.filter((p) => p.in_squad && !['base', 'vendido'].includes(p.status))
-  const youth = players.filter((p) => p.origin === 'youth' || p.origin === 'regen' || p.status === 'base')
+  const squad = players.filter((p) => p.in_squad && !['base', 'vendido'].includes(p.status) && matches(p))
+  const youth = players.filter((p) => (p.origin === 'youth' || p.origin === 'regen' || p.status === 'base') && matches(p))
 
   const updateSeason = useMutation({
     mutationFn: async (payload: { currentSeason?: string; currentDateIngame?: string }) =>
@@ -40,42 +52,45 @@ export default function CareerPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['career', id] }); setEditingSeason(false) },
   })
 
+  const toggleObjective = useMutation({
+    mutationFn: async (objectives: Objective[]) => updateCareer(Number(id), { objectives }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['career', id] }),
+  })
+
   const remove = useMutation({
     mutationFn: async () => deleteCareer(Number(id)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['careers'] }); nav('/') },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['careers'] }); nav('/mais') },
   })
 
   if (isError) return (
     <div className="card mt-6 bg-surface-soft p-6 text-sm text-slate-ink">
-      <p className="font-semibold text-ink">Carreira não encontrada neste dispositivo.</p>
-      <p className="mt-1">Ela pode ter sido excluída ou os dados foram restaurados de outro backup.</p>
-      <Link to="/" className="btn-primary mt-3 inline-block">Voltar ao início</Link>
+      <p className="font-semibold text-ink">Carreira não encontrada nesta conta.</p>
+      <p className="mt-1">Ela pode ter sido excluída.</p>
+      <Link to="/mais" className="btn-primary mt-3 inline-block">Voltar</Link>
     </div>
   )
   if (!career) return <p className="pt-6 text-slate-ink">Carregando…</p>
 
-  const objectives: string[] = career.objectives ? JSON.parse(career.objectives) : []
+  const objectives = parseObjectives(career.objectives)
 
   return (
-    <div className="space-y-8 pt-6">
-      {/* banda navy do dashboard — assinatura do design */}
-      <section className="border border-hairline bg-navy p-6 text-white">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{career.name}</h1>
-            <p className="mt-0.5 text-sm text-white/70">
+    <div className="space-y-6 pt-5">
+      {/* 1. Contexto do save */}
+      <section className="card relative overflow-hidden p-5">
+        <span className="watermark-no">{career.fifa_version}</span>
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="display truncate text-[22px] not-italic text-ink">{career.name}</h1>
+            <p className="mt-0.5 truncate text-sm text-steel">
               {career.team_type === 'created'
                 ? `${career.created_team_name} (clube criado${career.replacedTeam ? `, substituiu ${career.replacedTeam.team_name}` : ''})`
                 : career.team?.team_name}
             </p>
           </div>
-          <span className="bg-white/10 px-3 py-1 text-[13px] font-semibold text-white">
-            {versionLabel(career.fifa_version)}
-          </span>
+          <span className="tag-purple shrink-0">{versionLabel(career.fifa_version)}</span>
         </div>
 
-        {/* Linha do tempo do save — sempre visível e editável */}
-        <div className="mt-4 flex items-center gap-2  bg-navy-mid/60 p-2.5 text-sm">
+        <div className="relative mt-4 flex items-center gap-2 rounded-xl bg-surface-soft p-2.5 text-sm">
           {editingSeason ? (
             <SeasonEditor
               season={career.current_season}
@@ -86,9 +101,9 @@ export default function CareerPage() {
             />
           ) : (
             <>
-              <span>📅 Temporada <b>{career.current_season}</b>{career.current_date_ingame ? ` · ${career.current_date_ingame}` : ''}</span>
+              <span className="text-ink">Temporada <b>{career.current_season}</b>{career.current_date_ingame ? ` · ${career.current_date_ingame}` : ''}</span>
               <button onClick={() => setEditingSeason(true)}
-                className="ml-auto  border border-white/30 px-3 py-1 text-[13px] font-medium text-white hover:bg-white/10">
+                className="ml-auto rounded-full border border-hairline-strong px-3 py-1 text-[13px] font-medium text-ink hover:border-ink">
                 Atualizar
               </button>
             </>
@@ -96,46 +111,61 @@ export default function CareerPage() {
         </div>
 
         {career.team_type === 'created' && (
-          <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-white/80">
-            <div>Verba: <b className="text-white">{fmtEur(career.created_team_budget_eur)}</b></div>
-            <div>Liga: <b className="text-white">{career.created_team_league ?? '—'}</b></div>
-            <div>Qualidade: <b className="text-white">{career.squad_quality ?? '—'}</b></div>
+          <div className="relative mt-4 grid grid-cols-2 gap-2 text-sm text-steel">
+            <div>Verba: <b className="text-ink">{fmtEur(career.created_team_budget_eur)}</b></div>
+            <div>Liga: <b className="text-ink">{career.created_team_league ?? '—'}</b></div>
+            <div>Qualidade: <b className="text-ink">{career.squad_quality ?? '—'}</b></div>
           </div>
         )}
         {career.team && (
-          <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-white/80 sm:grid-cols-4">
-            <div>Geral <b className="text-white">{career.team.overall}</b></div>
-            <div>ATA <b className="text-white">{career.team.attack}</b></div>
-            <div>MEI <b className="text-white">{career.team.midfield}</b></div>
-            <div>DEF <b className="text-white">{career.team.defence}</b></div>
-            <div className="col-span-2">Verba: <b className="text-white">{fmtEur(career.team.transfer_budget_eur)}</b></div>
+          <div className="relative mt-4 grid grid-cols-2 gap-2 text-sm text-steel sm:grid-cols-4">
+            <div>Geral <b className="text-ink">{career.team.overall}</b></div>
+            <div>ATA <b className="text-ink">{career.team.attack}</b></div>
+            <div>MEI <b className="text-ink">{career.team.midfield}</b></div>
+            <div>DEF <b className="text-ink">{career.team.defence}</b></div>
+            <div className="col-span-2">Verba: <b className="text-ink">{fmtEur(career.team.transfer_budget_eur)}</b></div>
           </div>
         )}
-        {(career.team_type === 'created' || career.team) && <CurrencyNote className="mt-2 text-white/60" />}
-        {objectives.length > 0 && (
-          <ul className="mt-4 list-inside list-disc text-sm text-white/80">
-            {objectives.map((o, i) => <li key={i}>{o}</li>)}
-          </ul>
-        )}
-
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Link to={`/carreira/${id}/prospeccao`} className="btn-primary">🔎 Prospecção</Link>
-          <Link to={`/carreira/${id}/captura`}
-            className="bg-white px-[18px] py-2.5 text-sm font-medium text-navy hover:bg-white/90">
-            📸 Capturar tela
-          </Link>
-          <button onClick={() => setShowAddPlayer(true)}
-            className="border border-white/40 px-[18px] py-2.5 text-sm font-medium text-white hover:bg-white/10">
-            + Jogador
-          </button>
-          <button onClick={() => setConfirmingDelete(true)} disabled={remove.isPending}
-            className="ml-auto border border-error/60 px-[18px] py-2.5 text-sm font-medium text-error hover:bg-error/10">
-            {remove.isPending ? 'Excluindo…' : '🗑 Excluir carreira'}
-          </button>
-        </div>
+        {(career.team_type === 'created' || career.team) && <CurrencyNote className="relative mt-2" />}
       </section>
 
+      {/* 2. Objetivos da diretoria */}
+      {objectives.length > 0 && (
+        <section>
+          <SectionTitle>Objetivos da diretoria</SectionTitle>
+          <div className="card divide-y divide-hairline-soft">
+            {objectives.map((o, i) => (
+              <button
+                key={i}
+                onClick={() => toggleObjective.mutate(objectives.map((ob, j) => (j === i ? { ...ob, done: !ob.done } : ob)))}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left"
+              >
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border-2 ${
+                  o.done ? 'border-success bg-success text-white' : 'border-hairline-strong text-transparent'
+                }`}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <path d="M2 6.5l2.6 2.6L10 3.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <span className={`text-sm ${o.done ? 'text-steel line-through decoration-faint' : 'text-ink'}`}>{o.text}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 3. Conselheiro de IA */}
       <section>
+        <SectionTitle>Conselheiro</SectionTitle>
+        <AdvisorPanel careerId={Number(id)} />
+      </section>
+
+      {/* 4. Radar de desenvolvimento */}
+      <DevelopmentRadar players={players} />
+
+      {/* 5. Elenco */}
+      <section>
+        <SectionTitle>Elenco</SectionTitle>
         <div className="mb-3 flex gap-2">
           <button onClick={() => setTab('elenco')} className={tab === 'elenco' ? 'pill-tab-active' : 'pill-tab'}>
             Elenco ({squad.length})
@@ -144,12 +174,25 @@ export default function CareerPage() {
             Base & Regens ({youth.length})
           </button>
         </div>
+        <input
+          value={quickFilter}
+          onChange={(e) => setQuickFilter(e.target.value)}
+          placeholder="Filtrar por nome ou posição…"
+          className="input mb-3"
+        />
         <PlayerList players={tab === 'elenco' ? squad : youth} />
         {tab === 'elenco' && squad.length === 0 && career.team_type === 'created' && (
           <p className="card bg-surface-soft p-4 text-sm text-slate-ink">
-            Clube criado: os jogadores gerados pelo jogo entram por "+ Jogador" (manual) ou por 📸 foto da tela do elenco.
+            Clube criado: os jogadores gerados pelo jogo entram por "+ Jogador" (manual) ou pela tab Captura (foto do elenco).
           </p>
         )}
+        <div className="mt-3 flex items-center gap-4">
+          <button onClick={() => setShowAddPlayer(true)} className="btn-secondary">+ Jogador</button>
+          <button onClick={() => setConfirmingDelete(true)} disabled={remove.isPending}
+            className="ml-auto text-[13px] font-medium text-error underline decoration-error/40 underline-offset-2 hover:decoration-error">
+            {remove.isPending ? 'Excluindo…' : 'Excluir carreira'}
+          </button>
+        </div>
       </section>
 
       {showAddPlayer && <AddPlayerModal careerId={Number(id)} version={career.fifa_version} onClose={() => setShowAddPlayer(false)} />}
@@ -166,6 +209,10 @@ export default function CareerPage() {
   )
 }
 
+function SectionTitle({ children }: { children: ReactNode }) {
+  return <h2 className="display mb-2 px-1 text-[13px] tracking-[0.04em] text-ink">{children}</h2>
+}
+
 function SeasonEditor(props: {
   season: string; dateIngame: string | null; saving: boolean
   onSave: (s: string, d: string) => void; onCancel: () => void
@@ -175,45 +222,90 @@ function SeasonEditor(props: {
   return (
     <div className="flex w-full flex-wrap items-center gap-2">
       <input value={s} onChange={(e) => setS(e.target.value)} placeholder="Temporada (2024/25)"
-        className="w-32  border border-white/30 bg-transparent p-1.5 text-sm text-white placeholder:text-white/50" />
+        className="input w-32 py-1.5 text-sm" />
       <input value={d} onChange={(e) => setD(e.target.value)} type="date"
-        className="border border-white/30 bg-transparent p-1.5 text-sm text-white [color-scheme:dark]" />
-      <button onClick={() => props.onSave(s, d)} disabled={props.saving}
-        className="bg-primary px-3 py-1.5 text-[13px] font-semibold text-black hover:bg-primary-pressed hover:text-white">Salvar</button>
-      <button onClick={props.onCancel}
-        className="px-3 py-1.5 text-[13px] font-medium text-white/80 hover:bg-white/10">Cancelar</button>
+        className="input w-auto py-1.5 text-sm" />
+      <button onClick={() => props.onSave(s, d)} disabled={props.saving} className="btn-primary py-1.5 text-[13px]">Salvar</button>
+      <button onClick={props.onCancel} className="btn-ghost py-1.5 text-[13px]">Cancelar</button>
     </div>
+  )
+}
+
+/** O que mudou desde a última captura: jogadores com pelo menos um snapshot registrado,
+ *  ordenados pelo crescimento (overall atual − overall original). Sem dado inventado: só
+ *  entra na conta quem tem uma base real (sofifa ou overall original informado). */
+function DevelopmentRadar({ players }: { players: CareerPlayer[] }) {
+  const tracked = players
+    .map((p) => {
+      const baseline = p.sofifa?.overall ?? p.overall_original
+      if (baseline == null || !p.latestSnapshot) return null
+      const current = p.latestSnapshot.overall ?? baseline
+      const potential = p.sofifa?.potential ?? p.potential_original
+      return { player: p, baseline, current, potential, delta: current - baseline }
+    })
+    .filter((e): e is NonNullable<typeof e> => e != null)
+    .sort((a, b) => b.delta - a.delta)
+    .slice(0, 6)
+
+  return (
+    <section>
+      <SectionTitle>Radar de desenvolvimento</SectionTitle>
+      {tracked.length === 0 ? (
+        <p className="card p-4 text-sm text-slate-ink">
+          Registre a evolução do elenco na tab Captura para ver aqui quem está crescendo.
+        </p>
+      ) : (
+        <div className="card divide-y divide-hairline-soft">
+          {tracked.map(({ player: p, baseline, current, potential, delta }) => (
+            <Link key={p.id} to={`/jogador/${p.id}`} className="flex items-center gap-3 px-4 py-3">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold text-ink">{p.name}</span>
+                <span className="block truncate text-[12px] text-steel">
+                  {p.positions}{p.age ? ` · ${p.age} anos` : ''}{p.origin !== 'sofifa' ? ` · ${p.origin}` : ''}
+                </span>
+              </span>
+              {delta > 0 ? (
+                <span className="growpill shrink-0">{baseline} → {current}</span>
+              ) : (
+                <span className="shrink-0 text-[13px] text-faint">
+                  {current}{potential != null ? ` / ${potential}` : ''} · estagnado
+                </span>
+              )}
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 
 function PlayerList({ players }: { players: CareerPlayer[] }) {
   if (players.length === 0) return null
   return (
-    <ul className="space-y-1">
+    <div className="card divide-y divide-hairline-soft">
       {players.map((p) => {
         const ovr = p.latestSnapshot?.overall ?? p.sofifa?.overall ?? p.overall_original
         const pot = p.latestSnapshot?.potential ?? p.sofifa?.potential ?? p.potential_original
+        const shirt = p.sofifa?.club_jersey_number ?? p.jersey_number ?? p.positions.split(',')[0]?.trim()
         return (
-          <li key={p.id}>
-            <Link to={`/jogador/${p.id}`}
-              className="card flex items-center justify-between p-3 text-sm transition-colors hover:border-primary">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-ink">{p.name}</span>
-                <span className="text-[13px] text-steel">{p.positions}{p.age ? ` · ${p.age} anos` : ''}</span>
-                {p.origin !== 'sofifa' && (
-                  <span className="tag-orange uppercase">{p.origin}</span>
-                )}
+          <Link key={p.id} to={`/jogador/${p.id}`} className="flex items-center gap-3 px-3 py-3">
+            <span className="shirtno">{shirt ?? '—'}</span>
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-1.5">
+                <span className="truncate text-sm font-bold text-ink">{p.name}</span>
+                {p.origin !== 'sofifa' && <span className="tag-orange uppercase">{p.origin}</span>}
                 {p.status === 'emprestado' && <span className="tag-purple">empréstimo</span>}
-              </div>
-              <div className="shrink-0 text-right">
-                <span className="font-semibold text-success">{ovr ?? '—'}</span>
-                <span className="text-stone"> / {pot ?? '—'}</span>
-              </div>
-            </Link>
-          </li>
+              </span>
+              <span className="block truncate text-[12px] text-steel">{p.positions}{p.age ? ` · ${p.age} anos` : ''}</span>
+            </span>
+            <span className="shrink-0 text-sm">
+              <span className="font-mono font-semibold text-ink">{ovr ?? '—'}</span>
+              <span className="font-mono text-faint"> / {pot ?? '—'}</span>
+            </span>
+          </Link>
         )
       })}
-    </ul>
+    </div>
   )
 }
 
@@ -246,7 +338,7 @@ function AddPlayerModal({ careerId, version, onClose }: { careerId: number; vers
     <Modal onClose={onClose}>
       <h3 className="text-lg font-semibold text-ink">Adicionar jogador</h3>
       <p className="text-[13px] text-steel">
-        Para jogadores reais da database do {versionLabel(version)}, use a Prospecção. Aqui entram os que só existem no seu save.
+        Para jogadores reais da database do {versionLabel(version)}, use a Scout. Aqui entram os que só existem no seu save.
       </p>
       <div className="flex gap-2 text-sm">
         {(['youth', 'regen', 'generated'] as const).map((o) => (

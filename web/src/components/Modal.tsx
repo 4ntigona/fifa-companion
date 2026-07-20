@@ -11,9 +11,9 @@ export default function Modal({ onClose, ariaLabel, role = 'dialog', children }:
 }) {
   useEscapeClose(onClose)
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy-deep/50 sm:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy-deep/60 p-0 sm:items-center sm:p-4" onClick={onClose}>
       <div role={role} aria-modal="true" aria-label={ariaLabel}
-        className="w-full max-w-md space-y-2 bg-canvas p-5 shadow-[0_24px_48px_-8px_rgba(15,15,15,0.2)]"
+        className="max-h-[90vh] w-full max-w-md space-y-2 overflow-y-auto rounded-t-2xl bg-canvas p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[0_24px_48px_-8px_color-mix(in_oklab,var(--color-navy-deep)_40%,transparent)] sm:rounded-2xl sm:pb-5"
         onClick={(e) => e.stopPropagation()}>
         {children}
       </div>

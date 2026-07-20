@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api, fmtEur, type SofifaTeam, type VersionInfo } from '../api/client'
 import { createCareer } from '../api/user-data'
 import ServerErrorCard from '../components/ServerErrorCard'
@@ -94,8 +94,11 @@ export default function NewCareer() {
     (selected?.imported || teamType === 'created')
 
   return (
-    <div className="space-y-8 pt-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-ink">Nova carreira</h1>
+    <div className="space-y-8 pt-5">
+      <div className="flex items-center justify-between">
+        <Link to="/mais" className="text-[13px] font-bold uppercase tracking-[0.06em] text-steel hover:text-ink">← Mais</Link>
+      </div>
+      <h1 className="display text-[24px] not-italic text-ink">Nova carreira</h1>
 
       <section>
         <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-steel">Versão do jogo</h2>
@@ -107,11 +110,11 @@ export default function NewCareer() {
             <button
               key={v.fifaVersion}
               onClick={() => { setVersion(v.fifaVersion); setTeamId(null); setCountry(''); setLeagueId('') }}
-              className={` p-3 text-sm transition-colors ${
+              className={`rounded-xl p-3 text-sm transition-colors ${
                 version === v.fifaVersion
                   ? 'bg-tint-lavender font-semibold text-charcoal ring-2 ring-primary'
                   : v.imported
-                    ? 'border border-hairline bg-canvas text-charcoal hover:border-hairline-strong'
+                    ? 'border border-hairline bg-surface text-charcoal hover:border-hairline-strong'
                     : 'border border-hairline bg-surface-soft text-stone'
               }`}
             >
@@ -122,8 +125,8 @@ export default function NewCareer() {
         </div>
         )}
         {selected && !selected.imported && (
-          <p className="mt-2  bg-tint-peach p-3 text-[13px] text-orange-deep">
-            Database do {selected.label} não importada — importe na tela inicial.
+          <p className="mt-2 rounded-xl bg-tint-peach p-3 text-[13px] text-orange-deep">
+            Database do {selected.label} não importada — importe em Mais › Databases.
             Sem ela, só é possível carreira de clube criado com jogadores por foto/manual.
           </p>
         )}
@@ -187,15 +190,15 @@ export default function NewCareer() {
                   <li key={t.team_id}>
                     <button
                       onClick={() => setTeamId(t.team_id)}
-                      className={`w-full  p-3 text-left text-sm transition-colors ${
+                      className={`w-full rounded-xl p-3 text-left text-sm transition-colors ${
                         teamId === t.team_id
                           ? 'bg-tint-lavender ring-2 ring-primary'
-                          : 'border border-hairline bg-canvas hover:border-hairline-strong'
+                          : 'border border-hairline bg-surface hover:border-hairline-strong'
                       }`}
                     >
                       <div className="flex justify-between">
                         <span className="font-semibold text-ink">{t.team_name}</span>
-                        <span className="font-semibold text-success">{t.overall ?? '—'}</span>
+                        <span className="font-mono font-semibold text-primary">{t.overall ?? '—'}</span>
                       </div>
                       <div className="text-[13px] text-slate-ink">
                         {t.league_name} · ATA {t.attack ?? '—'} · MEI {t.midfield ?? '—'} · DEF {t.defence ?? '—'} · Verba {fmtEur(t.transfer_budget_eur)}
@@ -257,7 +260,7 @@ export default function NewCareer() {
                   </select>
                 </>
               ) : (
-                <p className="bg-surface p-3 text-[13px] text-steel">
+                <p className="rounded-xl bg-surface-soft p-3 text-[13px] text-steel">
                   Importe a database do {selected?.label} para escolher liga e time substituído das listas reais.
                 </p>
               )}

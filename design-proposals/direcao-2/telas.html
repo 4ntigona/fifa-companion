@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direção 2 — Caderno do Olheiro — Telas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Alegreya+Sans:wght@400;500;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #e3e0d6; font-family: 'Alegreya Sans', sans-serif; padding: 40px; }
+  .gallery { display: flex; flex-wrap: wrap; gap: 40px; justify-content: center; }
+  .slot > p { text-align: center; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: #6b665a; margin-bottom: 10px; }
+
+  .phone {
+    width: 375px; height: 812px; overflow: hidden; position: relative;
+    border-radius: 18px; box-shadow: 0 10px 34px rgba(35,41,54,.28);
+    --paper: #f7f6f1; --surface: #fdfcf9; --rule: #e4e1d6; --rule-soft: #edeade;
+    --ink: #232936; --muted: #707a89; --faint: #a7aeb9;
+    --pen: #2d5fad; --hl: #ffe14d; --hl-ink: #232936;
+    --red: #c4472f; --green: #316b46; --margin: rgba(196,71,47,.4);
+    background: var(--paper); color: var(--ink);
+    font-size: 15px; line-height: 1.45;
+  }
+  .phone.dark {
+    --paper: #15181f; --surface: #1b1f2a; --rule: #2a2f3c; --rule-soft: #21252f;
+    --ink: #e9e6dc; --muted: #8d94a5; --faint: #565e6e;
+    --pen: #7da4e3; --hl: #f2ce2e; --hl-ink: #15181f;
+    --red: #e06e55; --green: #6fb389; --margin: rgba(224,110,85,.4);
+  }
+  .screen { position: absolute; inset: 0; padding: 0 18px 92px 34px; overflow: hidden; }
+  .screen::before { content: ''; position: absolute; left: 24px; top: 0; bottom: 0; width: 1.5px; background: var(--margin); }
+
+  .top { display: flex; align-items: baseline; justify-content: space-between; padding: 18px 0 12px; }
+  .wordmark { font-family: 'Newsreader', serif; font-weight: 600; font-size: 19px; letter-spacing: -0.01em; }
+  .wordmark i { font-style: italic; color: var(--pen); }
+  .top .ctx { font-size: 12.5px; color: var(--muted); }
+
+  .anno { font-family: 'Newsreader', serif; font-style: italic; font-size: 16.5px; color: var(--pen); margin: 16px 0 6px; }
+  .hl-swipe { background: linear-gradient(104deg, transparent 1%, var(--hl) 2%, var(--hl) 97%, transparent 98%); color: var(--hl-ink); padding: 0 3px; font-weight: 700; }
+  .num { font-family: 'Courier Prime', monospace; font-weight: 700; }
+
+  .sheet { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; box-shadow: 0 1px 0 var(--rule); }
+  .row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--rule-soft); }
+  .row:last-child { border-bottom: 0; }
+  .row .who { flex: 1; min-width: 0; }
+  .row .who b { font-size: 15.5px; font-weight: 700; }
+  .row .who small { display: block; color: var(--muted); font-size: 12.5px; }
+  .row .val { font-size: 15px; }
+  .pot { color: var(--muted); }
+
+  .stamp { display: inline-block; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; border: 1.6px solid currentColor; border-radius: 3px; padding: 2px 7px; transform: rotate(-2deg); }
+  .stamp.red { color: var(--red); }
+  .stamp.green { color: var(--green); }
+  .stamp.pen { color: var(--pen); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 4px; font-weight: 800; font-size: 14px; padding: 12px 16px; }
+  .btn-ink { background: var(--ink); color: var(--paper); transform: rotate(-0.4deg); }
+  .btn-line { border: 1.5px solid var(--rule); color: var(--ink); background: var(--surface); }
+  .link-pen { color: var(--pen); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+  .ctx-stats { display: flex; gap: 14px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .ctx-stats b { color: var(--ink); font-weight: 700; }
+
+  .obj-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--rule-soft); font-size: 14.5px; }
+  .obj-row:last-child { border-bottom: 0; }
+  .box { flex: none; width: 20px; height: 20px; border: 1.8px solid var(--muted); border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; color: var(--green); }
+  .box.done { border-color: var(--green); }
+  .obj-row.done .txt { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); }
+
+  .tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 76px; background: var(--surface); border-top: 1.5px solid var(--rule); display: flex; padding-bottom: 10px; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 800; color: var(--faint); }
+  .tab svg { display: block; }
+  .tab.on { color: var(--ink); }
+  .tab.on .lbl { background: linear-gradient(104deg, transparent 1%, var(--hl) 3%, var(--hl) 97%, transparent 99%); color: var(--hl-ink); padding: 1px 6px; }
+
+  .backlink { font-size: 13.5px; font-weight: 700; color: var(--muted); }
+  .player-head h1 { font-family: 'Newsreader', serif; font-size: 30px; font-weight: 600; line-height: 1.05; }
+  .player-head small { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .bigline { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 14px; }
+  .attr6 { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--rule-soft); }
+  .attr6 > div { padding: 10px 14px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--rule-soft); }
+  .attr6 > div:nth-child(3n+1), .attr6 > div:nth-child(3n+2) { border-right: 1px solid var(--rule-soft); }
+  .attr6 > div:nth-last-child(-n+3) { border-bottom: 0; }
+  .attr6 b { display: block; font-size: 17px; color: var(--ink); font-family: 'Courier Prime', monospace; }
+  .chart { padding: 12px 14px 6px; }
+  .chart svg { display: block; width: 100%; }
+  .chart .cap { font-size: 12px; color: var(--muted); padding: 6px 0 10px; }
+  .snap { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--rule-soft); font-size: 13.5px; }
+  .snap small { color: var(--muted); }
+
+  .search input { width: 100%; border: 1.5px solid var(--rule); background: var(--surface); border-radius: 4px; padding: 12px 14px; font: inherit; font-size: 15px; color: var(--ink); }
+  .search input::placeholder { color: var(--faint); font-style: italic; font-family: 'Newsreader', serif; }
+  .chips { display: flex; gap: 8px; overflow: hidden; margin: 10px 0; }
+  .chip { font-size: 12.5px; font-weight: 700; border: 1.5px solid var(--rule); background: var(--surface); border-radius: 999px; padding: 6px 12px; color: var(--muted); white-space: nowrap; }
+  .chip.on { border-color: var(--ink); color: var(--ink); }
+  .euro-note { font-size: 11.5px; color: var(--faint); margin: 8px 0 0; font-style: italic; }
+
+  .mais-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--rule-soft); font-size: 15px; font-weight: 500; }
+  .mais-row:last-child { border-bottom: 0; }
+  .mais-row small { display: block; font-size: 12.5px; color: var(--muted); font-weight: 400; }
+  .mais-row .flex { flex: 1; min-width: 0; }
+  .career { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+  .career b { font-size: 15.5px; }
+  .career small { display: block; font-size: 12.5px; color: var(--muted); }
+  .tag-ativa { margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="gallery">
+
+<!-- ELENCO claro -->
+<div class="slot"><p>Elenco · claro</p>
+<div class="phone" id="elenco-claro">
+  <div class="screen">
+    <div class="top"><span class="wordmark">Prancheta<i>,</i></span><span class="ctx">FC Barcelona · 2015/16</span></div>
+
+    <div class="sheet" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:600">FC Barcelona</span>
+        <span class="stamp pen">FIFA 16</span>
+      </div>
+      <div class="ctx-stats" style="margin-top:8px">
+        <span>Geral <b class="num">84</b></span><span>ATA <b class="num">90</b></span><span>MEI <b class="num">85</b></span><span>DEF <b class="num">82</b></span>
+        <span>Verba <b class="num">€100.0M</b></span>
+      </div>
+    </div>
+
+    <p class="anno">objetivos da diretoria —</p>
+    <div class="sheet">
+      <div class="obj-row done"><span class="box done"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5l2.6 2.6L10 3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="txt">Vencer La Liga</span></div>
+      <div class="obj-row"><span class="box"></span><span class="txt">Promover 2 jogadores da base ao elenco</span></div>
+    </div>
+
+    <p class="anno">parecer do conselheiro — <span style="font-size:13px;color:var(--muted)">12/08</span></p>
+    <div class="sheet" style="padding:14px">
+      <p style="font-size:14.5px;line-height:1.5">Lacuna na lateral direita; <span class="hl-swipe">Munir pronto para minutos</span>; vender Vermaelen até janeiro.</p>
+      <span class="btn btn-ink" style="margin-top:12px">Analisar carreira de novo</span>
+    </div>
+
+    <p class="anno">radar de desenvolvimento —</p>
+    <div class="sheet">
+      <div class="row"><span class="who"><b>Munir</b><small>ST · 19 anos · base</small></span><span class="val num"><span class="hl-swipe">73 → 76</span></span></div>
+      <div class="row"><span class="who"><b>Neymar Jr</b><small>LW · 23 anos</small></span><span class="val num">88 → 90</span></div>
+      <div class="row"><span class="who"><b>T. Vermaelen</b><small>CB · 29 anos · estagnado</small></span><span class="stamp red">vender</span></div>
+    </div>
+
+    <p class="anno">elenco — 30 jogadores</p>
+    <div class="sheet">
+      <div class="row"><span class="who"><b>L. Messi</b><small>RW, CF · 28 anos</small></span><span class="val num">94 <span class="pot">/ 95</span></span></div>
+      <div class="row"><span class="who"><b>L. Suárez</b><small>ST · 28 anos</small></span><span class="val num">90 <span class="pot">/ 90</span></span></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <span class="tab on"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><path d="M4 17V8.5L11 4l7 4.5V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17v-5h6v5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Elenco</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 14.5L19 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Scout</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="11" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.2-2h3.6L14 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Captura</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="5" cy="11" r="1.7" fill="currentColor"/><circle cx="11" cy="11" r="1.7" fill="currentColor"/><circle cx="17" cy="11" r="1.7" fill="currentColor"/></svg><span class="lbl">Mais</span></span>
+  </div>
+</div>
+</div>
+
+<!-- ELENCO escuro -->
+<div class="slot"><p>Elenco · escuro</p>
+<div class="phone dark" id="elenco-escuro">
+  <div class="screen">
+    <div class="top"><span class="wordmark">Prancheta<i>,</i></span><span class="ctx">FC Barcelona · 2015/16</span></div>
+    <div class="sheet" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:600">FC Barcelona</span>
+        <span class="stamp pen">FIFA 16</span>
+      </div>
+      <div class="ctx-stats" style="margin-top:8px">
+        <span>Geral <b class="num">84</b></span><span>ATA <b class="num">90</b></span><span>MEI <b class="num">85</b></span><span>DEF <b class="num">82</b></span>
+        <span>Verba <b class="num">€100.0M</b></span>
+      </div>
+    </div>
+    <p class="anno">objetivos da diretoria —</p>
+    <div class="sheet">
+      <div class="obj-row done"><span class="box done"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5l2.6 2.6L10 3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="txt">Vencer La Liga</span></div>
+      <div class="obj-row"><span class="box"></span><span class="txt">Promover 2 jogadores da base ao elenco</span></div>
+    </div>
+    <p class="anno">parecer do conselheiro — <span style="font-size:13px;color:var(--muted)">12/08</span></p>
+    <div class="sheet" style="padding:14px">
+      <p style="font-size:14.5px;line-height:1.5">Lacuna na lateral direita; <span class="hl-swipe">Munir pronto para minutos</span>; vender Vermaelen até janeiro.</p>
+      <span class="btn btn-ink" style="margin-top:12px">Analisar carreira de novo</span>
+    </div>
+    <p class="anno">radar de desenvolvimento —</p>
+    <div class="sheet">
+      <div class="row"><span class="who"><b>Munir</b><small>ST · 19 anos · base</small></span><span class="val num"><span class="hl-swipe">73 → 76</span></span></div>
+      <div class="row"><span class="who"><b>Neymar Jr</b><small>LW · 23 anos</small></span><span class="val num">88 → 90</span></div>
+      <div class="row"><span class="who"><b>T. Vermaelen</b><small>CB · 29 anos · estagnado</small></span><span class="stamp red">vender</span></div>
+    </div>
+    <p class="anno">elenco — 30 jogadores</p>
+    <div class="sheet">
+      <div class="row"><span class="who"><b>L. Messi</b><small>RW, CF · 28 anos</small></span><span class="val num">94 <span class="pot">/ 95</span></span></div>
+      <div class="row"><span class="who"><b>L. Suárez</b><small>ST · 28 anos</small></span><span class="val num">90 <span class="pot">/ 90</span></span></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <span class="tab on"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><path d="M4 17V8.5L11 4l7 4.5V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17v-5h6v5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Elenco</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 14.5L19 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Scout</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="11" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.2-2h3.6L14 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Captura</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="5" cy="11" r="1.7" fill="currentColor"/><circle cx="11" cy="11" r="1.7" fill="currentColor"/><circle cx="17" cy="11" r="1.7" fill="currentColor"/></svg><span class="lbl">Mais</span></span>
+  </div>
+</div>
+</div>
+
+<!-- JOGADOR claro -->
+<div class="slot"><p>Jogador · claro</p>
+<div class="phone" id="jogador-claro">
+  <div class="screen">
+    <div class="top"><span class="backlink">← Elenco</span><span class="ctx">FIFA 16</span></div>
+    <div class="player-head" style="padding:8px 0 12px">
+      <h1>L. Messi</h1>
+      <small>RW, CF · 28 anos · FC Barcelona · La Liga · <span class="stamp pen" style="font-size:9px">database FIFA 16</span></small>
+    </div>
+    <div class="sheet">
+      <div class="bigline">
+        <span style="font-size:12.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.08em">Overall / Potencial</span>
+        <span class="num" style="font-size:26px"><span class="hl-swipe">94 / 95</span></span>
+      </div>
+      <div class="attr6">
+        <div>PAC<b>92</b></div><div>SHO<b>88</b></div><div>PAS<b>86</b></div>
+        <div>DRI<b>95</b></div><div>DEF<b>24</b></div><div>FIS<b>62</b></div>
+      </div>
+    </div>
+    <p class="anno">evolução —</p>
+    <div class="sheet chart">
+      <svg viewBox="0 0 320 104">
+        <line x1="0" y1="26" x2="320" y2="26" stroke="var(--rule-soft)" stroke-width="1"/>
+        <line x1="0" y1="52" x2="320" y2="52" stroke="var(--rule-soft)" stroke-width="1"/>
+        <line x1="0" y1="78" x2="320" y2="78" stroke="var(--rule-soft)" stroke-width="1"/>
+        <path d="M16 68 L110 56 L204 40 L298 28" fill="none" stroke="var(--pen)" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M16 38 L110 34 L204 28 L298 20" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-dasharray="1 6" stroke-linecap="round"/>
+        <circle cx="16" cy="68" r="3.6" fill="var(--pen)"/><circle cx="110" cy="56" r="3.6" fill="var(--pen)"/>
+        <circle cx="204" cy="40" r="3.6" fill="var(--pen)"/><circle cx="298" cy="28" r="3.6" fill="var(--pen)"/>
+      </svg>
+      <p class="cap">Original → ago/15 → dez/15 → ago/16 · <span style="color:var(--pen)">— overall</span> · <span style="color:var(--red)">· · potencial</span></p>
+      <div class="snap"><span class="num"><b>94</b> / 95 <small>· RW</small></span><small>2016/17 · 14/08</small></div>
+      <div class="snap"><span class="num"><b>93</b> / 95 <small>· RW</small></span><small>2015/16 · 12/12</small></div>
+    </div>
+    <p class="anno">status —</p>
+    <div class="chips" style="margin-top:2px">
+      <span class="chip on">Titular</span><span class="chip">Reserva</span><span class="chip">Emprestado</span><span class="chip">Vendido</span>
+    </div>
+    <span class="btn btn-ink" style="width:100%;margin-top:8px">Registrar evolução</span>
+  </div>
+  <div class="tabbar">
+    <span class="tab on"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><path d="M4 17V8.5L11 4l7 4.5V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17v-5h6v5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Elenco</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 14.5L19 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Scout</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="11" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.2-2h3.6L14 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Captura</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="5" cy="11" r="1.7" fill="currentColor"/><circle cx="11" cy="11" r="1.7" fill="currentColor"/><circle cx="17" cy="11" r="1.7" fill="currentColor"/></svg><span class="lbl">Mais</span></span>
+  </div>
+</div>
+</div>
+
+<!-- JOGADOR escuro -->
+<div class="slot"><p>Jogador · escuro</p>
+<div class="phone dark" id="jogador-escuro">
+  <div class="screen">
+    <div class="top"><span class="backlink">← Elenco</span><span class="ctx">FIFA 16</span></div>
+    <div class="player-head" style="padding:8px 0 12px">
+      <h1>L. Messi</h1>
+      <small>RW, CF · 28 anos · FC Barcelona · La Liga · <span class="stamp pen" style="font-size:9px">database FIFA 16</span></small>
+    </div>
+    <div class="sheet">
+      <div class="bigline">
+        <span style="font-size:12.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.08em">Overall / Potencial</span>
+        <span class="num" style="font-size:26px"><span class="hl-swipe">94 / 95</span></span>
+      </div>
+      <div class="attr6">
+        <div>PAC<b>92</b></div><div>SHO<b>88</b></div><div>PAS<b>86</b></div>
+        <div>DRI<b>95</b></div><div>DEF<b>24</b></div><div>FIS<b>62</b></div>
+      </div>
+    </div>
+    <p class="anno">evolução —</p>
+    <div class="sheet chart">
+      <svg viewBox="0 0 320 104">
+        <line x1="0" y1="26" x2="320" y2="26" stroke="var(--rule-soft)" stroke-width="1"/>
+        <line x1="0" y1="52" x2="320" y2="52" stroke="var(--rule-soft)" stroke-width="1"/>
+        <line x1="0" y1="78" x2="320" y2="78" stroke="var(--rule-soft)" stroke-width="1"/>
+        <path d="M16 68 L110 56 L204 40 L298 28" fill="none" stroke="var(--pen)" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M16 38 L110 34 L204 28 L298 20" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-dasharray="1 6" stroke-linecap="round"/>
+        <circle cx="16" cy="68" r="3.6" fill="var(--pen)"/><circle cx="110" cy="56" r="3.6" fill="var(--pen)"/>
+        <circle cx="204" cy="40" r="3.6" fill="var(--pen)"/><circle cx="298" cy="28" r="3.6" fill="var(--pen)"/>
+      </svg>
+      <p class="cap">Original → ago/15 → dez/15 → ago/16 · <span style="color:var(--pen)">— overall</span> · <span style="color:var(--red)">· · potencial</span></p>
+      <div class="snap"><span class="num"><b>94</b> / 95 <small>· RW</small></span><small>2016/17 · 14/08</small></div>
+      <div class="snap"><span class="num"><b>93</b> / 95 <small>· RW</small></span><small>2015/16 · 12/12</small></div>
+    </div>
+    <p class="anno">status —</p>
+    <div class="chips" style="margin-top:2px">
+      <span class="chip on">Titular</span><span class="chip">Reserva</span><span class="chip">Emprestado</span><span class="chip">Vendido</span>
+    </div>
+    <span class="btn btn-ink" style="width:100%;margin-top:8px">Registrar evolução</span>
+  </div>
+  <div class="tabbar">
+    <span class="tab on"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><path d="M4 17V8.5L11 4l7 4.5V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17v-5h6v5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Elenco</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 14.5L19 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Scout</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="11" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.2-2h3.6L14 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Captura</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="5" cy="11" r="1.7" fill="currentColor"/><circle cx="11" cy="11" r="1.7" fill="currentColor"/><circle cx="17" cy="11" r="1.7" fill="currentColor"/></svg><span class="lbl">Mais</span></span>
+  </div>
+</div>
+</div>
+
+<!-- SCOUT claro -->
+<div class="slot"><p>Scout · claro</p>
+<div class="phone" id="scout-claro">
+  <div class="screen">
+    <div class="top"><span class="wordmark">Scout<i>,</i></span><span class="ctx">FIFA 16 · database real</span></div>
+    <div class="search"><input placeholder="buscar por nome…"></div>
+    <div class="chips">
+      <span class="chip on">Potencial</span><span class="chip">Overall</span><span class="chip">Margem</span><span class="chip">Idade</span><span class="chip">Valor</span>
+    </div>
+    <p style="font-size:13px;color:var(--muted)"><span class="num">16.706</span> jogadores encontrados · <span class="link-pen">Filtros</span></p>
+
+    <div class="sheet" style="margin-top:8px">
+      <div class="row">
+        <span class="who"><b>L. Messi</b><small>RW, CF · 28 anos · FC Barcelona · <span class="num">€111.0M</span></small></span>
+        <span class="val num">94 <span class="pot">→ 95</span></span>
+        <span class="stamp green">+ lista</span>
+      </div>
+      <div class="row">
+        <span class="who"><b>J. Rodríguez</b><small>CAM · 23 anos · Real Madrid · <span class="num">€64.5M</span></small></span>
+        <span class="val num"><span class="hl-swipe">87 → 93</span></span>
+        <span class="stamp green">+ lista</span>
+      </div>
+      <div class="row">
+        <span class="who"><b>P. Pogba</b><small>CM · 22 anos · Juventus · <span class="num">€53.0M</span></small></span>
+        <span class="val num"><span class="hl-swipe">86 → 92</span></span>
+        <span class="stamp green">+ lista</span>
+      </div>
+    </div>
+    <p class="euro-note">Valores em euros (€), conforme a database do jogo (Kaggle/SoFIFA).</p>
+
+    <p class="anno">shortlist — 2 observados</p>
+    <div class="sheet">
+      <div class="row">
+        <span class="who"><b>P. Pogba</b><small>CM · prioridade alta</small></span>
+        <span class="stamp pen">observando</span>
+        <span class="val num">86 <span class="pot">/ 92</span></span>
+      </div>
+      <div class="row">
+        <span class="who"><b>M. Verratti</b><small>CM · prioridade média</small></span>
+        <span class="stamp green">negociando</span>
+        <span class="val num">84 <span class="pot">/ 89</span></span>
+      </div>
+    </div>
+    <span class="btn btn-line" style="width:100%;margin-top:12px">Comparar os 2 da shortlist</span>
+  </div>
+  <div class="tabbar">
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><path d="M4 17V8.5L11 4l7 4.5V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17v-5h6v5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Elenco</span></span>
+    <span class="tab on"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 14.5L19 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Scout</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="11" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.2-2h3.6L14 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Captura</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="5" cy="11" r="1.7" fill="currentColor"/><circle cx="11" cy="11" r="1.7" fill="currentColor"/><circle cx="17" cy="11" r="1.7" fill="currentColor"/></svg><span class="lbl">Mais</span></span>
+  </div>
+</div>
+</div>
+
+<!-- SCOUT escuro -->
+<div class="slot"><p>Scout · escuro</p>
+<div class="phone dark" id="scout-escuro">
+  <div class="screen">
+    <div class="top"><span class="wordmark">Scout<i>,</i></span><span class="ctx">FIFA 16 · database real</span></div>
+    <div class="search"><input placeholder="buscar por nome…"></div>
+    <div class="chips">
+      <span class="chip on">Potencial</span><span class="chip">Overall</span><span class="chip">Margem</span><span class="chip">Idade</span><span class="chip">Valor</span>
+    </div>
+    <p style="font-size:13px;color:var(--muted)"><span class="num">16.706</span> jogadores encontrados · <span class="link-pen">Filtros</span></p>
+    <div class="sheet" style="margin-top:8px">
+      <div class="row"><span class="who"><b>L. Messi</b><small>RW, CF · 28 anos · FC Barcelona · <span class="num">€111.0M</span></small></span><span class="val num">94 <span class="pot">→ 95</span></span><span class="stamp green">+ lista</span></div>
+      <div class="row"><span class="who"><b>J. Rodríguez</b><small>CAM · 23 anos · Real Madrid · <span class="num">€64.5M</span></small></span><span class="val num"><span class="hl-swipe">87 → 93</span></span><span class="stamp green">+ lista</span></div>
+      <div class="row"><span class="who"><b>P. Pogba</b><small>CM · 22 anos · Juventus · <span class="num">€53.0M</span></small></span><span class="val num"><span class="hl-swipe">86 → 92</span></span><span class="stamp green">+ lista</span></div>
+    </div>
+    <p class="euro-note">Valores em euros (€), conforme a database do jogo (Kaggle/SoFIFA).</p>
+    <p class="anno">shortlist — 2 observados</p>
+    <div class="sheet">
+      <div class="row"><span class="who"><b>P. Pogba</b><small>CM · prioridade alta</small></span><span class="stamp pen">observando</span><span class="val num">86 <span class="pot">/ 92</span></span></div>
+      <div class="row"><span class="who"><b>M. Verratti</b><small>CM · prioridade média</small></span><span class="stamp green">negociando</span><span class="val num">84 <span class="pot">/ 89</span></span></div>
+    </div>
+    <span class="btn btn-line" style="width:100%;margin-top:12px">Comparar os 2 da shortlist</span>
+  </div>
+  <div class="tabbar">
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><path d="M4 17V8.5L11 4l7 4.5V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17v-5h6v5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Elenco</span></span>
+    <span class="tab on"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 14.5L19 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Scout</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="11" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.2-2h3.6L14 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Captura</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="5" cy="11" r="1.7" fill="currentColor"/><circle cx="11" cy="11" r="1.7" fill="currentColor"/><circle cx="17" cy="11" r="1.7" fill="currentColor"/></svg><span class="lbl">Mais</span></span>
+  </div>
+</div>
+</div>
+
+<!-- MAIS claro -->
+<div class="slot"><p>Mais · claro</p>
+<div class="phone" id="mais-claro">
+  <div class="screen">
+    <div class="top"><span class="wordmark">Prancheta<i>,</i></span><span class="ctx">pedro@pedrorivera.me</span></div>
+
+    <p class="anno">minhas carreiras —</p>
+    <div class="sheet">
+      <div class="career">
+        <span style="flex:1"><b>FC Barcelona</b><small>FIFA 16 · 30 jogadores · 2015/16</small></span>
+        <span class="stamp green tag-ativa">ativa</span>
+      </div>
+      <div class="career" style="border-top:1px solid var(--rule-soft);color:var(--muted)">
+        <span style="flex:1"><b>Elenco Sub-20</b><small>FIFA 22 · clube criado · 2021/22</small></span>
+      </div>
+    </div>
+    <span class="btn btn-ink" style="width:100%;margin-top:10px">+ Nova carreira</span>
+
+    <p class="anno">conta —</p>
+    <div class="sheet">
+      <div class="mais-row"><span class="flex">Chaves de IA<small>Anthropic ativa · claude-sonnet-5</small></span><span class="link-pen">abrir</span></div>
+      <div class="mais-row"><span class="flex">Trocar senha<small>último acesso 17/07</small></span><span class="link-pen">abrir</span></div>
+      <div class="mais-row"><span class="flex">Tema<small>escuro automático à noite</small></span><span class="stamp pen">auto</span></div>
+    </div>
+
+    <p class="anno">administração —</p>
+    <div class="sheet">
+      <div class="mais-row"><span class="flex">Databases do jogo<small>FIFA 16 e FIFA 22 importadas</small></span><span class="link-pen">abrir</span></div>
+      <div class="mais-row"><span class="flex">Usuários<small>2 contas · 1 admin</small></span><span class="link-pen">abrir</span></div>
+    </div>
+
+    <div class="sheet" style="margin-top:16px">
+      <div class="mais-row" style="color:var(--red);font-weight:700">Sair da conta</div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><path d="M4 17V8.5L11 4l7 4.5V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17v-5h6v5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Elenco</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 14.5L19 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Scout</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="11" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.2-2h3.6L14 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Captura</span></span>
+    <span class="tab on"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="5" cy="11" r="1.7" fill="currentColor"/><circle cx="11" cy="11" r="1.7" fill="currentColor"/><circle cx="17" cy="11" r="1.7" fill="currentColor"/></svg><span class="lbl">Mais</span></span>
+  </div>
+</div>
+</div>
+
+<!-- MAIS escuro -->
+<div class="slot"><p>Mais · escuro</p>
+<div class="phone dark" id="mais-escuro">
+  <div class="screen">
+    <div class="top"><span class="wordmark">Prancheta<i>,</i></span><span class="ctx">pedro@pedrorivera.me</span></div>
+    <p class="anno">minhas carreiras —</p>
+    <div class="sheet">
+      <div class="career">
+        <span style="flex:1"><b>FC Barcelona</b><small>FIFA 16 · 30 jogadores · 2015/16</small></span>
+        <span class="stamp green tag-ativa">ativa</span>
+      </div>
+      <div class="career" style="border-top:1px solid var(--rule-soft);color:var(--muted)">
+        <span style="flex:1"><b>Elenco Sub-20</b><small>FIFA 22 · clube criado · 2021/22</small></span>
+      </div>
+    </div>
+    <span class="btn btn-ink" style="width:100%;margin-top:10px">+ Nova carreira</span>
+    <p class="anno">conta —</p>
+    <div class="sheet">
+      <div class="mais-row"><span class="flex">Chaves de IA<small>Anthropic ativa · claude-sonnet-5</small></span><span class="link-pen">abrir</span></div>
+      <div class="mais-row"><span class="flex">Trocar senha<small>último acesso 17/07</small></span><span class="link-pen">abrir</span></div>
+      <div class="mais-row"><span class="flex">Tema<small>escuro automático à noite</small></span><span class="stamp pen">auto</span></div>
+    </div>
+    <p class="anno">administração —</p>
+    <div class="sheet">
+      <div class="mais-row"><span class="flex">Databases do jogo<small>FIFA 16 e FIFA 22 importadas</small></span><span class="link-pen">abrir</span></div>
+      <div class="mais-row"><span class="flex">Usuários<small>2 contas · 1 admin</small></span><span class="link-pen">abrir</span></div>
+    </div>
+    <div class="sheet" style="margin-top:16px">
+      <div class="mais-row" style="color:var(--red);font-weight:700">Sair da conta</div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><path d="M4 17V8.5L11 4l7 4.5V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17v-5h6v5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Elenco</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 14.5L19 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Scout</span></span>
+    <span class="tab"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="11" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.2-2h3.6L14 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="lbl">Captura</span></span>
+    <span class="tab on"><svg width="21" height="21" viewBox="0 0 22 22" fill="none"><circle cx="5" cy="11" r="1.7" fill="currentColor"/><circle cx="11" cy="11" r="1.7" fill="currentColor"/><circle cx="17" cy="11" r="1.7" fill="currentColor"/></svg><span class="lbl">Mais</span></span>
+  </div>
+</div>
+</div>
+
+</div>
+</body>
+</html>

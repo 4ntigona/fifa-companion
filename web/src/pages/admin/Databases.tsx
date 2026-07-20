@@ -53,11 +53,12 @@ export default function AdminDatabases() {
   }
 
   return (
-    <div className="space-y-6 pt-6">
+    <div className="space-y-6 pt-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Admin · Databases do jogo</h1>
+        <Link to="/mais" className="text-[13px] font-bold uppercase tracking-[0.06em] text-steel hover:text-ink">← Mais</Link>
         <Link to="/admin/usuarios" className="text-sm font-medium text-steel hover:text-ink">Usuários →</Link>
       </div>
+      <h1 className="display text-[24px] not-italic text-ink">Databases do jogo</h1>
       <p className="text-sm text-slate-ink">
         Dados originais do jogo (dumps reais do SoFIFA via Kaggle) — compartilhados por todos os
         usuários, somente leitura no app. Importar de novo uma versão atualiza os registros dela.
@@ -67,7 +68,7 @@ export default function AdminDatabases() {
         <ServerErrorCard message={(versionsErr as Error).message} onRetry={() => refetchVersions()} />
       )}
       {!anyImported && !importing && !versionsError && (
-        <div className="bg-tint-yellow-bold p-5 text-sm text-charcoal">
+        <div className="rounded-xl bg-tint-yellow-bold p-5 text-sm text-charcoal">
           <p className="font-semibold">Nenhuma database importada ainda.</p>
           <p className="mt-1">Toque nas versões desejadas e importe — o download é automático.</p>
         </div>
@@ -81,7 +82,7 @@ export default function AdminDatabases() {
               <button
                 onClick={() => !v.imported && !importing && toggleVersion(v.fifaVersion)}
                 disabled={v.imported || importing}
-                className={`w-full  p-3 text-center text-sm transition-colors ${
+                className={`w-full rounded-xl p-3 text-center text-sm transition-colors ${
                   v.imported
                     ? 'bg-tint-mint text-charcoal'
                     : selected
@@ -111,21 +112,21 @@ export default function AdminDatabases() {
       {startImport.isError && <p className="text-sm text-error">{(startImport.error as Error).message}</p>}
 
       {importStatus && importStatus.phase !== 'ocioso' && (importing || importStatus.phase === 'erro' || importStatus.phase === 'concluído') && (
-        <div className={`p-5 text-sm ${
+        <div className={`rounded-xl p-5 text-sm ${
           importStatus.phase === 'erro' ? 'bg-tint-rose text-charcoal'
           : importStatus.phase === 'concluído' ? 'bg-tint-mint text-charcoal'
           : 'bg-tint-sky text-charcoal'
         }`}>
           <div className="flex items-center justify-between">
             <span className="font-semibold capitalize">
-              {importing ? `⏳ ${importStatus.phase}` : importStatus.phase === 'erro' ? '✖ Erro na importação' : '✓ Importação concluída'}
+              {importing ? `Em andamento: ${importStatus.phase}` : importStatus.phase === 'erro' ? 'Erro na importação' : 'Importação concluída'}
             </span>
             {importing && importStatus.progress != null && (
               <span className="text-xs font-medium">{Math.round(importStatus.progress * 100)}%</span>
             )}
           </div>
           {importing && importStatus.progress != null && (
-            <div className="mt-2 h-2 overflow-hidden bg-canvas/70">
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-canvas/70">
               <div className="h-full bg-primary transition-all" style={{ width: `${importStatus.progress * 100}%` }} />
             </div>
           )}

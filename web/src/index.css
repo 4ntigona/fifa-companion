@@ -1,92 +1,116 @@
 @import "tailwindcss";
 
-/* Design system PEDRO \ RIVERA (DESIGN.md) — terminal: preto, #fcfcfc, vermelho #ff0033, IBM Plex Mono.
-   Tokens semânticos; o modo escuro é o tema de referência da spec, o claro é o equivalente "papel". */
+/* Design system Prancheta — identidade "Goleiro 92" (ver DESIGN.md).
+   Tokens semânticos: mesmos nomes do sistema anterior, valores novos — o app inteiro
+   re-tematiza por aqui. Roxo royal como ação, rosa-choque exclusivo do crescimento,
+   amarelo só no padrão geométrico. */
 @theme {
-  --font-sans: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Chivo", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Anybody", "Chivo", sans-serif;
+  --font-mono: "Chivo Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* claro (contraparte em papel) */
-  --color-primary: #ff0033;
-  --color-primary-pressed: #d6002b;
-  --color-navy: #0d0d0d;        /* bloco de destaque (banda do dashboard) — preto nas duas variantes */
-  --color-navy-deep: #000000;
-  --color-navy-mid: #1f1f1f;
-  --color-link: #d6002b;
+  /* claro */
+  --color-primary: #5230c9;
+  --color-primary-pressed: #4326a8;
+  --color-primary-ink: #ffffff;
+  --color-link: #4326a8;
 
-  --color-canvas: #fcfcfc;
-  --color-surface: #f0f0f0;
-  --color-surface-soft: #f7f7f7;
-  --color-hairline: #e0e0e0;
-  --color-hairline-soft: #ececec;
-  --color-hairline-strong: #b3b3b3;
+  --color-canvas: #f2f1f7;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f8f7fb;
+  --color-hairline: #d9d5e6;
+  --color-hairline-soft: #e7e4f0;
+  --color-hairline-strong: #b4aed0;
 
-  --color-ink: #030303;
-  --color-charcoal: #1a1a1a;
-  --color-slate-ink: #444444;
-  --color-steel: #666666;
-  --color-stone: #8a8a8a;
-  --color-faint: #b3b3b3;
+  --color-ink: #241b45;
+  --color-charcoal: #2e2557;
+  --color-slate-ink: #4c4374;
+  --color-steel: #6d6590;
+  --color-stone: #8d86ad;
+  --color-faint: #a29bc0;
 
-  --color-success: #14883e;
-  --color-warning: #a05a00;
-  --color-error: #d6002b;
+  /* bloco de destaque (banda do dashboard) — roxo-tinta profundo */
+  --color-navy: #241b45;
+  --color-navy-deep: #1a1233;
+  --color-navy-mid: #322a5e;
 
-  /* washes de estado (ex-tints) */
-  --color-tint-peach: #ffeadd;
-  --color-tint-rose: #ffe0e8;
-  --color-tint-mint: #e4f5ea;
-  --color-tint-lavender: #ffe5eb;  /* seleção = wash vermelho da marca */
-  --color-tint-sky: #e8eef7;
-  --color-tint-yellow: #f7f1cf;
-  --color-tint-yellow-bold: #f5edc2;
-  --color-tint-cream: #f4f2ea;
-  --color-tint-gray: #ededed;
+  /* rosa-choque: EXCLUSIVO do crescimento (OVR→POT, +N).
+     `pink` é o tom da marca (traço de gráfico, padrão, wordmark — usos não-textuais);
+     `pink-deep` é a versão legível como TEXTO sobre o wash (AA). */
+  --color-pink: #f43f7f;
+  --color-pink-deep: #bd1a54;
+  /* amarelo: SÓ dentro do padrão geométrico, nunca em texto */
+  --color-yellow: #ffd23e;
 
-  --color-purple-deep: #a30021;   /* texto das tags sobre wash */
-  --color-orange-deep: #8a4500;
+  --color-success: #177a4c;
+  --color-warning: #9a6a00;
+  --color-error: #d13b52;
+
+  /* washes de estado */
+  --color-tint-peach: #ffe9dc;
+  --color-tint-rose: #fde3ec;      /* wash do rosa — crescimento */
+  --color-tint-mint: #def3e8;
+  --color-tint-lavender: #e9e3fb;  /* seleção = wash do roxo da marca */
+  --color-tint-sky: #e3ecfd;
+  --color-tint-yellow: #f8f0d0;
+  --color-tint-yellow-bold: #f4ead7;
+  --color-tint-cream: #f2f0ea;
+  --color-tint-gray: #ebe9f2;
+
+  --color-purple-deep: #4526a8;    /* texto das tags sobre wash lavender */
+  --color-orange-deep: #8a4c00;
 }
 
 html { color-scheme: light; }
 html.dark { color-scheme: dark; }
 
-/* Modo escuro — a spec ao pé da letra: surface.base #000, muted #030303, text #fcfcfc/#666, strong #ff0033 */
+/* Escuro — noite de jogo sob refletor: roxo-noite, nunca preto */
 .dark {
-  --color-canvas: #000000;
-  --color-surface: #0d0d0d;
-  --color-surface-soft: #030303;
-  --color-hairline: #1a1a1a;
-  --color-hairline-soft: #111111;
-  --color-hairline-strong: #3d3d3d;
+  --color-canvas: #171034;
+  --color-surface: #201849;
+  --color-surface-soft: #1b1440;
+  --color-hairline: #322a5e;
+  --color-hairline-soft: #281f52;
+  --color-hairline-strong: #453c7a;
 
-  --color-ink: #fcfcfc;
-  --color-charcoal: #d9d9d9;
-  --color-slate-ink: #a6a6a6;
-  --color-steel: #8c8c8c;
-  --color-stone: #666666;
-  --color-faint: #4d4d4d;
+  --color-ink: #efedfa;
+  --color-charcoal: #dcd7f0;
+  --color-slate-ink: #b3abd6;
+  --color-steel: #a49ac9;
+  --color-stone: #7d75a5;
+  --color-faint: #5c548a;
 
-  --color-primary: #ff0033;
-  --color-primary-pressed: #cc0029;
-  --color-link: #ff2e55;
-  --color-success: #2ecc71;
-  --color-warning: #ffaa33;
-  --color-error: #ff2e55;
+  /* um pouco mais claro que o roxo do tema claro: garante AA como TEXTO sobre a
+     superfície escura (tab ativa, links) sem perder o royal da marca */
+  --color-primary: #9578ff;
+  --color-primary-pressed: #7a55f0;
+  --color-primary-ink: #14092e;
+  --color-link: #b3a0ff;
 
-  --color-navy: #0d0d0d;
-  --color-navy-mid: #1f1f1f;
+  --color-navy: #201849;
+  --color-navy-deep: #14092e;
+  --color-navy-mid: #322a5e;
 
-  --color-tint-peach: #1c1206;
-  --color-tint-rose: #200711;
-  --color-tint-mint: #06170c;
-  --color-tint-lavender: #24040c;  /* wash vermelho escuro para seleção */
-  --color-tint-sky: #060f1c;
-  --color-tint-yellow: #1a1503;
-  --color-tint-yellow-bold: #201a04;
-  --color-tint-cream: #12100a;
-  --color-tint-gray: #0f0f0f;
+  --color-pink: #ff5c93;
+  --color-pink-deep: #ff5c93;   /* no escuro o próprio tom já passa AA sobre o wash */
+  --color-yellow: #ffd23e;
 
-  --color-purple-deep: #ff5c7a;
-  --color-orange-deep: #ffb066;
+  --color-success: #45d68c;
+  --color-warning: #f5b04a;
+  --color-error: #ff6f85;
+
+  --color-tint-peach: #341c0e;
+  --color-tint-rose: #3c1830;      /* wash rosa escuro */
+  --color-tint-mint: #10331f;
+  --color-tint-lavender: #2b2160;  /* wash roxo escuro para seleção */
+  --color-tint-sky: #14204a;
+  --color-tint-yellow: #2a2410;
+  --color-tint-yellow-bold: #2f2913;
+  --color-tint-cream: #201c11;
+  --color-tint-gray: #241d4d;
+
+  --color-purple-deep: #c4b2ff;
+  --color-orange-deep: #f0a860;
 }
 
 body {
@@ -95,55 +119,104 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Geometria: raio de borda zero em todo o app, sem exceções */
-*, *::before, *::after {
-  border-radius: 0 !important;
-}
+/* Números nunca dançam */
+body { font-variant-numeric: tabular-nums; }
 
-/* Acessibilidade: foco sempre visível (WCAG 2.2 AA), teclado em primeiro lugar */
+/* Acessibilidade: foco sempre visível (WCAG 2.2 AA) */
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
+/* Feedback tátil: pressed = "chute" contido; cores transicionam */
+button, a, summary, [role="button"] {
+  transition: background-color 200ms ease, border-color 200ms ease,
+    color 200ms ease, transform 120ms ease;
+}
+button:active:not(:disabled), a:active, summary:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  button, a, summary, [role="button"] { transition: none; }
+  button:active:not(:disabled), a:active, summary:active { transform: none; }
+}
+
 @layer components {
-  /* cards: geometria seca (4px), borda hairline */
+  /* cards 14px, hairline, superfície */
   .card {
-    @apply  border border-hairline bg-canvas;
+    @apply rounded-[14px] border border-hairline bg-surface;
   }
 
-  /* botões retangulares 4px; primário = vermelho da marca com texto preto (contraste AA) */
+  /* botões = pílulas */
   .btn-primary {
-    @apply  bg-primary px-[18px] py-2.5 text-sm font-semibold leading-tight text-black duration-200 hover:bg-primary-pressed hover:text-white disabled:bg-hairline disabled:text-faint;
+    @apply rounded-full bg-primary px-[18px] py-2.5 text-sm font-bold leading-tight text-primary-ink hover:bg-primary-pressed disabled:bg-hairline disabled:text-faint;
   }
   .btn-secondary {
-    @apply  border border-hairline-strong bg-transparent px-[18px] py-2.5 text-sm font-medium leading-tight text-ink duration-200 hover:border-ink disabled:text-faint;
+    @apply rounded-full border border-hairline-strong bg-transparent px-[18px] py-2.5 text-sm font-medium leading-tight text-ink hover:border-ink disabled:text-faint;
   }
   .btn-dark {
-    @apply  bg-ink px-[18px] py-2.5 text-sm font-medium leading-tight text-canvas duration-200 hover:opacity-80;
+    @apply rounded-full bg-ink px-[18px] py-2.5 text-sm font-medium leading-tight text-canvas hover:opacity-85;
   }
   .btn-ghost {
-    @apply  px-3 py-2 text-sm font-medium text-ink duration-200 hover:bg-surface;
+    @apply rounded-full px-3 py-2 text-sm font-medium text-ink hover:bg-surface-soft;
   }
 
-  /* inputs 4px, foco vermelho */
+  /* inputs 12px, foco roxo */
   .input {
-    @apply w-full  border border-hairline-strong bg-canvas px-3.5 py-2.5 text-base text-ink outline-none duration-200 placeholder:text-stone focus:border-primary focus:ring-1 focus:ring-primary disabled:bg-surface disabled:text-stone;
+    @apply w-full rounded-xl border border-hairline-strong bg-surface px-3.5 py-2.5 text-base text-ink outline-none placeholder:text-stone focus:border-primary focus:ring-1 focus:ring-primary disabled:bg-surface-soft disabled:text-stone;
   }
 
-  /* tabs: retângulos de terminal (ativa = invertida) */
+  /* chips de filtro; ativa = ink invertido */
   .pill-tab {
-    @apply  border border-hairline bg-transparent px-4 py-1.5 text-sm font-medium text-steel duration-200 hover:border-hairline-strong hover:text-ink;
+    @apply rounded-full border border-hairline bg-transparent px-4 py-1.5 text-sm font-medium text-steel hover:border-hairline-strong hover:text-ink;
   }
   .pill-tab-active {
-    @apply  border border-ink bg-ink px-4 py-1.5 text-sm font-medium text-canvas;
+    @apply rounded-full border border-ink bg-ink px-4 py-1.5 text-sm font-medium text-canvas;
   }
 
   /* etiquetas com wash */
   .tag {
-    @apply  px-2 py-0.5 text-[13px] font-semibold leading-snug;
+    @apply rounded-md px-2 py-0.5 text-[13px] font-semibold leading-snug;
   }
-  .tag-purple { @apply  bg-tint-lavender px-2 py-0.5 text-[13px] font-semibold leading-snug text-purple-deep; }
-  .tag-orange { @apply  bg-tint-peach px-2 py-0.5 text-[13px] font-semibold leading-snug text-orange-deep; }
-  .tag-green  { @apply  bg-tint-mint px-2 py-0.5 text-[13px] font-semibold leading-snug text-success; }
+  .tag-purple { @apply rounded-md bg-tint-lavender px-2 py-0.5 text-[13px] font-semibold leading-snug text-purple-deep; }
+  .tag-orange { @apply rounded-md bg-tint-peach px-2 py-0.5 text-[13px] font-semibold leading-snug text-orange-deep; }
+  .tag-green  { @apply rounded-md bg-tint-mint px-2 py-0.5 text-[13px] font-semibold leading-snug text-success; }
+
+  /* a pílula rosa do crescimento — único lar do rosa-choque */
+  .growpill {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    @apply inline-flex items-center gap-1 rounded-full bg-tint-rose px-2.5 py-0.5 text-[13px] font-semibold text-pink-deep;
+  }
+
+  /* título display (Anybody expandida, caixa alta) */
+  .display {
+    font-family: var(--font-display);
+    font-variation-settings: 'wdth' 116;
+    @apply font-black uppercase;
+  }
+
+  /* número de camisa nas linhas de lista */
+  .shirtno {
+    font-family: var(--font-display);
+    font-variation-settings: 'wdth' 90;
+    @apply w-10 flex-none text-center text-2xl font-black text-primary;
+  }
+
+  /* número gigante de fundo em cards (marca d'água) */
+  .watermark-no {
+    font-family: var(--font-display);
+    font-variation-settings: 'wdth' 85;
+    @apply pointer-events-none absolute -top-6 right-0 select-none text-[110px] font-black leading-none text-primary opacity-10;
+  }
+
+  /* a faixa de padrão geométrico da marca — topo de tela/hero apenas */
+  .patternband {
+    height: 10px;
+    background:
+      linear-gradient(135deg, var(--color-primary) 25%, transparent 25%) 0 0/20px 20px,
+      linear-gradient(315deg, var(--color-pink) 25%, transparent 25%) 0 0/20px 20px,
+      linear-gradient(45deg, var(--color-yellow) 25%, transparent 25%) 10px 10px/20px 20px,
+      var(--color-navy-deep);
+  }
 }

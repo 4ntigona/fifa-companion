@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth, useSetAuthUser, type AuthUser } from '../auth'
+import AuthShell from '../components/AuthShell'
 
 export default function Login() {
   const { user, loading } = useAuth()
@@ -36,11 +37,7 @@ export default function Login() {
   }
 
   return (
-    <div className="mx-auto max-w-sm pt-16">
-      <h1 className="text-2xl font-bold tracking-tight text-ink">Entrar</h1>
-      <p className="mt-1 text-sm text-slate-ink">
-        Acesse com a conta criada pelo administrador do app.
-      </p>
+    <AuthShell title="Entrar" subtitle="Acesse com a conta criada pelo administrador do app.">
       <form onSubmit={submit} className="mt-6 space-y-3">
         <input
           type="email"
@@ -65,6 +62,6 @@ export default function Login() {
           {pending ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
-    </div>
+    </AuthShell>
   )
 }
