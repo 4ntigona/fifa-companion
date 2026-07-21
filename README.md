@@ -84,7 +84,6 @@ O servidor é **um único processo Node/Fastify** que serve a API **e** o front 
 | Admin | `/api/admin/users*`, `/api/import/*` (importar database) | sessão + papel admin (import também aceita loopback) |
 | Database do jogo (leitura) | `/api/versions`, `/api/leagues/:v`, `/api/teams/:v`, `/api/team/:v/:id`, `/api/players/:v`, `/api/player/:v/:id` | sessão |
 | IA — proxy stateless | `POST /api/analyze` (foto), `POST /api/test-ai` | sessão |
-| Legado (deprecado) | `GET /api/sync/:code` | pública — só leitura, fonte da migração one-shot |
 
 ## Rodando localmente
 
@@ -144,7 +143,6 @@ Tudo em `server/.env` (veja `server/.env.example` para o template comentado). Ne
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | *(vazio)* | Só usadas **quando a tabela de usuários está vazia**: semeiam o primeiro administrador no boot. Remova depois de confirmar o login — não há re-seed com usuários existentes. |
 | `WEB_DIST` | `../web/dist` (relativo ao server) | Caminho do front buildado, se estiver em outro lugar. |
 | `KAGGLE_USERNAME` / `KAGGLE_KEY` | *(vazio)* | Só necessárias se o download anônimo do dataset falhar — ele é público e normalmente não exige credencial. |
-| `SYNC_TTL_DAYS` | `180` | Dias sem atualização até uma chave de restauração (modelo antigo, deprecado) ser apagada no boot. |
 
 Não existe (e nunca deve existir) uma variável de **chave de provedor de IA** no `.env` do
 servidor — isso é BYOK por design: cada usuário traz e guarda a própria chave no navegador.
@@ -279,9 +277,9 @@ plans/             # planos gerados pelo skill `improve` — cada um autocontido
   navegador dele, nunca é persistida pelo servidor.
 - **Conselheiro**: parecer completo ou pergunta dirigida sobre a carreira, com histórico.
   Sempre por gatilho explícito.
-- **Chave de restauração** (legado, deprecada): código de 12 caracteres do modelo antigo,
-  anterior às contas reais. Sobrevive só como fonte de migração one-shot para trazer dados
-  antigos para uma conta nova; sai numa versão futura.
+- **Migração do modelo antigo**: quem ainda tiver dados do modelo local-first (anterior às
+  contas) no `localStorage` deste navegador vê um banner após o login para importá-los para a
+  conta. A "chave de restauração" que existia junto foi removida na `0.4.002`.
 
 ## Versionamento
 

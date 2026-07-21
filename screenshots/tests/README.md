@@ -82,8 +82,8 @@ Para repetir o roteiro manualmente, siga os passos abaixo; cada um cita o print 
   captura mostra só a tela inicial. A lógica é coberta por testes com provedor mockado
   (`server/src/routes/advisor.test.ts`).
 - **Importar uma database do zero**: baixa centenas de MB do Kaggle e leva minutos.
-- **Migração do modelo antigo** (chave de restauração): o banner aparece na Home, mas
-  testar ponta a ponta exige uma chave válida de antes das contas.
+- **Migração do modelo antigo**: o banner só aparece se este navegador tiver dados
+  pré-contas no `localStorage` — testar ponta a ponta exige um perfil antigo de verdade.
 - **Ações administrativas de gestão** (desativar, resetar senha, promover, excluir,
   derrubar sessões): os botões estão em `/admin/usuarios`; as regras (não remover o
   último admin, não se auto-rebaixar) são cobertas por testes automatizados.
@@ -106,7 +106,7 @@ sqlite3 data/companion.db ".backup 'data-qa/companion.db'"   # cópia consistent
 sqlite3 data-qa/companion.db "
   DELETE FROM sessions; DELETE FROM captures; DELETE FROM player_snapshots;
   DELETE FROM prospects; DELETE FROM career_players; DELETE FROM careers;
-  DELETE FROM users; DELETE FROM sync_blobs; DELETE FROM server_backups;
+  DELETE FROM users; DELETE FROM server_backups;
   DELETE FROM import_jobs; VACUUM;
 "
 
