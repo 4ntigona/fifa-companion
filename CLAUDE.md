@@ -71,7 +71,11 @@ amarelo só no padrão geométrico, Anybody (display) + Chivo (corpo) + Chivo Mo
 cards 14px / controles em pílula. O tema terminal anterior (PEDRO\RIVERA, raio zero) está
 morto — não reintroduzir.
 
-## plans/
+## plans/ e roadmap
 
-Planos gerados pelo skill `improve` ficam em `plans/`. Antes de executar um, leia o plano inteiro
-— cada um é autocontido (contexto, escopo, comandos de verificação, STOP conditions).
+Planos ficam em `plans/` (índice em `plans/README.md`). Antes de executar um, leia o plano
+inteiro — cada um é autocontido (contexto, escopo, comandos de verificação, STOP conditions).
+
+Os planos **020–023** são a jornada `0.4.001` → `0.5.000` e devem ser executados **em ordem**
+(CI → higiene → CSP → deploy real). O cronograma de versões depois disso está em
+[`ROADMAP.md`](ROADMAP.md).

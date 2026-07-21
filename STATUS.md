@@ -292,6 +292,12 @@ para isso, foi um script ad-hoc de uma sessão de QA. Vale a pena promovê-lo a 
 
 ## 5. Sugestões de iterações futuras
 
+> **Estas sugestões já viraram plano.** O cronograma de versões está em
+> [`ROADMAP.md`](ROADMAP.md); os itens 1–5 (curto prazo) estão detalhados como planos
+> executáveis em [`plans/020`](plans/020-ci-minimo.md) a
+> [`plans/023`](plans/023-deploy-real-e-validacao.md). A lista abaixo permanece como a
+> justificativa de **por que** cada item existe.
+
 Organizadas por horizonte, não por prioridade absoluta — a prioridade real depende do que o
 dono do produto quiser jogar/usar primeiro.
 

@@ -11,7 +11,8 @@ abas (**Elenco · Scout · Captura · Mais**) pensada para uso com uma mão.
 > configuração (todas as variáveis de ambiente) e deploy. Para instalar do zero numa VPS
 > nova, veja **[INSTALL.md](INSTALL.md)**. Para o dia a dia de uma VPS já configurada
 > (atualizar, backup, troubleshooting), veja **[DEPLOY.md](DEPLOY.md)**. Para o histórico do
-> projeto, o estado atual detalhado e o que falta, veja **[STATUS.md](STATUS.md)**.
+> projeto, o estado atual detalhado e o que falta, veja **[STATUS.md](STATUS.md)**. Para o
+> que vem a seguir (cronograma de versões), veja **[ROADMAP.md](ROADMAP.md)**.
 
 ---
 
@@ -284,8 +285,8 @@ plans/             # planos gerados pelo skill `improve` — cada um autocontido
 
 O projeto segue o [PrideVer](https://pridever.org) — `PROUD.DEFAULT.SHAME`, terceiro segmento
 com 3 dígitos por convenção (`0.4.000`). Ver [CHANGELOG.md](CHANGELOG.md) para o histórico de
-releases e [STATUS.md](STATUS.md) para a narrativa completa de como o projeto chegou até aqui,
-o que está pendente e sugestões de próximos passos.
+releases, [STATUS.md](STATUS.md) para a narrativa completa de como o projeto chegou até aqui e
+o que está pendente, e [ROADMAP.md](ROADMAP.md) para o cronograma das próximas versões.
 
 ---
 

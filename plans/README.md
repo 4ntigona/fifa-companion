@@ -10,6 +10,11 @@ conditions, rode as verificações, e atualize sua linha ao terminar.
   `fe420d4` (2026-07-14). Decisões de UX tomadas pelo dono nesta rodada: DIRECTION-06 =
   comparação de 2 prospectos da shortlist (plano 018); DIRECTION-04 = auto-push com debounce +
   indicador (plano 019).
+- **020–023**: a jornada `0.4.001` → `0.5.000` ("deixar o app pronto para ser posto à prova"),
+  derivada do [`STATUS.md §5`](../STATUS.md#5-sugestões-de-iterações-futuras) contra `9dffa82`
+  (2026-07-19). **Executar em ordem** — a dependência é de risco, não só técnica: o CI (020)
+  protege a limpeza (021), que reduz as peças móveis da CSP (022), que precisa ir para produção
+  já calibrada no deploy real (023). Cronograma e o que vem depois: [`ROADMAP.md`](../ROADMAP.md).
 
 ## Execution order & status
 
@@ -34,6 +39,10 @@ conditions, rode as verificações, e atualize sua linha ao terminar.
 | 017 | Deps: bump @anthropic-ai/sdk 0.39 → latest (único consumidor: vision/analyze.ts) | P3 | S | 016 rec. | DONE (0.39.0→0.111.0; zero ajuste de código — `messages.create`/`models.list` estáveis através do salto de major; smoke manual do /api/test-ai NÃO executado — sem chave de teste disponível nesta sessão; typecheck/build/audit são o portão) |
 | 018 | Direção: comparação lado a lado de 2 prospectos da shortlist | P2 | M | 015 rec. | DONE (verificado manualmente em viewport mobile 375px: seleção máx. 2, layout linha-por-atributo sem overflow horizontal, maior valor em verde, "Todos os atributos" expande a união dos dois attributes_json, e confirmado via Network que zero requests novos disparam ao comparar — os dados já vinham completos da shortlist) |
 | 019 | Direção: auto-sync da chave de restauração (debounce + indicador) | P2 | M | — | DONE (verificado manualmente: mutação → PUT automático em ~10s sem clique no botão manual (confirmado via Network), `lastSyncedAt` avança e o indicador mostra "sincronizado"; anti-loop confirmado por leitura — `pushToRestoreKey`/`generateRestoreKey`/`restoreFromKey`/`removeRestoreKey` usam `save()` direto, nunca `mutate()`, então o auto-push não reagenda a si mesmo. 5 testes novos com fake timers, todos passando de primeira) |
+| 020 | CI mínimo — `npm run verify` em cada push/PR | P1 | S | — | TODO |
+| 021 | Higiene — código morto, comentários mentirosos e destino do `sync_blobs` | P2 | M | 020 rec. | TODO (contém DECISÃO do dono no Step 3 + operação destrutiva de banco) |
+| 022 | Promover a CSP de `reportOnly` para enforced | P2 | M | 020, 021 rec. | TODO |
+| 023 | Primeiro deploy real e validação em produção → `0.5.000` | P1 | L | 020, 021, 022 | TODO |
 
 Status: TODO | IN PROGRESS | DONE | BLOCKED (com motivo) | REJECTED (com justificativa)
 
