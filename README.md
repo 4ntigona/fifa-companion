@@ -1,5 +1,7 @@
 # Prancheta
 
+[![verify](https://github.com/4ntigona/fifa-companion/actions/workflows/verify.yml/badge.svg)](https://github.com/4ntigona/fifa-companion/actions/workflows/verify.yml)
+
 O companheiro do modo carreira do FIFA/EA FC (FIFA 15 → FC 24, com atenção especial ao 16 e
 ao 22). Foco no **desenvolvimento do time** — elencos, base/regens, evolução por temporada,
 prospecção e um **conselheiro de IA** — não em gerenciar campanhas/resultados.

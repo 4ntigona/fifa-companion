@@ -20,6 +20,9 @@ npm run verify   # typecheck (server+web) + testes (vitest) + build completo
 
 Comandos individuais: `npm run typecheck`, `npm test`, `npm run build`. Não há lint configurado.
 
+O CI (`.github/workflows/verify.yml`) roda `npm run verify` em Node 20.12 e 22 a cada push/PR.
+Se ele falhar, o problema é seu — não do CI.
+
 > **Não rebaixe o vitest**: o projeto usa vitest 4.x de propósito (o dist-tag `latest` do npm
 > ainda aponta para 3.x). O pin escapa de um advisory crítico de RCE no happy-dom que as versões
 > antigas puxavam. `npm i vitest@latest` seria um DOWNGRADE — não faça.
