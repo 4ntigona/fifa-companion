@@ -207,18 +207,15 @@ documentação e o código (`server/.env.example` estava desatualizado):
   consegue logar) — **não estavam no `.env.example`**, só documentadas em prosa no
   `DEPLOY.md`/`ecosystem.config.cjs`. Corrigido nesta rodada.
 - **`SYNC_MAX_BLOBS`** estava documentado como variável de configuração — **nunca foi
-  implementada** (só `SYNC_TTL_DAYS` existe de fato, em `server/src/routes/sync.ts`).
-  Removida do exemplo.
+  implementada**. Removida do exemplo. (O `SYNC_TTL_DAYS`, que existia de fato, saiu junto
+  com o `sync_blobs` na `0.4.002`.)
 
 ### 3.2 — Limpeza planejada e ainda não feita
 
-- **`sync_blobs`/chave de restauração**: o comentário em `server/src/index.ts` (linha do
-  `syncRoutes`) ainda diz "GET fica público como fonte de migração (deprecado; sai na
-  v0.3.000)" — **isso não aconteceu**. A tabela, a rota `GET /api/sync/:code` e o código de
-  leitura em `web/src/components/MigrateLocalBanner.tsx` continuam no ar na v0.4.000. Não é
-  grave (é só leitura, sem escrita, baixo risco), mas é uma promessa de duas releases
-  seguidas que não foi cumprida. **Recomendação**: decidir explicitamente — ou remover de
-  vez, ou atualizar a documentação para não prometer uma data que não vai acontecer.
+- ~~**`sync_blobs`/chave de restauração**~~ → **RESOLVIDO na `0.4.002`** (plano 021): o dono
+  optou por remover. Migration 004 dropa a tabela; saíram a rota pública `GET /api/sync/:code`,
+  o `routes/sync.ts` e o caminho de código no banner de migração (o de `localStorage`
+  sobrevive). O último blob existente foi arquivado fora do banco antes do drop.
 - **CSP em `reportOnly: true`**: o comentário original (plano 004, 2026-07-08) dizia "por
   ora, para não quebrar o bundle Vite/PWA antes de calibrar" — mais de um ano de releases
   depois (na numeração do projeto), a CSP **nunca foi calibrada e promovida a modo

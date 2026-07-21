@@ -46,8 +46,9 @@ O que continua fora do servidor / especial:
 - A database original do jogo é somente leitura (`sofifa_players` / `sofifa_teams`, importada
   por versão a partir de dumps públicos do SoFIFA/Kaggle) e compartilhada entre usuários.
   **Migrations nunca tocam nessas tabelas.**
-- `sync_blobs` (chave de restauração do modelo antigo) está **deprecado**: só `GET /api/sync/:code`
-  existe, como fonte da migração one-shot (`/api/me/import-local`); some numa release futura.
+- A migração do modelo antigo (`/api/me/import-local`) sobrevive lendo só o `localStorage` do
+  navegador. A tabela `sync_blobs` e a rota pública `GET /api/sync/:code` foram removidas na
+  `0.4.002` (migration 004) — não reintroduzir.
 - Schema evolui via `server/src/db/migrations/00N-*.sql` (runner em `server/src/db/index.ts`).
 
 ## Invariante de produto

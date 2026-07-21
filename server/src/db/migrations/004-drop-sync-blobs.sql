@@ -1,0 +1,12 @@
+-- Remove o resto do modelo pré-contas (chave de restauração).
+--
+-- A tabela sync_blobs guardava os backups do modelo local-first, anterior à v0.3.000.
+-- Desde então só a LEITURA sobrevivia (GET /api/sync/:code), como fonte da migração
+-- one-shot para contas. Duas releases depois, a migração já cumpriu seu papel — manter
+-- significaria carregar para sempre uma rota pública e não autenticada cujo único
+-- credential é um código de 12 caracteres.
+--
+-- O conteúdo remanescente foi arquivado FORA do banco antes desta migration
+-- (ver plans/021, Step 0). Migrations NUNCA tocam sofifa_players/sofifa_teams —
+-- esta não é exceção.
+DROP TABLE IF EXISTS sync_blobs;

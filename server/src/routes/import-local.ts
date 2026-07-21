@@ -4,7 +4,7 @@ import { db } from '../db/index.js'
 import { mustBeUser } from '../auth/plugin.js'
 
 /**
- * Migração one-shot do modelo antigo (blob do localStorage / chave de restauração)
+ * Migração one-shot do modelo antigo (blob do localStorage do navegador)
  * para a conta do usuário. Remapeia os ids locais para os novos numa única
  * transação — tudo ou nada.
  */

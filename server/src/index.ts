@@ -10,7 +10,6 @@ import { fileURLToPath } from 'node:url'
 import { gameDataRoutes } from './routes/game-data.js'
 import { importRoutes } from './routes/import.js'
 import { analyzeRoutes } from './routes/analyze.js'
-import { syncRoutes, pruneExpiredSyncBlobs } from './routes/sync.js'
 import { authRoutes } from './routes/auth.js'
 import { careerRoutes } from './routes/careers.js'
 import { careerPlayerRoutes } from './routes/career-players.js'
@@ -44,7 +43,7 @@ await app.register(helmet, {
   },
 })
 
-// Rate-limit global brando; rotas sensíveis (sync de escrita, import) recebem limites mais estritos.
+// Rate-limit global brando; rotas sensíveis (login, import) recebem limites mais estritos.
 await app.register(rateLimit, { max: 120, timeWindow: '1 minute' })
 
 // CORS: allowlist via env em produção; sem CORS_ORIGINS definido, reflete qualquer origem (dev).
@@ -65,7 +64,7 @@ adminUserRoutes(app)
 advisorRoutes(app)
 
 // Database do jogo + análise de fotos (proxy stateless): leitura exige login —
-// escopo próprio para o preHandler não vazar para sync (migração) e auth.
+// escopo próprio para o preHandler não vazar para as rotas de auth.
 await app.register(async (scope) => {
   scope.addHook('preHandler', async (req, reply) => {
     if (!req.user) return reply.code(401).send({ error: 'Não autenticado.' })
@@ -74,10 +73,8 @@ await app.register(async (scope) => {
   analyzeRoutes(scope)
 })
 importRoutes(app) // guard próprio: loopback ou sessão de admin
-syncRoutes(app)   // GET fica público como fonte de migração (deprecado; sai na v0.3.000)
 
-// GC de blobs de restauração e sessões expiradas + seed do 1º admin — uma vez no boot.
-pruneExpiredSyncBlobs()
+// GC de sessões expiradas + seed do 1º admin — uma vez no boot.
 pruneExpiredSessions()
 seedAdminIfEmpty(app.log)
 
