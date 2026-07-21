@@ -13,6 +13,11 @@ do HTTPS (que é o que faz a câmera do PWA funcionar no celular).
 > caminho completo a partir de uma VPS em branco (instalar o CloudPanel, DNS, swap, etc.),
 > veja **[INSTALL.md](INSTALL.md)** primeiro.
 
+> **Já tem outros sites nesse CloudPanel?** O Prancheta convive numa VPS compartilhada sem
+> problema — cada site do CloudPanel é isolado. Mas há três pontos a acertar (porta, PM2 e
+> recursos): leia a seção **[Coexistindo com outros sites](#coexistindo-com-outros-sites-no-mesmo-cloudpanel)**
+> antes de começar. Onde este guia diz `3344`, troque pela porta que você escolher lá.
+
 ---
 
 ## 0. Pré-requisitos
@@ -25,6 +30,66 @@ do HTTPS (que é o que faz a câmera do PWA funcionar no celular).
 
 ---
 
+## Coexistindo com outros sites no mesmo CloudPanel
+
+Se a VPS já roda outros sites, o Prancheta entra como só mais um. Cada site do CloudPanel tem
+o **próprio usuário Linux, a própria pasta e o próprio proxy reverso** — então não há risco de
+um pisar no outro *desde que* você resolva estes três pontos antes de seguir.
+
+### 1) Porta: escolha uma livre e use a MESMA nos dois lugares
+
+Todo site Node no CloudPanel escuta numa porta interna própria. `3344` é só o padrão deste
+guia — se outro site já usa, ou você prefere outra, escolha uma porta livre. Confira o que já
+está em uso na VPS (como root ou com sudo):
+
+```bash
+ss -tlnp | grep -E '127.0.0.1|0.0.0.0'   # lista as portas em escuta e o processo de cada uma
+```
+
+Escolha uma porta alta e livre (ex.: `3345`, `3401`…). Você vai usá-la em **dois lugares que
+precisam bater** — se divergirem, o CloudPanel devolve `502 Bad Gateway`:
+
+1. o campo **App Port** ao criar o site (Passo 1), que define o proxy reverso;
+2. o `PORT` do app.
+
+> **Onde mudar o `PORT` do app:** no `ecosystem.config.cjs`, no bloco `env` (`PORT: '3345'`).
+> **Não** adianta só pôr no `server/.env`: o bloco `env` do PM2 vira variável de ambiente real
+> do processo, que tem precedência sobre o `--env-file`. Ou seja, o ecosystem ganha — edite lá.
+
+### 2) PM2: confirme que está isolado
+
+No fluxo padrão do CloudPanel (um usuário por site), o PM2 roda **por usuário**, então o do
+Prancheta é naturalmente separado dos outros. Ainda assim, valem duas cautelas:
+
+- **Conecte via SSH como o usuário do site do Prancheta** (Passo 4) e rode `pm2 list` logo de
+  cara. Se aparecerem processos de **outros** apps, é sinal de que os sites compartilham o
+  mesmo usuário Linux — nesse caso, **nunca** use `pm2 stop`/`pm2 delete`/`pm2 restart` **sem
+  nome** (isso atinge todos). Sempre com o nome: `pm2 restart prancheta`.
+- O nome do processo é `prancheta` (em `ecosystem.config.cjs`). Se, por acaso, já existir um
+  processo com esse nome na lista, renomeie o seu antes de subir.
+- `pm2 startup` cria um serviço de boot **para aquele usuário**. Se já existe um (porque outro
+  app do mesmo usuário já configurou), o PM2 apenas atualiza — não duplica. `pm2 save` grava a
+  lista atual daquele usuário; rode-o **depois** de subir o Prancheta, para não apagar o que já
+  estava salvo.
+
+### 3) Recursos: disco, RAM e o pico da importação
+
+- **Disco**: a database do jogo importada pesa **centenas de MB por versão** (o arquivo real
+  chega a ~380 MB com várias versões). Confirme que há folga: `df -h`.
+- **RAM**: o `ecosystem.config.cjs` já limita o processo a `400M` (`max_memory_restart`), então
+  ele não sufoca os vizinhos por vazamento. O **pico** é a importação da database (Passo 7) —
+  se a VPS for apertada de RAM, importe **uma versão de cada vez** e evite fazê-lo no horário
+  de maior tráfego dos outros sites.
+- **build tools** (Passo 3): se já há outros sites Node compilando módulos nativos, o
+  `build-essential`/`python3` provavelmente já está instalado — o comando é idempotente, rodar
+  de novo não faz mal.
+
+O resto (`CORS_ORIGINS`, `client_max_body_size`, SSL, backup) é **por-site** e não interfere
+em nada nos outros. Seguindo esses três pontos, o restante do guia vale como está — só lembre
+de trocar `3344` pela sua porta onde ele aparecer.
+
+---
+
 ## 1. Criar o site no CloudPanel
 
 No painel: **Sites → Add Site → Create a Node.js Site**.
@@ -33,11 +98,13 @@ No painel: **Sites → Add Site → Create a Node.js Site**.
 |---|---|
 | Domain | `prancheta.seudominio.com` |
 | Node.js version | 20 ou 22 |
-| App Port | `3344` |
+| App Port | `3344` (ou a porta livre que você escolheu — ver [coexistência](#coexistindo-com-outros-sites-no-mesmo-cloudpanel)) |
 | Site User | anote o usuário criado (você vai usar no SSH) |
 
 O CloudPanel cria o usuário do site, a pasta `~/htdocs/prancheta.seudominio.com` e o proxy
-reverso apontando para a porta `3344`.
+reverso apontando para a porta que você informou. **Se escolheu uma porta diferente de `3344`,
+lembre de refleti-la no `ecosystem.config.cjs` (`env.PORT`) antes do Passo 6** — as duas têm
+que bater, senão o proxy devolve 502.
 
 ## 2. Emitir o certificado SSL
 
@@ -102,10 +169,15 @@ ADMIN_PASSWORD=uma-senha-forte-e-temporaria
 O CloudPanel já traz o PM2. Ainda na pasta do site:
 
 ```bash
+pm2 list                 # numa VPS compartilhada, veja o que já roda por este usuário
 pm2 start ecosystem.config.cjs
 pm2 save
-pm2 startup     # rode o comando que ele imprimir (com sudo) para subir no boot
+pm2 startup              # rode o comando que ele imprimir (com sudo) para subir no boot
 ```
+
+> **VPS com outros sites:** se `pm2 list` já mostrava outros processos, confirme que só o
+> `prancheta` foi adicionado e sempre opere pelo nome (`pm2 restart prancheta`), nunca sem
+> nome. Detalhes na seção [coexistência](#coexistindo-com-outros-sites-no-mesmo-cloudpanel).
 
 Verifique:
 
