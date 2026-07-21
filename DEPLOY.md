@@ -154,8 +154,12 @@ Isso habilita a leitura de fotos (tab **Captura**) e o **Conselheiro** no hub da
 
 ## Atualizações futuras
 
+**Antes de tudo, faça um backup** (ver a seção seguinte). Se a atualização trouxer uma
+migration, esse backup é a única forma de voltar atrás.
+
 ```bash
 cd ~/htdocs/prancheta.seudominio.com
+sqlite3 server/data/companion.db ".backup '$HOME/backups/pre-update-$(date +%F).db'"
 git pull
 npm install
 npm run build
@@ -164,6 +168,27 @@ pm2 restart prancheta
 
 As migrations pendentes são aplicadas no restart. Os dados dos usuários e a database do jogo
 sobrevivem ao deploy.
+
+### ⚠️ Migration é via de mão única
+
+Depois que uma migration roda, **o código antigo não funciona mais naquele banco**. Não existe
+"desfazer migration" neste projeto — o runner só avança.
+
+Consequência prática: se algo der errado depois de uma atualização, **não adianta voltar só o
+código** (`git checkout` numa tag anterior, ou apontar o PM2 para um build velho). O app vai
+quebrar no boot, porque a versão antiga espera um schema que não existe mais.
+
+Quando uma atualização der problema, você tem duas saídas — e só duas:
+
+1. **Avançar** (preferível): corrigir o problema e subir uma versão mais nova. O banco já está
+   no formato certo.
+2. **Voltar de verdade**: restaurar o backup do banco **de antes da migration** *e* voltar o
+   código para a versão correspondente. Os dois juntos, nunca só um.
+
+> Isso não é teórico: aconteceu em desenvolvimento na `0.4.002`. A migration `004` dropou a
+> tabela `sync_blobs`; ao trocar de branch para uma versão anterior, o servidor passou a
+> crashar no boot com `SqliteError: no such table: sync_blobs`. Ver o sintoma exato no
+> troubleshooting abaixo.
 
 ## Backup (faça isto)
 
@@ -192,6 +217,18 @@ crontab -e
 - **Foto grande falhando (413):** o Nginx do CloudPanel limita o corpo da requisição. Em
   **Sites → seu site → Vhost**, aumente: `client_max_body_size 30M;`.
 - **`npm install` falhando no better-sqlite3:** faltou o passo 3 (`build-essential python3`).
+- **App crasha no boot com `SqliteError: no such table: <alguma_tabela>`:** o banco está numa
+  versão **mais nova** que o código. Quase sempre é rollback de código depois de uma migration
+  ter rodado (ver "Migration é via de mão única", acima). Confirme comparando o que o banco diz
+  ter aplicado com os arquivos de migration presentes no código:
+  ```bash
+  sqlite3 server/data/companion.db "SELECT id, name FROM schema_migrations ORDER BY id;"
+  ls server/src/db/migrations/
+  ```
+  Se o banco lista migrations que **não existem** na pasta, o código é antigo demais para ele.
+  Saída: volte para a versão do código que contém aquelas migrations (`git checkout main`,
+  `npm run build`, `pm2 restart prancheta`) — ou restaure o backup do banco de antes da
+  migration e o código correspondente, juntos.
 - **Ninguém consegue logar:** o banco nasceu sem usuários. Pare o app, garanta que `users`
   está vazia, defina `ADMIN_EMAIL`/`ADMIN_PASSWORD` no `.env` e reinicie.
 - **Perdeu a senha do admin:** não há recuperação por e-mail. Se houver outro admin, ele
