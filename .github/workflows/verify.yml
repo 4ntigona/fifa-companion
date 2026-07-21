@@ -1,0 +1,46 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Um run por ref: um push novo cancela o anterior ainda em andamento.
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      # Se o 20.12 quebrar, ainda queremos saber se o 22 passa (e vice-versa).
+      fail-fast: false
+      matrix:
+        # O projeto afirma suportar os dois (o piso 20.12 é o do
+        # --env-file-if-exists usado no ecosystem.config.cjs). Sem a matriz,
+        # a afirmação nunca é testada.
+        node: ['20.12', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+
+  # Informativo: dá visibilidade de advisories sem travar o merge por uma
+  # transitiva de devDependency. Se ficar barulhento, trate o advisory —
+  # não remova o job.
+  audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
