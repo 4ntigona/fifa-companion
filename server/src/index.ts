@@ -27,18 +27,29 @@ const here = dirname(fileURLToPath(import.meta.url))
 // trustProxy: atrás do proxy HTTPS do CloudPanel — IP real do cliente p/ rate limit.
 const app = Fastify({ logger: true, bodyLimit: 30 * 1024 * 1024, trustProxy: true })
 
-// Headers de hardening — CSP em report-only por ora (ver Step 5 do plano 004),
-// para não quebrar o bundle Vite/PWA antes de calibrar.
+// Headers de hardening. A CSP é ENFORCED (plano 022) — em produção ela bloqueia de fato.
+//
+// ⚠️ O hash em scriptSrc libera o script inline de tema em web/index.html (que roda antes
+// do primeiro paint para evitar flash). Ele é calculado byte a byte: QUALQUER edição
+// naquele script — inclusive espaços ou comentários — invalida o hash e derruba o tema.
+// Para recalcular, veja o comando em plans/022-csp-enforced.md (Step 1).
+//
+// Nota: em desenvolvimento o front vem do Vite (5173), não daqui — este header só chega
+// ao browser quando o Fastify serve web/dist. Validar mudanças exige build de produção.
 await app.register(helmet, {
   contentSecurityPolicy: {
-    reportOnly: true,
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'sha256-pAapsw/mNkBCUgD9l4n4AuO9kQBXBPGW4BSW2W/So9I='"],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'blob:'],
       connectSrc: ["'self'"],
+      workerSrc: ["'self'"],        // service worker do PWA
+      objectSrc: ["'none'"],        // não usamos <object>/<embed>
+      baseUri: ["'self'"],          // impede <base> injetado sequestrar URLs relativas
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],   // anti-clickjacking
     },
   },
 })

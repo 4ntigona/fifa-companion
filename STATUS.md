@@ -216,12 +216,12 @@ documentação e o código (`server/.env.example` estava desatualizado):
   optou por remover. Migration 004 dropa a tabela; saíram a rota pública `GET /api/sync/:code`,
   o `routes/sync.ts` e o caminho de código no banner de migração (o de `localStorage`
   sobrevive). O último blob existente foi arquivado fora do banco antes do drop.
-- **CSP em `reportOnly: true`**: o comentário original (plano 004, 2026-07-08) dizia "por
-  ora, para não quebrar o bundle Vite/PWA antes de calibrar" — mais de um ano de releases
-  depois (na numeração do projeto), a CSP **nunca foi calibrada e promovida a modo
-  enforced**. Isso significa que a Content-Security-Policy hoje **não bloqueia nada de
-  verdade**, só reporta. **Recomendação**: dedicar um ciclo curto para calibrar a CSP contra
-  o bundle atual do Vite/PWA e trocar para enforced.
+- ~~**CSP em `reportOnly: true`**~~ → **RESOLVIDO na `0.4.003`** (plano 022): a política foi
+  calibrada e está **enforced**. O script inline de tema é liberado por hash SHA-256, e
+  entraram `worker-src`, `object-src 'none'`, `base-uri`, `form-action` e
+  `frame-ancestors 'none'`. Varredura automatizada de todas as telas (contra build de
+  produção) acusou zero violações, e o teste negativo confirmou bloqueio real de script
+  externo, `<object>` e `fetch` cross-origin.
 
 ### 3.3 — Qualidade de processo (nunca existiu, não é regressão)
 
