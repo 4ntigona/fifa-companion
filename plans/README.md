@@ -23,6 +23,12 @@ conditions, rode as verificações, e atualize sua linha ao terminar.
   escopo revisado no mesmo dia: base inteira, não só o elenco do jogador). Item de longo prazo do
   roadmap cujo gatilho disparou. Tem um **spike de viabilidade bloqueante** (ler o `.db` do
   FIFA 16 em Node no Mac, com nomes/nacionalidades legíveis) antes de qualquer código de produto.
+- **025**: instalador e atualizador (quase) visual para self-hosting em Linux (apt/dnf), gerado
+  contra `1b00864` (2026-07-21). Reformula o pedido "igual ao WordPress" no que é construível num
+  app Node (o sistema não pode ser 100% web — ovo-e-galinha explicado no plano). **Fatiado em
+  fases independentes**: Fase 0 = `install.sh` de um comando (já entrega ~80%); Fase 1 = wizard
+  de onboarding no browser (reusa admin/seed existentes); Fase 2 = atualizador visual (arriscado:
+  auto-restart + migration mão-única).
 
 ## Execution order & status
 
@@ -51,7 +57,8 @@ conditions, rode as verificações, e atualize sua linha ao terminar.
 | 021 | Higiene — código morto, comentários mentirosos e destino do `sync_blobs` | P2 | M | 020 rec. | DONE (Step 3: dono escolheu o **Caminho A** — remover. Blob único arquivado em ~/backups antes do drop; migration 004 validada contra cópia da base real (dados intactos: 180.021 jogadores, 1 carreira, 2 usuários) e depois na base real, com a rota devolvendo 404. Testes do server 50→46: exatamente os 4 do sync.test.ts removido) |
 | 022 | Promover a CSP de `reportOnly` para enforced | P2 | M | 020, 021 rec. | DONE (hash do script inline de tema + worker-src/object-src/base-uri/form-action/frame-ancestors. Varredura automatizada com Playwright contra o build de PRODUÇÃO servido pelo Fastify — 11 telas, incl. Recharts, blob: da captura, service worker e tema escuro: zero violações. Teste negativo confirma bloqueio real de script externo, <object> e fetch cross-origin. O único ruído do report-only era o aviso de 'upgrade-insecure-requests ignorado', que some no modo enforced) |
 | 023 | Primeiro deploy real e validação em produção → `0.5.000` | P1 | L | 020, 021, 022 | DONE (deploy real em prancheta.pedrorivera.me; 1ª chamada real de IA; câmera validada em celular; armadilhas viraram nota no DEPLOY.md: PORT do ecosystem vence o .env, seed do admin é one-shot, senha com #/$ precisa de aspas simples) |
-| 024 | MVP — importar a database de um mod do FIFA 16 (FIFA Friends) como versão do jogo | P3 | XL | — (spike-gated) | TODO |
+| 024 | MVP — importar a database de um mod do FIFA 16 (FIFA Friends) como versão do jogo | P3 | XL | — (spike-gated) | TODO (stand-by) |
+| 025 | Instalador e atualizador (quase) visual — self-hosting em Linux | P3 | XL | — (fatiado em fases) | TODO |
 
 Status: TODO | IN PROGRESS | DONE | BLOCKED (com motivo) | REJECTED (com justificativa)
 
