@@ -28,10 +28,17 @@ Armadilhas reais encontradas no deploy (viraram nota no `DEPLOY.md`/`STATUS.md`)
 único** (só com `users` vazia); e senha de admin com `#`/`$` precisa de **aspas simples** no
 `.env`, senão o parser do Node a corta.
 
-> **Validação ainda aberta**: a **câmera** (captura de foto) exige HTTPS num celular real e não
-> foi exercida neste deploy. É o terceiro buraco histórico — segue pendente como validação de
-> acompanhamento. E o bug de **resiliência do conselheiro a navegação** (sair da tela zera a
-> resposta em voo) está registrado em `STATUS.md §3.5-bug`, sem plano numerado ainda.
+**Terceiro buraco também fechado (2026-07-21):** a **câmera** foi validada num celular real
+sobre HTTPS — a captura funcionou e identificou os jogadores. Com isso os três buracos
+históricos do `0.5.000` estão tapados. A validação também expôs duas frentes na captura da tela
+de criação de carreira: (a) a análise **classificava como "base" jogadores do elenco criado** —
+**corrigido na hora** com o novo `screenType` `criacao_carreira` (o XI agora vai para o elenco,
+não para a base); e (b) **ler a tela inteira** (orçamento, expectativas da diretoria, elenco) e
+torná-la **importável na criação da carreira** — feature adiada para o plano 024.
+
+> **Em aberto (não bloqueiam o `0.5.000`):** o bug de **resiliência do conselheiro a navegação**
+> (sair da tela zera a resposta em voo) está registrado em `STATUS.md §3.5-bug`; e as duas
+> frentes de captura acima viram o plano 024 (ver `STATUS.md §3.6` e `ROADMAP.md`).
 
 ## 0.4.003 — 2026-07-21
 

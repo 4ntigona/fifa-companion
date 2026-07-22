@@ -69,8 +69,9 @@ havia sido exercido na vida do projeto. **Situação em 2026-07-21 (pós-deploy)
 - ✅ **O caminho de instalação** foi rodado numa VPS real (Debian + CloudPanel, coexistindo com
   o app antigo). Rendeu correções no `DEPLOY.md` e três armadilhas documentadas (porta, seed
   one-shot do admin, aspas na senha).
-- ⏳ **A câmera** ainda **não** foi validada — exige HTTPS num celular real. **Único item em
-  aberto do `0.5.000`.**
+- ✅ **A câmera** foi validada num celular real sobre HTTPS (2026-07-21) — a captura funcionou
+  e identificou os jogadores. Os **três buracos históricos estão fechados**. A validação
+  apontou duas frentes de captura que viram o **plano 024** (ver [`STATUS.md`](STATUS.md) §3.6).
 - ✅ **A primeira chamada real de IA aconteceu** — o Conselheiro respondeu uma consulta de
   verdade (Gemini) numa carreira real. `advisor_reports` deixou de ter 0 linhas. (O primeiro
   uso também expôs um bug de resiliência a navegação — ver [`STATUS.md`](STATUS.md) §3.5-bug.)

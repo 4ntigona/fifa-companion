@@ -9,7 +9,7 @@ import { sanitizeStat, setActiveCareerId } from '../hooks'
 
 const SCREEN_LABEL: Record<string, string> = {
   elenco: 'Elenco', perfil_jogador: 'Perfil de jogador', base_olheiros: 'Base/Olheiros',
-  negociacao: 'Negociação', outro: 'Outra tela',
+  negociacao: 'Negociação', criacao_carreira: 'Criação de carreira', outro: 'Outra tela',
 }
 
 /** File → { base64, mediaType } normalizando para um dos formatos aceitos. */
@@ -163,7 +163,9 @@ function suggestMatch(name: string, squad: CareerPlayer[]): number | undefined {
 
 function ReviewPanel(props: { extracted: VisionResult; career: Career; onApplied: () => void }) {
   const { extracted, career } = props
-  const isSquadScreen = extracted.screenType === 'elenco'
+  // A tela de criação de carreira mostra o elenco principal do clube criado — trata como elenco
+  // (destino "generated"), não como base. Ver STATUS.md §3.6.
+  const isSquadScreen = extracted.screenType === 'elenco' || extracted.screenType === 'criacao_carreira'
   const isProfileScreen = extracted.screenType === 'perfil_jogador'
   const { data: squadData } = useQuery({
     queryKey: ['career-players', String(career.id)],

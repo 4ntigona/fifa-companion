@@ -275,8 +275,9 @@ documentação e o código (`server/.env.example` estava desatualizado):
     precisa de aspas simples no `.env` (o parser do Node corta, senão).
   - **Primeira chamada real de IA**: o Conselheiro respondeu uma consulta de verdade (Gemini)
     numa carreira real — `advisor_reports` deixou de ter 0 linhas.
-  - **Ainda aberto**: a **câmera** (captura) exige HTTPS num celular real e **não** foi
-    validada neste deploy. É o terceiro buraco — segue como validação de acompanhamento.
+  - **Câmera validada** (2026-07-21, celular real sobre HTTPS): a captura funcionou e
+    identificou os jogadores. **Terceiro buraco fechado** — o `0.5.000` está completo. A
+    validação, porém, apontou duas frentes de captura que viram o plano 024 (ver §3.6).
 
 ### 3.4 — Produto: o que o Conselheiro de IA ainda não faz
 
@@ -316,6 +317,34 @@ desmonte e, idealmente, registrar a tentativa antes/depois da chamada para o usu
 "no escuro". Fica na fronteira entre o `0.5.000` (o conselheiro precisa *de fato responder* — é
 um dos três buracos históricos) e o item 9 do `0.6.000` (guard-rails/observabilidade do BYOK).
 Ainda **não tem plano numerado próprio**.
+
+### 3.6 — Captura da tela de criação de carreira (candidata a plano 024)
+
+Descoberto na validação real da câmera (2026-07-21). Duas frentes ligadas à tela **"Your Squad"
+/ criação de carreira** do FIFA (a que mostra Overall Rating em estrelas, Squad Age, Transfer
+Budget, Board Expectations e o XI):
+
+1. ~~**Bug de classificação.**~~ → **CORRIGIDO em 2026-07-21.** A análise marcava como **base**
+   (`base_olheiros`) jogadores que são do **elenco criado**, porque o `screenType` não conhecia
+   a tela de criação de carreira e um XI com overalls numa tela desconhecida caía em base.
+   Conserto: adicionado o `screenType` **`criacao_carreira`** ao `VisionResult` e ao prompt
+   (`server/src/vision/analyze.ts`, com instrução explícita de listar o XI como elenco, não
+   base), e o front (`web/src/pages/Capture.tsx`) passou a tratar essa tela como elenco
+   (`isSquadScreen`), de modo que, para clube criado, o destino padrão vira `generated` (elenco)
+   em vez de `youth` (base). Rótulo "Criação de carreira" adicionado à revisão.
+2. **Feature: ler a tela inteira e importar na criação da carreira.** Hoje o
+   `web/src/pages/NewCareer.tsx` coleta manualmente, para clube criado, verba/qualidade/
+   objetivos/liga/time substituído. Essa mesma tela do FIFA traz **tudo isso legível**:
+   Transfer Budget → verba, Overall Rating (estrelas) → qualidade, Board Expectations (Youth
+   Focused, Domestic/Continental/Financial/Brand/Youth Development) → objetivos da diretoria, e
+   o XI → elenco. A ideia do dono: **na criação da carreira**, poder tirar foto desta tela (e da
+   tela de detalhamento do elenco) para **pré-preencher** esses campos e puxar os jogadores.
+
+Implicações de escopo (a detalhar no plano 024): novo `screenType` + campos no `VisionResult`
+(orçamento, estrelas/qualidade, expectativas, idade do elenco); ajuste do prompt em
+`vision/analyze.ts`; ponto de entrada de foto no `NewCareer.tsx` reusando o encanamento de
+`Capture.tsx`/`POST /api/analyze`; e como mesclar múltiplas fotos (config + elenco) antes de
+`createCareer`. **Sem plano numerado ainda.**
 
 ### 3.5 — Limitações conhecidas e aceitas (não são bugs)
 
