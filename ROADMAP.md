@@ -160,6 +160,7 @@ tem um gatilho objetivo: enquanto ele não acontecer, o item fica dormindo aqui.
 | **12** | Modo offline real | Você (ou um usuário) **efetivamente se irritar** com a falta. Hoje o app assume rede quando logado; ninguém reclamou porque quase ninguém usou. | **L** — exige repensar a camada de dados no cliente (cache local + sincronização) |
 | **13** | Multiplayer / carreira compartilhada | **Uma segunda pessoa real** querer usar de forma compartilhada. Hoje: 2 usuários, 1 carreira, zero sinal de demanda. | **L** — exige modelo de permissões que não existe |
 | **14** | Internacionalização | **Um usuário não-lusófono** pedir. Hoje: zero. | M — mecânico, mas invasivo (toda string do app) |
+| **15** | Importar a **database inteira** de mods como uma versão do jogo | **Gatilho DISPAROU** (2026-07-21): o dono quer começar pelo FIFA 16 + FIFA Friends. Virou o [`plano 024`](plans/024-mvp-import-elencos-mod-fifa16.md), **spike-gated**. Alvo = `sofifa_players`/`sofifa_teams` (Scout/transferências de graça), não `career_players`. FIFA 22 (`.fifamod`/Frostbite via FIFA Editor Tool) é fase 2. | **XL** no FIFA 16 (libs Node existem: `dbmaster-cli`/`fifatables`) **se** o spike provar leitura do `.db` no Mac com nomes/nações legíveis; caso contrário, reavaliar |
 
 ### Sobre o item 12 (offline), especificamente
 
