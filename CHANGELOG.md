@@ -8,6 +8,62 @@ Este projeto segue o [PrideVer](https://pridever.org) — `PROUD.DEFAULT.SHAME`:
 
 O terceiro segmento usa 3 dígitos por decisão do projeto (`0.2.000`, `0.2.001`, …).
 
+## 0.5.000 — 2026-07-21
+
+**Primeiro deploy real em produção.** O app saiu de "funciona na minha máquina" para estar no
+ar numa VPS Debian + CloudPanel (`prancheta.pedrorivera.me`), convivendo com a versão anterior
+(`companion.pedrorivera.me`) na mesma máquina. Dois dos três "buracos históricos" do projeto
+foram fechados de uma vez:
+
+- **O caminho de deploy foi exercido de verdade** — antes só documentado. A rodada rendeu
+  melhorias no `DEPLOY.md`: seção de **coexistência com outros sites no mesmo CloudPanel**
+  (porta livre, App Port == `PORT` do ecosystem, isolamento do PM2, recursos) e o aviso de que
+  **migration é via de mão única** (rollback de código quebra o app).
+- **A primeira chamada real de IA aconteceu** — o Conselheiro respondeu uma consulta de verdade
+  (Gemini) numa carreira real. Até aqui `advisor_reports` tinha 0 linhas na vida do projeto;
+  todo teste mockava. O conselheiro finalmente respondeu.
+
+Armadilhas reais encontradas no deploy (viraram nota no `DEPLOY.md`/`STATUS.md`): o `PORT` do
+`ecosystem.config.cjs` tem precedência sobre o `.env`; o seed do primeiro admin é **de tiro
+único** (só com `users` vazia); e senha de admin com `#`/`$` precisa de **aspas simples** no
+`.env`, senão o parser do Node a corta.
+
+> **Validação ainda aberta**: a **câmera** (captura de foto) exige HTTPS num celular real e não
+> foi exercida neste deploy. É o terceiro buraco histórico — segue pendente como validação de
+> acompanhamento. E o bug de **resiliência do conselheiro a navegação** (sair da tela zera a
+> resposta em voo) está registrado em `STATUS.md §3.5-bug`, sem plano numerado ainda.
+
+## 0.4.003 — 2026-07-21
+
+**CSP enforced.** A Content-Security-Policy saiu de `reportOnly` para **bloqueio real** (plano
+022). O script inline de tema é liberado por hash SHA-256, e entraram `worker-src` (SW do PWA),
+`object-src 'none'`, `base-uri 'self'`, `form-action 'self'` e `frame-ancestors 'none'`
+(anti-clickjacking). Calibrada contra build de produção (o header não chega ao browser no dev
+com Vite): varredura de todas as telas acusou zero violações e um teste negativo confirmou
+bloqueio real de script externo, `<object>` e `fetch` cross-origin.
+
+## 0.4.002 — 2026-07-21
+
+**Higiene: código morto e remoção do `sync_blobs`** (plano 021).
+
+- Removida a tabela `sync_blobs` e a chave de restauração de vez: migration 004 dropa a tabela,
+  saíram a rota pública `GET /api/sync/:code`, o `routes/sync.ts`/testes e o caminho de código
+  no banner de migração (o de `localStorage` sobrevive). O último blob foi arquivado antes do
+  drop. Não reintroduzir.
+- Removido o código morto `adminToken()` de `server/src/settings.ts` (zero chamadores desde a
+  v0.3.000; o guard real de import é "loopback OU sessão de admin"). Cabeçalho mentiroso que
+  descrevia o app como local-first foi reescrito.
+- A contagem de testes caiu de 61 para 57 (saíram os testes do `sync_blobs`).
+
+## 0.4.001 — 2026-07-21
+
+**CI mínimo** (plano 020). Novo `.github/workflows/verify.yml`: roda `npm run verify`
+(typecheck + testes + build) numa matriz Node 20.12 + 22 (`fail-fast: false`,
+`cancel-in-progress`) a cada push/PR, mais um job informativo de `npm audit` que não bloqueia
+merge. O primeiro run acusou 2 advisories `high` transitivos (`brace-expansion`, `fast-uri`),
+zerados com `npm audit fix`; as actions foram atualizadas para `@v5`. `engines.node` fixado em
+`>=20.12`.
+
 ## 0.4.000 — 2026-07-19
 
 **O app vira Prancheta.** Refatoração completa da interface: identidade própria, shell de

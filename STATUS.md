@@ -1,8 +1,24 @@
 # Estado atual, histórico e roadmap — Prancheta
 
-> Documento vivo. Escrito em 2026-07-19, na v0.4.000. Se você está lendo isto muito depois
-> dessa data, confira o [CHANGELOG.md](CHANGELOG.md) para releases mais recentes — este
-> documento descreve o estado **naquele momento**, não se atualiza sozinho.
+> Documento vivo. Escrito em 2026-07-19 (v0.4.000), **atualizado em 2026-07-21** com o bloco
+> de curto prazo do roadmap. Se você está lendo isto muito depois dessa data, confira o
+> [CHANGELOG.md](CHANGELOG.md) para releases mais recentes — este documento descreve o estado
+> **naquele momento**, não se atualiza sozinho.
+>
+> **Atualização de 2026-07-21** — o bloco de curto prazo do roadmap foi **entregue por
+> inteiro** e o app está **no ar em produção**. Landaram na `main` os planos
+> [020](plans/020-ci-minimo.md) (CI → `0.4.001`),
+> [021](plans/021-higiene-codigo-morto-e-sync-blobs.md) (higiene + remoção do `sync_blobs` →
+> `0.4.002`), [022](plans/022-csp-enforced.md) (CSP enforced → `0.4.003`) e o
+> [023](plans/023-deploy-real-e-validacao.md) (**primeiro deploy real → `0.5.000`**). O
+> `package.json` e o `CHANGELOG.md` foram atualizados para `0.5.000`.
+>
+> **O deploy aconteceu de verdade**: VPS Debian + CloudPanel em `prancheta.pedrorivera.me`,
+> coexistindo com a versão anterior (`companion.pedrorivera.me`) na mesma máquina. E o
+> **Conselheiro respondeu pela primeira vez na vida do projeto** (Gemini, carreira real) — dois
+> dos três "buracos históricos" fechados (§3.3). **Resta validar a câmera** num celular real
+> sobre HTTPS (terceiro buraco), e o bug de resiliência do conselheiro a navegação segue aberto
+> (**§3.5-bug**).
 
 ## Resumo executivo
 
@@ -21,9 +37,11 @@ projeto teve — a primeira (tema terminal pessoal do dono) foi deliberadamente 
 | Modelo de dados / carreiras / elenco / prospecção | Maduro — em produção desde antes das contas, testado |
 | Contas e admin | Maduro — testado, isolamento por usuário verificado |
 | Interface / identidade visual | Recém-refeita (v0.4.000), auditada em acessibilidade |
-| Conselheiro de IA | **MVP** — parecer + consulta funcionam; faltam iterações (ver roadmap) |
-| Deploy / operações | Documentado (INSTALL.md/DEPLOY.md) mas **nunca exercido em produção real** por este time — ver riscos |
-| CI/lint/automação de QA | **Não existe** — verificação é manual (`npm run verify` + roteiro Playwright ad-hoc) |
+| Conselheiro de IA | **MVP validado em produção** — 1ª resposta real (Gemini) em 2026-07-21; o mesmo teste revelou bug de resiliência a navegação (§3.5-bug); faltam iterações de produto (ver roadmap) |
+| Deploy / operações | **No ar** desde 2026-07-21 (`prancheta.pedrorivera.me`, VPS + CloudPanel, coexistindo com o app antigo). Caminho exercido de verdade; ainda falta validar a câmera em celular real (§3.3) |
+| CI | **Existe desde `0.4.001`** — GitHub Actions roda `npm run verify` (Node 20.12 + 22) em push/PR, mais job informativo de `npm audit`. Lint continua ausente (decisão consciente) |
+| Segurança de headers | CSP **enforced** desde `0.4.003` (era `reportOnly`) — ver seção 2 |
+| Automação de QA visual | Roteiro Playwright ainda **manual**, fora de CI (item 10 do roadmap) |
 
 ---
 
@@ -155,7 +173,8 @@ checklist de regressão.
 `users`, `sessions`, `careers`, `career_players`, `player_snapshots`, `prospects`,
 `advisor_reports` — todas por `user_id`/`career_id`, com cascade delete e isolamento testado.
 `sofifa_players`/`sofifa_teams` — database do jogo, somente leitura, compartilhada,
-importada por versão a partir do Kaggle. `sync_blobs` — legado, deprecada (ver seção 3).
+importada por versão a partir do Kaggle. A tabela `sync_blobs` (legado) **foi removida na
+`0.4.002`** — migration 004 a dropou; não reintroduzir (ver seção 3).
 
 ### Segurança — o que está implementado
 
@@ -165,7 +184,12 @@ importada por versão a partir do Kaggle. `sync_blobs` — legado, deprecada (ve
 - CORS allowlist configurável (`CORS_ORIGINS`), reflete qualquer origem se não definida
   (aceitável em dev, **deve** ser configurado em produção).
 - Checagem de header `Origin` em mutações.
-- `@fastify/helmet` registrado com CSP — **mas em modo `reportOnly: true`** (ver seção 3).
+- `@fastify/helmet` registrado com CSP **enforced** (desde `0.4.003`; era `reportOnly`). O
+  script inline de tema é liberado por hash SHA-256, e a política inclui `worker-src` (SW do
+  PWA), `object-src 'none'`, `base-uri 'self'`, `form-action 'self'` e `frame-ancestors 'none'`.
+  Lembrete: o header só chega ao browser quando o Fastify serve `web/dist` — no dev (Vite 5173)
+  ele não aparece. Editar o script inline de `web/index.html` **invalida o hash** — recalcular
+  (ver `plans/022-csp-enforced.md`).
 - `trustProxy: true` (necessário atrás do proxy do CloudPanel, para IP real do cliente no
   rate-limit).
 - Chaves de IA nunca tocam o servidor além do repasse stateless por requisição.
@@ -173,12 +197,19 @@ importada por versão a partir do Kaggle. `sync_blobs` — legado, deprecada (ve
 
 ### Testes (contagem verificada nesta versão)
 
-**61 testes automatizados** — 50 no server, 11 no web — cobrindo: isolamento de dados entre
-usuários, idempotência de migrations contra cópia do schema de produção, ciclo de auth,
-regras de admin (não remover/rebaixar o último admin), rotas de carreira/jogador/prospecção,
-e o conselheiro (contexto montado do banco + chamada ao provedor **mockada** — nenhum teste
-automatizado gasta créditos de API real). `npm run verify` roda typecheck + testes + build
-como portão único antes de qualquer commit.
+**57 testes automatizados** — 46 no server, 11 no web — cobrindo: isolamento de dados entre
+usuários, idempotência de migrations contra cópia do schema de produção (agora incluindo a
+004 que dropa `sync_blobs`), ciclo de auth, regras de admin (não remover/rebaixar o último
+admin), rotas de carreira/jogador/prospecção, e o conselheiro (contexto montado do banco +
+chamada ao provedor **mockada** — nenhum teste automatizado gasta créditos de API real).
+`npm run verify` roda typecheck + testes + build como portão único antes de qualquer commit.
+(A contagem caiu de 61 para 57 na `0.4.002`: os testes do `sync_blobs`/`routes/sync.ts` saíram
+junto com a feature.)
+
+Desde a `0.4.001` esse portão também roda **no CI** (`.github/workflows/verify.yml`): `npm run
+verify` numa matriz Node 20.12 + 22 a cada push/PR, mais um job informativo de `npm audit`
+(`continue-on-error`, não bloqueia merge). O primeiro run real acusou 2 advisories `high`
+transitivos (`brace-expansion`, `fast-uri`), zerados na hora com `npm audit fix`.
 
 Fora disso, existe um **roteiro de QA end-to-end manual** (`screenshots/tests/README.md`),
 executado com Playwright contra uma base de dados isolada (nunca `server/data/companion.db`)
@@ -198,11 +229,10 @@ Ao escrever este documento, encontramos e corrigimos duas inconsistências reais
 documentação e o código (`server/.env.example` estava desatualizado):
 
 - **`ADMIN_TOKEN`** estava documentado como forma de autorizar `POST /api/import` fora do
-  loopback. Isso é **código morto**: `server/src/settings.ts` ainda exporta a função
-  `adminToken()`, mas `isAuthorizedForImport()` (`server/src/routes/import.ts`) não a chama —
-  desde a v0.3.000 o guard real é "loopback OU sessão de admin". **Sugestão de limpeza**:
-  remover `adminToken()`/`kaggleCreds()`-adjacent dead code de `settings.ts` se não for mais
-  usado em lugar nenhum (verificar antes de remover).
+  loopback. Isso era **código morto** (`server/src/settings.ts` exportava `adminToken()` sem
+  nenhum chamador; desde a v0.3.000 o guard real é "loopback OU sessão de admin"). **Removido
+  na `0.4.002`** (plano 021): `settings.ts` ficou só com `kaggleCreds()`, e o cabeçalho
+  mentiroso que descrevia o app como local-first foi reescrito.
 - **`ADMIN_EMAIL`/`ADMIN_PASSWORD`** — essenciais para o primeiro boot (sem eles, ninguém
   consegue logar) — **não estavam no `.env.example`**, só documentadas em prosa no
   `DEPLOY.md`/`ecosystem.config.cjs`. Corrigido nesta rodada.
@@ -225,19 +255,28 @@ documentação e o código (`server/.env.example` estava desatualizado):
 
 ### 3.3 — Qualidade de processo (nunca existiu, não é regressão)
 
-- **Sem CI**: não há GitHub Actions (ou equivalente) rodando `npm run verify` em push/PR.
-  Todo o portão de qualidade depende de alguém rodar o comando localmente antes de commitar.
+- ~~**Sem CI**~~ → **RESOLVIDO na `0.4.001`** (plano 020): `.github/workflows/verify.yml` roda
+  `npm run verify` em push/PR numa matriz Node 20.12 + 22 (`fail-fast: false`), mais um job
+  informativo de `npm audit`. Ainda depende de disciplina para não commitar direto na `main`
+  sem passar por PR, mas o portão automatizado existe.
 - **Sem lint**: nem ESLint nem Prettier configurados (decisão consciente, registrada em
   `plans/README.md`: "legítimo, mas depende do 002; vira plano próprio se desejado" — nunca
   virou).
 - **QA visual não é automatizado em CI**: o roteiro Playwright em `screenshots/tests/` é
   disparado manualmente; não há garantia de que alguém rode antes de cada release.
-- **Nenhum deploy real em produção foi feito por este time** até a data deste documento —
-  `INSTALL.md`/`DEPLOY.md` foram escritos e revisados cuidadosamente, mas o caminho completo
-  numa VPS de verdade (CloudPanel do zero → HTTPS → PM2 → uso real) ainda não foi exercido
-  ponta a ponta fora de ambientes de desenvolvimento/sandbox local. Trate o primeiro deploy
-  real com atenção redobrada e considere reportar de volta qualquer passo que precisar de
-  ajuste.
+- ~~**Nenhum deploy real em produção**~~ → **FEITO em 2026-07-21** (`0.5.000`, plano 023). O
+  app está no ar em `prancheta.pedrorivera.me` (VPS Debian + CloudPanel + PM2), coexistindo com
+  a versão anterior (`companion.pedrorivera.me`) na mesma máquina. Dos **três buracos
+  históricos** que nunca tinham sido exercidos, **dois fecharam**:
+  - **Caminho de deploy** rodado ponta a ponta de verdade. A rodada rendeu correções no
+    `DEPLOY.md` (coexistência com outros sites no mesmo CloudPanel; migration one-way) e
+    documentou três armadilhas reais: `PORT` do ecosystem tem precedência sobre o `.env`; o
+    seed do primeiro admin é de tiro único (só com `users` vazia); senha de admin com `#`/`$`
+    precisa de aspas simples no `.env` (o parser do Node corta, senão).
+  - **Primeira chamada real de IA**: o Conselheiro respondeu uma consulta de verdade (Gemini)
+    numa carreira real — `advisor_reports` deixou de ter 0 linhas.
+  - **Ainda aberto**: a **câmera** (captura) exige HTTPS num celular real e **não** foi
+    validada neste deploy. É o terceiro buraco — segue como validação de acompanhamento.
 
 ### 3.4 — Produto: o que o Conselheiro de IA ainda não faz
 
@@ -250,6 +289,33 @@ Registrado deliberadamente no blueprint da concepção (`design-proposals/bluepr
 
 O Conselheiro hoje só opera em dois modos: parecer completo da carreira, ou uma pergunta
 livre em texto — ambos cobrindo bem o caso geral, mas sem essas superfícies mais específicas.
+
+### 3.5-bug — Conselheiro não sobrevive a sair da tela (primeiro uso real, 2026-07-21)
+
+Descoberto no **primeiro disparo real do conselheiro em produção** (até então `advisor_reports`
+tinha 0 linhas — ver ROADMAP, "buracos históricos"): o dono mandou uma pergunta, a resposta
+demorou, ele saiu da tela e, ao voltar, estava tudo vazio ("zerou"). Não é aleatório — é uma
+fraqueza de arquitetura em duas camadas:
+
+1. **A chamada é síncrona e lenta.** `POST /api/careers/:id/advisor`
+   (`server/src/routes/advisor.ts`) chama o provedor (pode levar 20–60s, `maxTokens: 1500`) e
+   **só persiste a resposta depois** que a IA responde. Antes disso não existe nada salvo — não
+   há conceito de "análise em andamento".
+2. **Todo o estado de progresso vive no componente.** Em `web/src/components/AdvisorPanel.tsx`
+   o `useMutation` (`isPending`, mensagem de erro) é estado local. Sair da tela **desmonta** o
+   componente e evapora esse estado. Em celular/PWA é pior: o navegador suspende/mata a conexão
+   da aba em segundo plano.
+
+Efeito combinado: se a chamada **completou** no servidor antes da saída, o parecer fica salvo e
+reaparece ao voltar; se ainda estava **em voo** (ou errou por timeout/parse) quando a tela
+trocou, a conexão morre em segundo plano, **nada é persistido e a mensagem de erro some junto** —
+volta-se ao vazio, sem pista do que houve.
+
+**Conserto desejado** (tornar o conselheiro resiliente a navegação): feedback que sobreviva ao
+desmonte e, idealmente, registrar a tentativa antes/depois da chamada para o usuário nunca ficar
+"no escuro". Fica na fronteira entre o `0.5.000` (o conselheiro precisa *de fato responder* — é
+um dos três buracos históricos) e o item 9 do `0.6.000` (guard-rails/observabilidade do BYOK).
+Ainda **não tem plano numerado próprio**.
 
 ### 3.5 — Limitações conhecidas e aceitas (não são bugs)
 
@@ -298,18 +364,25 @@ para isso, foi um script ad-hoc de uma sessão de QA. Vale a pena promovê-lo a 
 Organizadas por horizonte, não por prioridade absoluta — a prioridade real depende do que o
 dono do produto quiser jogar/usar primeiro.
 
-### Curto prazo (dívida técnica e higiene)
+### Curto prazo (dívida técnica e higiene) — quase todo entregue em 2026-07-21
 
-1. **Decidir o destino de `sync_blobs`**: remover de vez ou parar de prometer uma data.
-2. **Calibrar e promover a CSP** de `reportOnly` para enforced.
-3. **Remover código morto**: `adminToken()`/`kaggleCreds` (se de fato não usado em nenhum
-   outro lugar), qualquer resquício do que os planos 014–019 chamam de "achados rejeitados"
-   que ainda apareça no código.
-4. **CI mínimo**: um workflow que rode `npm run verify` em cada PR/push — o maior
-   custo-benefício de todos os itens desta lista, dado que o projeto já tem 61 testes e um
-   comando único (`npm run verify`) para rodar.
-5. **Primeiro deploy real** numa VPS de produção, seguindo `INSTALL.md` à risca, e reportar
-   de volta qualquer passo que precisar de ajuste no documento.
+1. ~~**Decidir o destino de `sync_blobs`**~~ → **FEITO na `0.4.002`**: removido de vez
+   (migration 004 + rota/testes/banner). Ver §3.2.
+2. ~~**Calibrar e promover a CSP** para enforced~~ → **FEITO na `0.4.003`**. Ver §3.2.
+3. ~~**Remover código morto** (`adminToken()`)~~ → **FEITO na `0.4.002`**. Ver §3.1.
+4. ~~**CI mínimo**~~ → **FEITO na `0.4.001`**: `.github/workflows/verify.yml`. Ver §3.3.
+5. ~~**Primeiro deploy real**~~ → **FEITO em 2026-07-21** (`0.5.000`, plano 023): app no ar em
+   `prancheta.pedrorivera.me`. Ver §3.3 para o que fechou e o que resta (validação da câmera).
+
+> **Formalização**: `CHANGELOG.md` e `package.json` foram atualizados para `0.5.000` (com as
+> entradas `0.4.001`–`0.4.003`). Falta só criar as **tags git** correspondentes — o último
+> `git tag` ainda é `v0.4.000`. Sugestão: taguear no momento em que este commit for para a
+> `main` (ex.: `v0.5.000`, e opcionalmente as três SHAME intermediárias).
+
+**Validações e bugs em aberto após o deploy:**
+- **Câmera** (captura de foto) ainda não exercida — exige HTTPS em celular real (§3.3).
+- **Resiliência do conselheiro a navegação** (§3.5-bug): sair da tela zera a resposta em voo.
+  Sem plano numerado; fica entre o `0.5.000` e o item 9 abaixo.
 
 ### Médio prazo (produto)
 

@@ -39,12 +39,17 @@ Detalhamento executável nos planos [`020`](plans/020-ci-minimo.md),
 [`021`](plans/021-higiene-codigo-morto-e-sync-blobs.md),
 [`022`](plans/022-csp-enforced.md) e [`023`](plans/023-deploy-real-e-validacao.md).
 
-| Versão | Entrega | Item | Esforço | Risco |
-|---|---|---|---|---|
-| `0.4.001` | CI mínimo (`npm run verify` em push/PR, Node 20.12 + 22) | 4 | S | LOW |
-| `0.4.002` | Higiene: código morto, comentários mentirosos, decisão do `sync_blobs` | 1, 3 | M | MED |
-| `0.4.003` | CSP promovida de `reportOnly` para **enforced** | 2 | M | **HIGH** |
-| **`0.5.000`** | **Primeiro deploy real + validação em produção** | 5 | L | MED |
+> **Bloco entregue em 2026-07-21.** Todo o curto prazo (`0.4.001` → `0.5.000`) está feito e no
+> ar — ver [`CHANGELOG.md`](CHANGELOG.md). A tabela abaixo fica como registro do plano original.
+> Única validação em aberto: **câmera em celular real** (ver "posto à prova"). Segue o roadmap
+> de médio prazo.
+
+| Versão | Entrega | Item | Esforço | Risco | Estado |
+|---|---|---|---|---|---|
+| `0.4.001` | CI mínimo (`npm run verify` em push/PR, Node 20.12 + 22) | 4 | S | LOW | ✅ |
+| `0.4.002` | Higiene: código morto, comentários mentirosos, decisão do `sync_blobs` | 1, 3 | M | MED | ✅ |
+| `0.4.003` | CSP promovida de `reportOnly` para **enforced** | 2 | M | **HIGH** | ✅ |
+| **`0.5.000`** | **Primeiro deploy real + validação em produção** | 5 | L | MED | ✅ (câmera pendente) |
 
 ### Por que nesta ordem
 
@@ -59,13 +64,16 @@ Detalhamento executável nos planos [`020`](plans/020-ci-minimo.md),
 ### O que "posto à prova" significa concretamente
 
 O `0.5.000` só fecha quando estes três buracos históricos forem tapados — nenhum deles jamais
-foi exercido na vida do projeto:
+havia sido exercido na vida do projeto. **Situação em 2026-07-21 (pós-deploy):**
 
-- **O caminho de instalação** nunca foi rodado numa VPS real (só documentado).
-- **A câmera** nunca funcionou de verdade (exige HTTPS; impossível testar em rede local).
-- **Nenhuma chamada real de IA jamais aconteceu** — `advisor_reports` tem 0 linhas na base
-  real, e os planos 012/017 registram que os smokes de IA foram pulados por falta de chave.
-  Testes mockam, QA semeia dados falsos. O conselheiro nunca respondeu de verdade.
+- ✅ **O caminho de instalação** foi rodado numa VPS real (Debian + CloudPanel, coexistindo com
+  o app antigo). Rendeu correções no `DEPLOY.md` e três armadilhas documentadas (porta, seed
+  one-shot do admin, aspas na senha).
+- ⏳ **A câmera** ainda **não** foi validada — exige HTTPS num celular real. **Único item em
+  aberto do `0.5.000`.**
+- ✅ **A primeira chamada real de IA aconteceu** — o Conselheiro respondeu uma consulta de
+  verdade (Gemini) numa carreira real. `advisor_reports` deixou de ter 0 linhas. (O primeiro
+  uso também expôs um bug de resiliência a navegação — ver [`STATUS.md`](STATUS.md) §3.5-bug.)
 
 ---
 

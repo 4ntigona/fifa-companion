@@ -1,7 +1,7 @@
 {
   "name": "fifa-companion",
   "private": true,
-  "version": "0.4.000",
+  "version": "0.5.000",
   "workspaces": [
     "server",
     "web"
